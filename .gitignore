@@ -1,0 +1,14 @@
+# venv
+.venv/
+
+# python build/artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# tooling
+.DS_Store
