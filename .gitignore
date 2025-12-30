@@ -7,3 +7,4 @@ build/
 .venv/
 _state/
 .DS_Store
+audiomason_skeleton.zip
