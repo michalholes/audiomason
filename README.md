@@ -3,8 +3,8 @@
 AudioMason is a deterministic, ASCII-only CLI tool for importing, normalizing,
 splitting, tagging, and organizing audiobooks on Linux systems.
 
-It replaces a large monolithic import script with a maintainable, testable,
-and CI-verified tool.
+AudioMason is intentionally boring, predictable, and safe.
+That is a feature.
 
 ---
 
