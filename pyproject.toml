@@ -16,8 +16,4 @@ dependencies = [
 audiomason = "audiomason.cli:main"
 
 [tool.setuptools]
-package-dir = {"" = "."}
-
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["audiomason*"]
+packages = ["audiomason"]
