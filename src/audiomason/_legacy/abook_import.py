@@ -55,27 +55,7 @@ from audiomason.util import (
 
 # ===================== IGNORE =====================
 
-def load_ignore() -> set[str]:
-    if not IGNORE_FILE.exists():
-        return set()
-    return {
-        line.strip()
-        for line in IGNORE_FILE.read_text(encoding="utf-8", errors="ignore").splitlines()
-        if line.strip() and not line.strip().startswith("#")
-    }
-
-def add_ignore(name: str):
-    key = slug(name)
-    if not key:
-        return
-    if key in load_ignore():
-        return
-    if OPTS.dry_run:
-        out(f"[dry-run] would ignore source: {key}")
-        return
-    with IGNORE_FILE.open("a", encoding="utf-8") as f:
-        f.write(key + "\n")
-    out(f"[ignore] added {key}")
+from audiomason.ignore import load_ignore, add_ignore
 
 # ===================== ARCHIVES =====================
 
