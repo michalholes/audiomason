@@ -1,4 +1,3 @@
-pi@michal:~/src/audiomason $ cat /mnt/data/fff.txt 
 #!/usr/bin/env python3
 from __future__ import annotations
 
@@ -864,6 +863,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-pi@michal:~/src/audiomason $ 
-
