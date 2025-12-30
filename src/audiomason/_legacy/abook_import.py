@@ -67,29 +67,14 @@ from audiomason.rename import extract_track_num, natural_sort, rename_sequential
 
 # ===================== ffprobe helpers =====================
 
-def ffprobe_json(path: Path) -> dict:
-    if not shutil.which("ffprobe"):
-        die("ffprobe not found (install ffmpeg package: sudo apt-get install -y ffmpeg)")
-    cmd = [
-        "ffprobe",
-        "-v", "error",
-        "-print_format", "json",
-        "-show_format",
-        "-show_streams",
-        "-show_chapters",
-        str(path),
-    ]
-    if OPTS.dry_run:
-        out("[dry-run] " + " ".join(cmd))
-        return {}
-    p = subprocess.run(cmd, check=True, stdout=subprocess.PIPE)
-    return json.loads(p.stdout.decode("utf-8", errors="ignore") or "{}")
-
-def m4a_chapters(path: Path) -> list[dict]:
-    data = ffprobe_json(path)
-    ch = data.get("chapters") or []
-    out(f"[chapters] {path.name}: {len(ch)} chapter(s)")
-    return ch
+from audiomason.audio import (
+    ffprobe_json,
+    m4a_chapters,
+    ffmpeg_common_input,
+    m4a_to_mp3_single,
+    m4a_split_by_chapters,
+    convert_m4a_in_place,
+)
 
 # ===================== COVER (embedded / file / URL / from M4A) =====================
 
