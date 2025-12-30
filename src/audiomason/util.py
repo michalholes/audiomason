@@ -64,6 +64,7 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
         return s
     except KeyboardInterrupt:
         out("\n[skip]")
+        raise
         return default or ""
 
 
