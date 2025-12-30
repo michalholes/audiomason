@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+
+from audiomason.archives import peek_archive_hint
+
 from pathlib import Path
 
 import audiomason.state as state
@@ -28,15 +31,27 @@ from audiomason.tags import write_tags
 
 
 def _list_sources(inbox: Path) -> list[Path]:
-    ensure_dir(inbox)
-    return sorted(
-        p for p in inbox.iterdir()
-        if p.is_file()
-        and not p.name.startswith(".")
-        and p.suffix.lower() in ARCHIVE_EXTS
-    )
+    items: list[Path] = []
+    if not inbox.exists():
+        return items
+
+    # 1) Directories (top-level)
+    for p in sorted(inbox.iterdir(), key=lambda x: x.name.lower()):
+        if p.is_dir():
+            if p.name.startswith("."):
+                continue
+            items.append(p)
+
+    # 2) Archives (top-level)
+    exts = {".rar", ".zip", ".7z"}
+    for p in sorted(inbox.iterdir(), key=lambda x: x.name.lower()):
+        if p.is_file() and p.suffix.lower() in exts:
+            items.append(p)
+
+    return items
 
 
+<<<<<<< HEAD
 def _guess_author_book(stem: str) -> tuple[str, str]:
     # Heuristics: "Author - Book", "Author.Book", "Author_Book"
     s = stem.replace("_", " ").strip()
@@ -196,3 +211,5 @@ def run_import() -> None:
                 prune_empty_dirs(stage.parent, STAGE_ROOT)
             except Exception:
                 pass
+=======
+>>>>>>> f9d0b86 (Fix: move future annotations import to top of import_flow)
