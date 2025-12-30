@@ -31,10 +31,12 @@ from audiomason.tags import write_tags
 
 def _list_sources(inbox: Path) -> list[Path]:
     ensure_dir(inbox)
+    stage_root = STAGE_ROOT.resolve()
     return sorted(
         (
             p for p in inbox.iterdir()
             if not p.name.startswith(".")
+            and p.resolve() != stage_root
             and (
                 p.is_dir()
                 or (p.is_file() and p.suffix.lower() in ARCHIVE_EXTS)
