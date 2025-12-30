@@ -3,42 +3,115 @@ from __future__ import annotations
 from pathlib import Path
 
 from audiomason.state import OPTS
-from audiomason.paths import DROP_ROOT, STAGE_ROOT, OUTPUT_ROOT, ARCHIVE_EXTS
-from audiomason.util import out, die, ensure_dir
+from audiomason.paths import (
+    DROP_ROOT,
+    STAGE_ROOT,
+    OUTPUT_ROOT,
+    ARCHIVE_ROOT,
+    ARCHIVE_EXTS,
+)
+from audiomason.util import (
+    out,
+    ensure_dir,
+    slug,
+    prompt,
+    prompt_yes_no,
+    prune_empty_dirs,
+)
 from audiomason.ignore import load_ignore, add_ignore
 from audiomason.archives import unpack
 from audiomason.audio import convert_m4a_in_place
 from audiomason.rename import natural_sort, rename_sequential
 from audiomason.covers import choose_cover
 from audiomason.tags import write_tags
-from audiomason.verify import verify_library
 
 
-def run_import() -> None:
-    inbox = DROP_ROOT
+def _list_sources(inbox: Path) -> list[Path]:
     ensure_dir(inbox)
-
-    ignore = load_ignore()
-
-    sources = sorted(
+    return sorted(
         p for p in inbox.iterdir()
         if p.is_file()
         and not p.name.startswith(".")
         and p.suffix.lower() in ARCHIVE_EXTS
     )
+
+
+def _guess_author_book(stem: str) -> tuple[str, str]:
+    # Heuristics: "Author - Book", "Author.Book", "Author_Book"
+    s = stem.replace("_", " ").strip()
+    if " - " in s:
+        a, b = s.split(" - ", 1)
+        return a.strip(), b.strip()
+    if "." in s:
+        parts = [x.strip() for x in s.split(".") if x.strip()]
+        if len(parts) >= 2:
+            return parts[0], " ".join(parts[1:])
+    return s, s
+
+
+def _pick_sources_interactive(sources: list[Path]) -> list[Path]:
     if not sources:
-        out("[inbox] empty")
+        return []
+    out("[inbox] sources:")
+    for i, p in enumerate(sources, 1):
+        out(f"  {i}) {p.name}")
+
+    ans = prompt("Choose source number, or 'a' for all", "1").strip().lower()
+    if ans in {"a", "all"}:
+        return sources
+
+    try:
+        idx = int(ans)
+        if 1 <= idx <= len(sources):
+            return [sources[idx - 1]]
+    except ValueError:
+        pass
+
+    out("[pick] invalid choice -> using 1")
+    return [sources[0]]
+
+
+def _decide_publish() -> bool:
+    # OPTS.publish: True/False/None(ask)
+    if OPTS is None:
+        return False
+    if OPTS.publish is True:
+        return True
+    if OPTS.publish is False:
+        return False
+    # ask
+    return prompt_yes_no("Publish to archive (/mnt/warez/abooks)?", default_no=False)
+
+
+def run_import() -> None:
+    if OPTS is None:
+        raise SystemExit(2)
+
+    inbox = DROP_ROOT
+    ignore = load_ignore()
+
+    sources = _list_sources(inbox)
+    if not sources:
+        out("[inbox] empty (no .rar/.zip/.7z)")
         return
 
-    for src in sources:
+    chosen = _pick_sources_interactive(sources)
+
+    for src in chosen:
         key = src.stem
-        if key in ignore:
+        if slug(key) in ignore:
             out(f"[skip] ignored: {src.name}")
             continue
 
         out(f"[import] {src.name}")
 
-        stage = STAGE_ROOT / key
+        # Ask author/book (defaults guessed from filename)
+        guess_a, guess_b = _guess_author_book(key)
+        author = prompt("Author", guess_a).strip() or guess_a
+        book = prompt("Book", guess_b).strip() or guess_b
+
+        book_key = f"{slug(author)}.{slug(book)}"
+        stage = STAGE_ROOT / book_key
         ensure_dir(stage)
 
         try:
@@ -52,34 +125,67 @@ def run_import() -> None:
 
         mp3s = natural_sort(list(stage.rglob("*.mp3")))
         if not mp3s:
-            out("[skip] no mp3 found")
+            out("[skip] no mp3 found after unpack/convert")
             continue
 
-        mp3s = rename_sequential(mp3s[0].parent, mp3s)
+        # Rename sequential in the mp3 folder
+        mp3dir = mp3s[0].parent
+        mp3s = rename_sequential(mp3dir, mp3s)
 
-        bookdir = OUTPUT_ROOT / key
-        ensure_dir(bookdir)
-
+        # Choose cover (embedded/file/url prompt)
+        m4as = sorted(stage.rglob("*.m4a"))
         cover = choose_cover(
-            mp3_first=mp3s[0],
-            m4a_source=None,
-            bookdir=bookdir,
+            mp3_first=mp3s[0] if mp3s else None,
+            m4a_source=m4as[0] if m4as else None,
+            bookdir=mp3dir,          # cover will be written here first if needed
             stage_root=stage,
-            group_root=stage,
+            group_root=mp3dir,
         )
+        cover_bytes = cover[0] if cover else None
+        cover_mime = cover[1] if cover else None
 
+        # Write tags
         write_tags(
             mp3s,
-            artist=key,
-            album=key,
-            cover=cover[0] if cover else None,
-            cover_mime=cover[1] if cover else None,
+            artist=author,
+            album=book,
+            cover=cover_bytes,
+            cover_mime=cover_mime,
+            track_start=1,
         )
 
+        # Move to output + optionally publish
+        target_root = ARCHIVE_ROOT if _decide_publish() else OUTPUT_ROOT
+        ensure_dir(target_root)
+        bookdir_out = target_root / book_key
+        ensure_dir(bookdir_out)
+
         for mp3 in mp3s:
-            mp3.rename(bookdir / mp3.name)
+            mp3.rename(bookdir_out / mp3.name)
 
-        out(f"[done] {key}")
+        # Also move cover.jpg if it exists in mp3dir
+        cov = mp3dir / "cover.jpg"
+        if cov.exists():
+            cov.rename(bookdir_out / "cover.jpg")
 
-    if OPTS.verify:
-        verify_library(OUTPUT_ROOT)
+        out(f"[done] {book_key} -> {bookdir_out}")
+
+        # Cleanup stage if enabled
+        if OPTS.cleanup_stage and not OPTS.dry_run:
+            try:
+                # remove stage dir if empty-ish
+                for p in sorted(stage.rglob("*"), reverse=True):
+                    if p.is_file():
+                        p.unlink(missing_ok=True)
+                    elif p.is_dir():
+                        try:
+                            p.rmdir()
+                        except OSError:
+                            pass
+                try:
+                    stage.rmdir()
+                except OSError:
+                    pass
+                prune_empty_dirs(stage.parent, STAGE_ROOT)
+            except Exception:
+                pass
