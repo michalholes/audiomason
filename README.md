@@ -147,6 +147,38 @@ CONSTRAINTS
 - No background processing
 
 
+
+NAMING RULES (v1.0.0 – strict)
+
+The following rules are intentional and enforced to ensure long-term
+stability, readability, and deterministic structure.
+
+Directories and filenames:
+- ASCII characters only
+- Spaces are allowed
+- Underscores (_) are allowed
+- No diacritics
+- No special characters
+- No automatic replacement of spaces with underscores
+
+Author directory format:
+- Always: Surname.Name
+- A single dot separates surname and given name
+- No spaces in author names
+
+Examples:
+  Dan.Brown/
+  Dominik.Dan/
+  Jo.Nesbo/
+
+Book directories:
+- Human-readable names
+- Spaces are allowed
+- Dots only if they are part of the official title
+
+These rules are not configurable in v1.0.0.
+
+
 REPOSITORY LAYOUT
 
 src/audiomason/
