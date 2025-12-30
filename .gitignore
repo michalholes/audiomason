@@ -1,14 +1,9 @@
-# venv
-.venv/
-
-# python build/artifacts
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
 *.egg-info/
 dist/
 build/
-
-# tooling
+.venv/
+_state/
 .DS_Store
