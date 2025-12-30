@@ -12,6 +12,9 @@ dependencies = [
   "mutagen>=1.47.0",
 ]
 
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+
 [project.scripts]
 audiomason = "audiomason.cli:main"
 
