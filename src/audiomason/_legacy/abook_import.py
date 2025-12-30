@@ -35,23 +35,7 @@ from audiomason.paths import (
 
 # ===================== CLI / STATE =====================
 
-@dataclass
-class Opts:
-    yes: bool
-    dry_run: bool
-    quiet: bool
-    publish: Optional[bool]          # None => ask unless --yes, else True/False
-    loudnorm: bool
-    q_a: str
-    verify: bool
-    verify_root: Path
-    lookup: bool
-    cleanup_stage: bool
-    split_chapters: bool
-    ff_loglevel: str                # warning | error | info
-
-OPTS: Opts
-
+from audiomason.state import Opts, OPTS
 # ===================== UTIL =====================
 
 def out(msg: str):
@@ -853,9 +837,8 @@ def parse_args() -> Opts:
     )
 
 def main():
-    global OPTS
-    OPTS = parse_args()
-
+    import audiomason.state as _state
+    _state.OPTS = parse_args()
     if OPTS.verify:
         rc = verify_library(OPTS.verify_root)
         raise SystemExit(rc)
