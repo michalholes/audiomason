@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "audiomason"
-version = "0.1.0"
+version = "1.0.0"
 description = "Deterministic ASCII-only CLI for importing/normalizing/tagging audiobooks"
 requires-python = ">=3.11"
 dependencies = [
@@ -16,4 +16,7 @@ dependencies = [
 audiomason = "audiomason.cli:main"
 
 [tool.setuptools]
-packages = ["audiomason"]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
