@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+READ_ONLY_VERIFY = True
+
+
+
 from pathlib import Path
 
 from mutagen.id3 import ID3, ID3NoHeaderError
