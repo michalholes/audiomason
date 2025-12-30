@@ -270,42 +270,7 @@ def publish_one(src_ready: Path, dest: Path):
 
 # ===================== VERIFY MODE =====================
 
-def verify_library(root: Path) -> int:
-    root = root.resolve()
-    if not root.exists():
-        die(f"verify root not found: {root}")
-
-    problems = 0
-    for author_dir in sorted([p for p in root.iterdir() if p.is_dir()]):
-        for book_dir in sorted([p for p in author_dir.iterdir() if p.is_dir()]):
-            mp3s = sorted(book_dir.glob("*.mp3"))
-            if not mp3s:
-                continue
-
-            cover_file = book_dir / COVER_NAME
-            if not cover_file.exists():
-                problems += 1
-                print(f"[verify][NO_COVER_FILE] {author_dir.name}/{book_dir.name}")
-
-            emb = extract_embedded_cover_from_mp3(mp3s[0])
-            if not emb:
-                problems += 1
-                print(f"[verify][NO_EMBEDDED_COVER] {author_dir.name}/{book_dir.name}")
-
-            try:
-                id3 = ID3(mp3s[0])
-                need = ["TPE1", "TALB", "TIT2", "TRCK"]
-                for t in need:
-                    if t not in id3:
-                        problems += 1
-                        print(f"[verify][MISSING_{t}] {author_dir.name}/{book_dir.name}")
-                        break
-            except Exception:
-                problems += 1
-                print(f"[verify][BAD_ID3] {author_dir.name}/{book_dir.name}")
-
-    print(f"[verify] done. problems={problems}")
-    return 0 if problems == 0 else 1
+from audiomason.verify import verify_library
 
 # ===================== MAIN IMPORT =====================
 
