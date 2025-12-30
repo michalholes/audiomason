@@ -1,25 +1,42 @@
 from __future__ import annotations
-
-import os
 from pathlib import Path
-from typing import Any, Dict
+import yaml
 
-try:
-    import tomllib  # py3.11+
-except Exception:  # pragma: no cover
-    tomllib = None
+DEFAULTS = {
+    "paths": {
+        "inbox": "/mnt/warez/abooksinbox",
+        "stage": "/mnt/warez/_am_stage",
+        "ready": "/mnt/warez/_am_ready",
+        "archive_ro": "/mnt/warez/abooks",
+    },
+    "publish": "ask",
+    "ffmpeg": {
+        "loglevel": "warning",
+        "loudnorm": False,
+        "q_a": "2",
+    },
+}
 
+SYSTEM_CONFIG = Path("/etc/audiomason/config.yaml")
+USER_CONFIG = Path.home() / ".config/audiomason/config.yaml"
 
-CONFIG_PATH = Path(os.environ.get("XDG_CONFIG_HOME", "~/.config")).expanduser() / "audiomason" / "config.toml"
+def _deep_merge(a: dict, b: dict) -> dict:
+    out = dict(a)
+    for k, v in (b or {}).items():
+        if isinstance(v, dict) and isinstance(out.get(k), dict):
+            out[k] = _deep_merge(out[k], v)
+        else:
+            out[k] = v
+    return out
 
-
-def load_config() -> Dict[str, Any]:
-    if tomllib is None:
+def _load_yaml(p: Path) -> dict:
+    if not p.exists():
         return {}
-    if not CONFIG_PATH.exists():
-        return {}
-    try:
-        with CONFIG_PATH.open("rb") as f:
-            return tomllib.load(f)
-    except Exception:
-        return {}
+    with p.open("r", encoding="utf-8") as f:
+        return yaml.safe_load(f) or {}
+
+def load_config() -> dict:
+    cfg = DEFAULTS
+    cfg = _deep_merge(cfg, _load_yaml(SYSTEM_CONFIG))
+    cfg = _deep_merge(cfg, _load_yaml(USER_CONFIG))
+    return cfg
