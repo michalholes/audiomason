@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from audiomason.config import load_config
 import os
 from pathlib import Path
 
-_ROOT = os.environ.get("AUDIOMASON_ROOT")
+cfg = load_config()
+_root_cfg = cfg.get("paths", {}).get("root")
+_ROOT = os.environ.get("AUDIOMASON_ROOT") or _root_cfg
 ROOT = Path(_ROOT).expanduser().resolve() if _ROOT else None
 
 def _p(default: str, under: str) -> Path:
