@@ -47,7 +47,7 @@ def _parse_args() -> argparse.Namespace:
     )
     ap.add_argument("--version", action="store_true", help="show version and exit")
 
-    sub = ap.add_subparsers(dest="cmd", required=False)
+    sub = ap.add_subparsers(dest="cmd")
     sub.add_parser("import", help="import audiobooks from inbox", parents=[parent])
 
     v = sub.add_parser("verify", help="verify audiobook library", parents=[parent])
