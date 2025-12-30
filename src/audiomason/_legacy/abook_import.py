@@ -20,17 +20,18 @@ from mutagen.id3 import (
 
 # ===================== PATHS =====================
 
-ARCHIVE_ROOT = Path("/mnt/warez/abooks")      # publish target (optional)
-DROP_ROOT    = Path("/mnt/warez/abooksinbox")
-STAGE_ROOT   = DROP_ROOT / "stage"
-IGNORE_FILE  = DROP_ROOT / ".abook_ignore"
-OUTPUT_ROOT  = Path("/mnt/warez/abooks_ready")
-CACHE_ROOT   = DROP_ROOT / ".cover_cache"
-
-ARCHIVE_EXTS = {".rar", ".zip", ".7z"}
-COVER_NAME   = "cover.jpg"
-GENRE        = "Audiobook"
-TITLE_PREFIX = "Kapitola"
+from audiomason.paths import (
+    ARCHIVE_ROOT,
+    DROP_ROOT,
+    STAGE_ROOT,
+    IGNORE_FILE,
+    OUTPUT_ROOT,
+    CACHE_ROOT,
+    ARCHIVE_EXTS,
+    COVER_NAME,
+    GENRE,
+    TITLE_PREFIX,
+)
 
 # ===================== CLI / STATE =====================
 
