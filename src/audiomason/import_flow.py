@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+from dataclasses import dataclass
+import subprocess
 
 import audiomason.state as state
 from audiomason.paths import (
@@ -99,15 +101,29 @@ def run_import() -> None:
     chosen = _pick_sources_interactive(sources)
 
     for src in chosen:
-        key = src.stem
+        # Unified source key (archive and directory behave the same)
+        peek = peek_source(src)
+        source_key = (
+            peek.top_level_name
+            if peek.has_single_root and peek.top_level_name
+            else src.stem if src.is_file() else src.name
+        )
+        key = source_key
         if slug(key) in ignore:
             out(f"[skip] ignored: {src.name}")
             continue
 
         out(f"[import] {src.name}")
 
-        # Ask author/book (defaults guessed from filename)
-        guess_a, guess_b = _guess_author_book(key)
+        # Ask author/book (defaults guessed from source shape)
+        peek = peek_source(src)
+        name_for_guess = (
+            peek.top_level_name
+            if peek.has_single_root and peek.top_level_name
+            else key
+        )
+        guess_a, guess_b = _guess_author_book(name_for_guess)
+
         # archive-first defaults: try to match an existing book in archive_ro before prompting
         archive_ro = cfg.get("paths", {}).get("archive_ro", "")
         am_a, am_b = find_archive_match(archive_ro, guess_a, guess_b)
@@ -118,7 +134,7 @@ def run_import() -> None:
         book = prompt("Book", guess_b).strip() or guess_b
 
         book_key = f"{slug(author)}.{slug(book)}"
-        stage = STAGE_ROOT / book_key
+        stage = STAGE_ROOT / slug(source_key)
         ensure_dir(stage)
 
         try:

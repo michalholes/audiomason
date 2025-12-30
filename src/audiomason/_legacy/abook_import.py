@@ -219,6 +219,46 @@ def cleanup_title(title: str) -> str:
     t = re.sub(r"\s+", " ", t).strip(" -_")
     return t
 
+def peek_archive_topdir(src: Path) -> str | None:
+    """
+    List archive contents WITHOUT extracting and return a single top-level folder name when possible.
+    Uses: 7z l -slt
+    """
+    import subprocess
+
+    if src.suffix.lower() not in (".rar", ".zip", ".7z"):
+        return None
+
+    try:
+        r = subprocess.run(
+            ["7z", "l", "-slt", str(src)],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+    except FileNotFoundError:
+        return None
+
+    if r.returncode != 0:
+        return None
+
+    tops: list[str] = []
+    for line in r.stdout.splitlines():
+        if line.startswith("Path = "):
+            val = line.split("Path = ", 1)[1].strip().lstrip("./")
+            if not val:
+                continue
+            top = val.split("/", 1)[0]
+            if top and top not in (".", ".."):
+                tops.append(top)
+
+    if not tops:
+        return None
+
+    uniq = list(dict.fromkeys(tops))
+    return uniq[0] if len(uniq) == 1 else None
+
 def guess_author_book(source_name: str, group_name: str) -> Tuple[Optional[str], Optional[str]]:
     name = group_name if group_name != "_ROOT_" else source_name
     raw = clean_text(name)
@@ -342,7 +382,12 @@ def main_import():
         files = list(files)
         print(f"\n[BOOK {idx}/{len(groups)}] {gname} ({len(files)} tracks)")
 
-        sug_author, sug_book = guess_author_book(src.name, gname)
+        peek = peek_archive_topdir(src)
+
+        gname2 = peek if peek else gname
+
+        sug_author, sug_book = guess_author_book(src.name, gname2)
+
         out("Author format: Surname.Name (ASCII only)")
         out("Examples: Adams.Douglas | Coelho.Paulo | Dan.Dominik")
 
