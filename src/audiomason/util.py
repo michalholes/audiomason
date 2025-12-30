@@ -95,3 +95,73 @@ def prune_empty_dirs(start: Path, stop_at: Path) -> None:
 
 def is_url(s: str) -> bool:
     return bool(re.match(r"^https?://", s.strip(), flags=re.I))
+
+
+def find_archive_match(archive_ro: str, author_hint: str, book_hint: str):
+    """
+    Best-effort lookup in archive_ro for an existing book.
+    Returns (author_dirname, book_dirname) if exactly one strong match is found,
+    otherwise (None, None).
+
+    Matching is conservative: ignore very short hints to avoid false positives.
+    """
+    from pathlib import Path
+
+    if not archive_ro:
+        return (None, None)
+
+    root = Path(archive_ro)
+    if not root.exists():
+        return (None, None)
+
+    a = (author_hint or "").strip()
+    b = (book_hint or "").strip()
+
+    # Too short hints are ambiguous (e.g. "sp")
+    if len(b) < 4 and len(a) < 4:
+        return (None, None)
+
+    a_slug = slug(a).lower() if a else ""
+    b_slug = slug(b).lower() if b else ""
+
+    hits = []
+
+    for author_dir in root.iterdir():
+        if not author_dir.is_dir():
+            continue
+
+        # if author hint exists, require author match
+        if a_slug and slug(author_dir.name).lower() != a_slug and a_slug not in slug(author_dir.name).lower():
+            continue
+
+        for book_dir in author_dir.iterdir():
+            if not book_dir.is_dir():
+                continue
+            bd = book_dir.name
+            bd_slug = slug(bd).lower()
+
+            if b_slug:
+                if bd_slug == b_slug:
+                    hits.append((author_dir.name, book_dir.name, 2))
+                elif b_slug in bd_slug:
+                    hits.append((author_dir.name, book_dir.name, 1))
+            else:
+                # no book hint: don't guess
+                continue
+
+    # prefer exact match
+    exact = [(a,b) for a,b,score in hits if score == 2]
+    if len(exact) == 1:
+        return exact[0]
+
+    # if only one fuzzy hit overall, accept
+    uniq = []
+    seen = set()
+    for a,b,_ in hits:
+        if (a,b) not in seen:
+            seen.add((a,b))
+            uniq.append((a,b))
+    if len(uniq) == 1:
+        return uniq[0]
+
+    return (None, None)

@@ -11,6 +11,7 @@ from audiomason.paths import (
     ARCHIVE_EXTS,
 )
 from audiomason.util import (
+    find_archive_match,
     out,
     ensure_dir,
     slug,
@@ -107,6 +108,12 @@ def run_import() -> None:
 
         # Ask author/book (defaults guessed from filename)
         guess_a, guess_b = _guess_author_book(key)
+        # archive-first defaults: try to match an existing book in archive_ro before prompting
+        archive_ro = cfg.get("paths", {}).get("archive_ro", "")
+        am_a, am_b = find_archive_match(archive_ro, guess_a, guess_b)
+        if am_a and am_b:
+            guess_a, guess_b = am_a, am_b
+
         author = prompt("Author", guess_a).strip() or guess_a
         book = prompt("Book", guess_b).strip() or guess_b
 
