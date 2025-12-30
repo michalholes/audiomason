@@ -34,6 +34,14 @@ Optional convenience wrapper (repo-local):
 ./am --help
 
 
+
+INSTALLATION
+
+- Local / development install: see INSTALL.md
+- System-wide (read-only) install: see INSTALL-SYSTEM.md
+
+
+
 USAGE
 
 Default command (implicit import):
