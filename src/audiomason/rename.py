@@ -5,20 +5,35 @@ from pathlib import Path
 from typing import Optional
 
 
+_LEADING = re.compile(r"^\s*(\d{1,4})\b")
+_ANYWHERE = re.compile(r"(\d{1,4})")
+_TRACKISH = re.compile(r"\b(?:track|chapter|kapitola)\s*[_-]?\s*(\d{1,4})\b", re.I)
+
+
 def extract_track_num(name: str) -> Optional[int]:
-    m = re.search(r"(?:^|\\D)(\\d{1,4})(?:\\D|$)", name)
-    return int(m.group(1)) if m else None
+    base = Path(name).stem
+
+    m = _LEADING.search(base)
+    if m:
+        return int(m.group(1))
+
+    m = _TRACKISH.search(base)
+    if m:
+        return int(m.group(1))
+
+    m = _ANYWHERE.search(base)
+    if m:
+        return int(m.group(1))
+
+    return None
 
 
 def natural_sort(files: list[Path]) -> list[Path]:
-    return sorted(
-        files,
-        key=lambda p: (
-            extract_track_num(p.name) is None,
-            extract_track_num(p.name) or 0,
-            p.name.lower(),
-        ),
-    )
+    def key(p: Path):
+        n = extract_track_num(p.name)
+        return (n is None, n or 0, p.name.lower())
+
+    return sorted(files, key=key)
 
 
 def rename_sequential(mp3dir: Path, files: list[Path]) -> list[Path]:
