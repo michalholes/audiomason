@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from audiomason.state import OPTS
-from audiomason.paths import DROP_ROOT, STAGE_ROOT, OUTPUT_ROOT
+from audiomason.paths import DROP_ROOT, STAGE_ROOT, OUTPUT_ROOT, ARCHIVE_EXTS
 from audiomason.util import out, die, ensure_dir
 from audiomason.ignore import load_ignore, add_ignore
 from audiomason.archives import unpack
@@ -20,7 +20,12 @@ def run_import() -> None:
 
     ignore = load_ignore()
 
-    sources = sorted(p for p in inbox.iterdir() if p.is_file())
+    sources = sorted(
+        p for p in inbox.iterdir()
+        if p.is_file()
+        and not p.name.startswith(".")
+        and p.suffix.lower() in ARCHIVE_EXTS
+    )
     if not sources:
         out("[inbox] empty")
         return
