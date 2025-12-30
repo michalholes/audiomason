@@ -32,10 +32,15 @@ from audiomason.tags import write_tags
 def _list_sources(inbox: Path) -> list[Path]:
     ensure_dir(inbox)
     return sorted(
-        p for p in inbox.iterdir()
-        if p.is_file()
-        and not p.name.startswith(".")
-        and p.suffix.lower() in ARCHIVE_EXTS
+        (
+            p for p in inbox.iterdir()
+            if not p.name.startswith(".")
+            and (
+                p.is_dir()
+                or (p.is_file() and p.suffix.lower() in ARCHIVE_EXTS)
+            )
+        ),
+        key=lambda p: p.name.lower(),
     )
 
 
