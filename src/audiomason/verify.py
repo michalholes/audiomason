@@ -1,0 +1,1 @@
+"""Library verification (placeholder)."""

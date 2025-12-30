@@ -1,0 +1,1 @@
+"""Cover extraction/selection (placeholder)."""

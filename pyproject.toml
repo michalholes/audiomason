@@ -1,0 +1,13 @@
+[project]
+name = "audiomason"
+version = "0.1.0"
+description = "Audiobook import/normalize CLI (skeleton; legacy runner included)"
+requires-python = ">=3.10"
+dependencies = ["mutagen"]
+
+[project.scripts]
+audiomason = "audiomason.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
