@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from audiomason.state import OPTS
+import audiomason.state as state
 from audiomason.paths import (
     DROP_ROOT,
     STAGE_ROOT,
@@ -72,19 +72,19 @@ def _pick_sources_interactive(sources: list[Path]) -> list[Path]:
 
 
 def _decide_publish() -> bool:
-    # OPTS.publish: True/False/None(ask)
-    if OPTS is None:
+    # state.OPTS.publish: True/False/None(ask)
+    if state.OPTS is None:
         return False
-    if OPTS.publish is True:
+    if state.OPTS.publish is True:
         return True
-    if OPTS.publish is False:
+    if state.OPTS.publish is False:
         return False
     # ask
     return prompt_yes_no("Publish to archive (/mnt/warez/abooks)?", default_no=False)
 
 
 def run_import() -> None:
-    if OPTS is None:
+    if state.OPTS is None:
         raise SystemExit(2)
 
     inbox = DROP_ROOT
@@ -171,7 +171,7 @@ def run_import() -> None:
         out(f"[done] {book_key} -> {bookdir_out}")
 
         # Cleanup stage if enabled
-        if OPTS.cleanup_stage and not OPTS.dry_run:
+        if state.OPTS.cleanup_stage and not state.OPTS.dry_run:
             try:
                 # remove stage dir if empty-ish
                 for p in sorted(stage.rglob("*"), reverse=True):

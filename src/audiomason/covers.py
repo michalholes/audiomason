@@ -9,7 +9,7 @@ from typing import Optional, Tuple
 from mutagen.id3 import ID3, ID3NoHeaderError, APIC
 
 from audiomason.paths import CACHE_ROOT, COVER_NAME
-from audiomason.state import OPTS
+import audiomason.state as state
 from audiomason.util import out, die, ensure_dir, is_url, prompt
 
 
@@ -39,7 +39,7 @@ def convert_image_to_jpg(src: Path, dst: Path) -> bytes:
         "-pix_fmt", "yuv420p",
         str(dst),
     ]
-    if OPTS and OPTS.dry_run:
+    if state.OPTS and state.OPTS.dry_run:
         out("[dry-run] " + " ".join(cmd))
         return b""
     subprocess.run(cmd, check=True)
@@ -52,7 +52,7 @@ def _sha1(s: str) -> str:
 
 def download_url(url: str, outpath: Path) -> None:
     ensure_dir(outpath.parent)
-    if OPTS and OPTS.dry_run:
+    if state.OPTS and state.OPTS.dry_run:
         out(f"[dry-run] would download: {url} -> {outpath}")
         return
     if shutil.which("curl"):
@@ -113,7 +113,7 @@ def extract_cover_from_m4a(m4a: Path, bookdir: Path) -> Optional[Tuple[bytes, st
         "-pix_fmt", "yuv420p",
         str(dst),
     ]
-    if OPTS and OPTS.dry_run:
+    if state.OPTS and state.OPTS.dry_run:
         out("[dry-run] " + " ".join(cmd))
         return None
     try:
@@ -136,7 +136,7 @@ def choose_cover(
     file_cover = find_file_cover(stage_root, group_root)
     embedded = extract_embedded_cover_from_mp3(mp3_first) if mp3_first else None
 
-    if embedded and file_cover and not (OPTS and OPTS.yes):
+    if embedded and file_cover and not (state.OPTS and state.OPTS.yes):
         print("Cover options found:")
         print("  1) embedded cover from audio")
         print(f"  2) {file_cover.name} (preferred)")
@@ -147,7 +147,7 @@ def choose_cover(
             return None
         if ans == "1":
             data, mime = embedded
-            if not (OPTS and OPTS.dry_run):
+            if not (state.OPTS and state.OPTS.dry_run):
                 (bookdir / COVER_NAME).write_bytes(data)
             out("[cover] used embedded cover")
             return data, mime
@@ -156,8 +156,8 @@ def choose_cover(
         dst = bookdir / COVER_NAME
         ext = file_cover.suffix.lower()
         if ext in {".jpg", ".jpeg"}:
-            data = file_cover.read_bytes() if not (OPTS and OPTS.dry_run) else b""
-            if not (OPTS and OPTS.dry_run):
+            data = file_cover.read_bytes() if not (state.OPTS and state.OPTS.dry_run) else b""
+            if not (state.OPTS and state.OPTS.dry_run):
                 dst.write_bytes(data)
             out(f"[cover] used {file_cover.name}")
             return data, "image/jpeg"
@@ -167,7 +167,7 @@ def choose_cover(
 
     if embedded:
         data, mime = embedded
-        if not (OPTS and OPTS.dry_run):
+        if not (state.OPTS and state.OPTS.dry_run):
             (bookdir / COVER_NAME).write_bytes(data)
         out("[cover] used embedded cover")
         return data, mime
@@ -188,8 +188,8 @@ def choose_cover(
     dst = bookdir / COVER_NAME
     ext = img.suffix.lower()
     if ext in {".jpg", ".jpeg"}:
-        data = img.read_bytes() if not (OPTS and OPTS.dry_run) else b""
-        if not (OPTS and OPTS.dry_run):
+        data = img.read_bytes() if not (state.OPTS and state.OPTS.dry_run) else b""
+        if not (state.OPTS and state.OPTS.dry_run):
             dst.write_bytes(data)
         out("[cover] saved cover.jpg")
         return data, "image/jpeg"

@@ -5,7 +5,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from audiomason.state import OPTS
+import audiomason.state as state
 from audiomason.util import out, die, ensure_dir
 
 
@@ -21,7 +21,7 @@ def ffprobe_json(path: Path) -> dict:
         "-show_chapters",
         str(path),
     ]
-    if OPTS and OPTS.dry_run:
+    if state.OPTS and state.OPTS.dry_run:
         out("[dry-run] " + " ".join(cmd))
         return {}
     p = subprocess.run(cmd, check=True, stdout=subprocess.PIPE)
@@ -36,17 +36,17 @@ def m4a_chapters(path: Path) -> list[dict]:
 
 
 def ffmpeg_common_input() -> list[str]:
-    return ["-hide_banner", "-nostdin", "-stats", "-loglevel", OPTS.ff_loglevel]
+    return ["-hide_banner", "-nostdin", "-stats", "-loglevel", state.OPTS.ff_loglevel]
 
 
 def m4a_to_mp3_single(src: Path, dst: Path) -> None:
     if not shutil.which("ffmpeg"):
         die("ffmpeg not installed")
     cmd = ["ffmpeg"] + ffmpeg_common_input() + ["-y", "-i", str(src), "-vn"]
-    if OPTS.loudnorm:
+    if state.OPTS.loudnorm:
         cmd += ["-af", "loudnorm=I=-16:LRA=11:TP=-1.5"]
-    cmd += ["-codec:a", "libmp3lame", "-q:a", OPTS.q_a, str(dst)]
-    if OPTS.dry_run:
+    cmd += ["-codec:a", "libmp3lame", "-q:a", state.OPTS.q_a, str(dst)]
+    if state.OPTS.dry_run:
         out("[dry-run] " + " ".join(cmd))
         return
     subprocess.run(cmd, check=True)
@@ -77,18 +77,18 @@ def m4a_split_by_chapters(src: Path, outdir: Path) -> list[Path]:
             "-ss", str(start),
             "-to", str(end),
         ]
-        if OPTS.loudnorm:
+        if state.OPTS.loudnorm:
             cmd += ["-af", "loudnorm=I=-16:LRA=11:TP=-1.5"]
-        cmd += ["-codec:a", "libmp3lame", "-q:a", OPTS.q_a, str(dst)]
+        cmd += ["-codec:a", "libmp3lame", "-q:a", state.OPTS.q_a, str(dst)]
 
-        if OPTS.dry_run:
+        if state.OPTS.dry_run:
             out("[dry-run] " + " ".join(cmd))
         else:
             subprocess.run(cmd, check=True)
 
         produced.append(dst)
 
-    if not OPTS.dry_run:
+    if not state.OPTS.dry_run:
         produced = [p for p in produced if p.exists() and p.stat().st_size > 0]
     return produced
 
@@ -103,7 +103,7 @@ def convert_m4a_in_place(stage: Path) -> None:
     for idx, src in enumerate(m4as, 1):
         out(f"[convert] {idx}/{len(m4as)} {src.name}")
 
-        if OPTS.split_chapters:
+        if state.OPTS.split_chapters:
             produced = m4a_split_by_chapters(src, src.parent)
             if produced:
                 out(f"[convert] split produced {len(produced)} mp3")
