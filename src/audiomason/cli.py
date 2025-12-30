@@ -6,7 +6,8 @@ from typing import Any, Dict
 
 from audiomason.version import __version__
 from audiomason.config import load_config
-from audiomason.state import OPTS, Opts
+import audiomason.state as state
+from audiomason.state import Opts
 from audiomason.import_flow import run_import
 from audiomason.verify import verify_library
 from audiomason.paths import OUTPUT_ROOT
@@ -20,12 +21,13 @@ def _parent_parser(cfg: Dict[str, Any]) -> argparse.ArgumentParser:
     pp.add_argument("--yes", action="store_true", help="non-interactive")
     pp.add_argument("--dry-run", action="store_true", help="do not modify anything")
     pp.add_argument("--quiet", action="store_true", help="less output")
+    pp.add_argument("--verbose", action="store_true", help="more output (overrides --quiet)")
     pp.add_argument("--verify", action="store_true", help="verify library after import")
 
     default_verify_root = Path(paths.get("verify_root", OUTPUT_ROOT))
     pp.add_argument("--verify-root", type=Path, default=default_verify_root, help="root for --verify")
 
-    pp.add_argument("--publish", choices=["yes", "no", "ask"], default=paths.get("publish", "ask"))
+    pp.add_argument("--publish", choices=["yes", "no", "ask"], default=str(paths.get("publish", "ask")))
     pp.add_argument("--loudnorm", action="store_true", default=bool(audio.get("loudnorm", False)))
     pp.add_argument("--q-a", default=str(audio.get("q_a", "2")), help="lame VBR quality (2=high)")
     pp.add_argument("--split-chapters", dest="split_chapters", action="store_true", default=bool(audio.get("split_chapters", True)))
@@ -60,6 +62,9 @@ def _parse_args() -> argparse.Namespace:
     if not ns.cmd:
         ns.cmd = "import"
 
+    if ns.verbose:
+        ns.quiet = False
+
     return ns
 
 
@@ -82,12 +87,11 @@ def _ns_to_opts(ns: argparse.Namespace) -> Opts:
 
 
 def main() -> int:
-    global OPTS
     ns = _parse_args()
-    OPTS = _ns_to_opts(ns)
+    state.OPTS = _ns_to_opts(ns)
 
     if ns.cmd == "verify":
-        root = ns.root if ns.root is not None else OPTS.verify_root
+        root = ns.root if ns.root is not None else state.OPTS.verify_root
         verify_library(root)
         return 0
 
