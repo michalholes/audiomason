@@ -1,3 +1,15 @@
+# ============================================================
+# LEGACY REFERENCE IMPLEMENTATION (FROZEN)
+#
+# This file contains the original monolithic importer used
+# as a behavioral reference during refactors.
+#
+# DO NOT IMPORT FROM HERE.
+# DO NOT EXECUTE DIRECTLY.
+#
+# Scheduled for removal in v1.2.
+# ============================================================
+
 #!/usr/bin/env python3
 from __future__ import annotations
 
