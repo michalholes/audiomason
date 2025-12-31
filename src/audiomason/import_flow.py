@@ -481,9 +481,7 @@ def run_import(cfg: dict) -> None:
                     # OpenLibrary suggestion (author)
                     if getattr(getattr(state, 'OPTS', None), 'lookup', False):
                         ar = validate_author(author)
-                        if getattr(ar, 'ok', False):
-                            author = _ol_offer_top('author', author, ar)
-
+                        author = _ol_offer_top('author', author, ar)
         if not author:
             die("Author is required")
         update_manifest(stage_run, {"decisions": {"author": author}})
@@ -502,9 +500,7 @@ def run_import(cfg: dict) -> None:
                 # OpenLibrary suggestion (book title)
                 if getattr(getattr(state, 'OPTS', None), 'lookup', False):
                     br = validate_book(author, title)
-                    if getattr(br, 'ok', False):
-                        title = _ol_offer_top('book title', title, br)
-
+                    title = _ol_offer_top('book title', title, br)
             # cover decision (stored as mode: 'file'|'embedded'|'skip')
             default_cover_mode = str(bm.get(b.label, {}).get("cover_mode") or "").strip() if isinstance(bm, dict) else ""
             mp3s = _collect_audio_files(b.group_root)
