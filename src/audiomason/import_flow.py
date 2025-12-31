@@ -267,6 +267,19 @@ def _process_book(i: int, n: int, b: BookGroup, dest_root: Path, author: str, ti
 
     if state.OPTS.dry_run:
         out(f"[dry-run] would create: {outdir}")
+        # ISSUE #2: write human-readable dry-run summary file (per book)
+        lines = [
+            "AudioMason dry-run summary",
+            f"Author: {author}",
+            f"Title: {out_title}",
+            f"Destination root: {dest_root}",
+            f"Destination dir: {outdir}",
+            f"Overwrite: {bool(overwrite)}",
+            f"Cover mode: {cover_mode}",
+            f"Wipe ID3: {bool(wipe)}",
+        ]
+        _write_dry_run_summary(stage_run, author, out_title, lines)
+        out(f"[dry-run] wrote: {stage_run / (author + ' - ' + out_title + '.dryrun.txt')}")
         return
 
     mp3s = _copy_audio_to_out(b.group_root, outdir)
