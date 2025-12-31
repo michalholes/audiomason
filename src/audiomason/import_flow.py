@@ -157,7 +157,7 @@ def _pick_books_interactive(author_dir: Path, book_dirs: list[Path]) -> list[Pat
     return book_dirs
 
 
-def _decide_publish() -> bool:
+def _decide_publish(archive_root: Path) -> bool:
     # state.OPTS.publish: True/False/None(ask)
     if state.OPTS is None:
         return False
@@ -166,7 +166,7 @@ def _decide_publish() -> bool:
     if state.OPTS.publish is False:
         return False
     # ask
-    return prompt_yes_no(f"Publish to archive ({get_archive_root(state.CFG)})?", default_no=False)
+    return prompt_yes_no(f"Publish to archive ({archive_root})?", default_no=False)
 
 
 def run_import(cfg) -> None:
@@ -306,7 +306,7 @@ def run_import(cfg) -> None:
             )
 
             # Move to output + optionally publish
-            publish = _decide_publish()
+            publish = _decide_publish(archive_root)
             target_root = archive_root if publish else OUTPUT_ROOT
             bookdir_out = target_root / book_key
             ensure_dir(bookdir_out)
