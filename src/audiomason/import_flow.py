@@ -59,6 +59,38 @@ def peek_source(src: Path) -> PeekResult:
             return PeekResult(True, items[0].name)
         return PeekResult(False, None)
 
+def list_archive_books(archive: Path, root: str) -> list[str]:
+    # Return sorted immediate subdirectories under the single-root folder in the archive
+    try:
+        p = subprocess.run(
+            ["7z", "l", "-slt", str(archive)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            check=True,
+        )
+    except Exception:
+        return []
+
+    subs: set[str] = set()
+    rootp = root.replace("\\", "/").strip("/")
+
+    for line in p.stdout.splitlines():
+        if not line.startswith("Path = "):
+            continue
+        path = line.split("=", 1)[1].strip().replace("\\", "/").strip("/")
+        if not path:
+            continue
+        if not path.startswith(rootp + "/"):
+            continue
+        rest = path[len(rootp) + 1 :]
+        parts = [x for x in rest.split("/") if x]
+        if len(parts) >= 1:
+            subs.add(parts[0])
+
+    return sorted(subs, key=lambda s: s.lower())
+
+
     # archive
     try:
         p = subprocess.run(
@@ -74,7 +106,7 @@ def peek_source(src: Path) -> PeekResult:
     roots: set[str] = set()
     for line in p.stdout.splitlines():
         if line.startswith("Path = "):
-            path = line.split("=", 1)[1].strip()
+            path = line.split("=", 1)[1].strip().replace("\\", "/")
             if "/" in path:
                 roots.add(path.split("/", 1)[0])
 
@@ -203,6 +235,7 @@ def run_import(cfg) -> None:
         # If an author directory contains multiple book subdirectories, ask whether to process all or one.
         expanded: list[Path] = []
         chosen_labels: list[str] = []
+        archive_book_choice: dict[Path, str] = {}
         for src0 in chosen:
             if src0.is_dir():
                 subs = sorted(
@@ -220,6 +253,28 @@ def run_import(cfg) -> None:
                         expanded.append(b)
                         chosen_labels.append(f"{src0.name} / {b.name}")
                     continue
+            if src0.is_file() and src0.suffix.lower() in ARCHIVE_EXTS:
+                pk = peek_source(src0)
+                if pk.has_single_root and pk.top_level_name:
+                    books = list_archive_books(src0, pk.top_level_name)
+                    if len(books) > 1:
+                        out(f"[books] found {len(books)} in {src0.name}:")
+                        for i, b in enumerate(books, 1):
+                            out(f"  {i}) {b}")
+                        ans = prompt("Choose book number", "1").strip()
+                        try:
+                            bi = int(ans)
+                            if 1 <= bi <= len(books):
+                                archive_book_choice[src0] = books[bi - 1]
+                                expanded.append(src0)
+                                chosen_labels.append(f"{src0.name} / {books[bi - 1]}")
+                                continue
+                        except ValueError:
+                            pass
+                        archive_book_choice[src0] = books[0]
+                        expanded.append(src0)
+                        chosen_labels.append(f"{src0.name} / {books[0]}")
+                        continue
             expanded.append(src0)
             chosen_labels.append(src0.name)
 
@@ -348,7 +403,13 @@ def run_import(cfg) -> None:
 
             convert_m4a_in_place(stage)
 
-            mp3s = natural_sort(list(stage.rglob("*.mp3")))
+            work_stage = stage
+            if src.is_file() and src in archive_book_choice:
+                pk = peek_source(src)
+                if pk.has_single_root and pk.top_level_name:
+                    work_stage = stage / pk.top_level_name / archive_book_choice[src]
+
+            mp3s = natural_sort(list(work_stage.rglob("*.mp3")))
             if not mp3s:
                 out("[skip] no mp3 found after unpack/convert")
                 continue
@@ -358,7 +419,7 @@ def run_import(cfg) -> None:
             mp3s = rename_sequential(mp3dir, mp3s)
 
             # Choose cover (batch policy: embedded/file/ask)
-            m4as = sorted(stage.rglob("*.m4a"))
+            m4as = sorted(work_stage.rglob("*.m4a"))
             old_yes = state.OPTS.yes
             try:
                 if cover_mode in {"embedded", "file"}:
