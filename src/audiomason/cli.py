@@ -58,6 +58,9 @@ def _parse_args() -> argparse.Namespace:
     v = sub.add_parser("verify", help="verify audiobook library", parents=[parent])
     v.add_argument("root", nargs="?", type=Path, default=None)
 
+    i = sub.add_parser("inspect", help="read-only source inspection", parents=[parent])
+    i.add_argument("path", type=Path)
+
     ns = ap.parse_args()
 
     if ns.version:
@@ -102,7 +105,12 @@ def main() -> int:
         from audiomason.util import enable_trace
         enable_trace()
 
-    if ns.cmd == "verify":
+        if ns.cmd == "inspect":
+        from audiomason.inspect import inspect_source
+        inspect_source(ns.path)
+        return 0
+
+if ns.cmd == "verify":
         root = ns.root if ns.root is not None else state.OPTS.verify_root
         verify_library(root)
         return 0
