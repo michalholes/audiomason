@@ -316,7 +316,7 @@ def run_import(cfg) -> None:
             # Also move cover.jpg if it exists in mp3dir
             cov = mp3dir / "cover.jpg"
             if cov.exists():
-                cov.rename(bookdir_out / "cover.jpg")
+                shutil.move(str(cov), str(bookdir_out / "cover.jpg"))
 
             out(f"[done] {book_key} -> {bookdir_out}")
 
