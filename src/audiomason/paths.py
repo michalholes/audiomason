@@ -2,8 +2,8 @@ from pathlib import Path
 import os
 
 # Env override (used by tests + legacy)
-AUDIOMASON_ROOT = os.environ.get('AUDIOMASON_ROOT')
-BASE_ROOT = Path(AUDIOMASON_ROOT).expanduser().resolve() if AUDIOMASON_ROOT else Path.cwd()
+AUDIOMASON_ROOT = os.environ.get("AUDIOMASON_ROOT")
+BASE_ROOT = Path(AUDIOMASON_ROOT).expanduser().resolve() if AUDIOMASON_ROOT else Path.cwd().resolve()
 
 # ======================
 # Archive extensions
@@ -11,14 +11,14 @@ BASE_ROOT = Path(AUDIOMASON_ROOT).expanduser().resolve() if AUDIOMASON_ROOT else
 ARCHIVE_EXTS = {".zip", ".rar", ".7z"}
 
 # ======================
-# Default portable paths
-# (used as fallback when config is missing)
+# Default portable paths (STRICT CONTRACT)
+# All derived from BASE_ROOT / AUDIOMASON_ROOT
 # ======================
-_DEFAULT_INBOX = Path("./inbox").resolve()
-_DEFAULT_STAGE = Path("./stage").resolve()
-_DEFAULT_OUTPUT = Path("./output").resolve()
-_DEFAULT_ARCHIVE = Path("./archive").resolve()
-_DEFAULT_CACHE = Path("./.cover_cache").resolve()
+_DEFAULT_INBOX = (BASE_ROOT / "abooksinbox").resolve()
+_DEFAULT_STAGE = (BASE_ROOT / "_am_stage").resolve()
+_DEFAULT_OUTPUT = (BASE_ROOT / "abooks_ready").resolve()
+_DEFAULT_ARCHIVE = (BASE_ROOT / "abooks").resolve()
+_DEFAULT_CACHE = (BASE_ROOT / ".cover_cache").resolve()
 
 # ======================
 # Config-based resolvers
@@ -68,13 +68,13 @@ def get_ignore_file(cfg) -> Path:
 # Backward-compatible symbols
 # (DO NOT REMOVE)
 # ======================
-DROP_ROOT = BASE_ROOT / 'abooksinbox'
-STAGE_ROOT = BASE_ROOT / '_am_stage'
-OUTPUT_ROOT = BASE_ROOT / 'abooks_ready'
-ARCHIVE_ROOT = BASE_ROOT / 'archive'
+DROP_ROOT = _DEFAULT_INBOX
+STAGE_ROOT = _DEFAULT_STAGE
+OUTPUT_ROOT = _DEFAULT_OUTPUT
+ARCHIVE_ROOT = _DEFAULT_ARCHIVE
 CACHE_ROOT = _DEFAULT_CACHE
 
-IGNORE_FILE = Path(".abook_ignore")
+IGNORE_FILE = get_ignore_file({})
 COVER_NAME = "cover.jpg"
 
 # ======================
