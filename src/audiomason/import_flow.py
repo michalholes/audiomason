@@ -243,15 +243,20 @@ def run_import(cfg: dict) -> None:
     for si, src in enumerate(picked_sources, 1):
         out(f"[source] {si}/{len(picked_sources)}: {src.name}")
 
+        import unicodedata
+
+        def _norm(s: str) -> str:
+            return unicodedata.normalize("NFKC", s).strip().casefold()
+
         ignore_raw = load_ignore(drop_root)
-        ignore_norm = {k.strip().lower() for k in ignore_raw}
-        ignore_norm |= {slug(k).lower() for k in ignore_raw}
+        ignore_norm = {_norm(k) for k in ignore_raw}
+        ignore_norm |= {_norm(slug(k)) for k in ignore_raw}
 
         candidates = {
-            src.name.lower(),
-            src.stem.lower(),
-            slug(src.name).lower(),
-            slug(src.stem).lower(),
+            _norm(src.name),
+            _norm(src.stem),
+            _norm(slug(src.name)),
+            _norm(slug(src.stem)),
         }
 
         if candidates & ignore_norm:
