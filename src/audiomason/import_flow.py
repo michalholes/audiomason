@@ -341,6 +341,7 @@ def run_import(cfg) -> None:
             # Stage + unpack/copy BEFORE prompting (so archives can be inspected)
             stage = STAGE_ROOT / slug(source_key)
             ensure_dir(stage)
+            stage_root = stage
 
             try:
                 if src.is_dir():
@@ -414,9 +415,11 @@ def run_import(cfg) -> None:
             ):
                 source_root = src.parent
 
-            convert_m4a_in_place(stage)
+            convert_m4a_in_place(stage_root)
+            if stage != stage_root:
+                convert_m4a_in_place(stage)
 
-            mp3s = natural_sort(list(stage.rglob("*.mp3")))
+            mp3s = natural_sort(list(stage.rglob("*.mp3")) + ([] if stage == stage_root else list(stage_root.rglob("*.mp3"))))
             if not mp3s:
                 out("[skip] no mp3 found after unpack/convert")
                 continue
