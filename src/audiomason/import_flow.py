@@ -25,12 +25,30 @@ from audiomason.archives import unpack
 from audiomason.audio import convert_m4a_in_place
 from audiomason.rename import natural_sort, rename_sequential
 from audiomason.tags import write_tags, wipe_id3
+from audiomason.covers import choose_cover
 
 AUDIO_EXTS = {".mp3", ".m4a", ".aac", ".m4b"}
 
 
 def _human_book_title(name: str) -> str:
     return name.replace("_", " ").strip()
+
+
+def _cover_mime_from_ext(ext: str) -> str:
+    e = ext.lower().lstrip('.')
+    if e in {'jpg', 'jpeg'}:
+        return 'image/jpeg'
+    if e == 'png':
+        return 'image/png'
+    return 'application/octet-stream'
+
+
+def _first_m4a(p: Path, recursive: bool) -> Path | None:
+    it = (p.rglob('*.m4a') if recursive else p.glob('*.m4a'))
+    for x in it:
+        if x.is_file():
+            return x
+    return None
 
 
 def _guess_author_book(stem: str) -> tuple[str, str]:
@@ -207,6 +225,7 @@ def run_import(cfg) -> None:
                     picked = [books[0]]
 
         meta_by_label: dict[str, tuple[str, str]] = {}
+        cover_by_label: dict[str, tuple[bytes | None, str | None]] = {}
         if len(picked) > 1 and not state.OPTS.yes:
             # Ask ALL metadata upfront (author once, then book per folder) BEFORE doing any work
             guess_a, _ = _guess_author_book(src.stem)
@@ -220,6 +239,26 @@ def run_import(cfg) -> None:
                 book_name = prompt(f"Book [{guess_b}]", _human_book_title(guess_b)).strip() or _human_book_title(guess_b)
                 meta_by_label[lbl] = (author_all, book_name)
 
+
+        if len(picked) > 1 and not state.OPTS.yes:
+            out(f"[cover] preflight: {src.name}")
+            for br in picked:
+                lbl = "__ROOT_AUDIO__" if br == stage else br.name
+                out(f"[cover] {src.name} -> {lbl}")
+                m4a = _first_m4a(br, recursive=(br != stage))
+                got = choose_cover(
+                    mp3_first=None,
+                    m4a_source=m4a,
+                    bookdir=br,
+                    stage_root=stage,
+                    group_root=br,
+                )
+                if got:
+                    cb, ext = got
+                    cover_by_label[lbl] = (cb, _cover_mime_from_ext(ext))
+                else:
+                    cover_by_label[lbl] = (None, None)
+
         for bidx, book_root in enumerate(picked, 1):
             label = "__ROOT_AUDIO__" if book_root == stage else book_root.name
             out(f"[book] {bidx}/{len(picked)}: {src.name} -> {label}")
@@ -231,6 +270,23 @@ def run_import(cfg) -> None:
                 out(f"[meta] {src.name} -> {label}")
                 author = prompt(f"Author [{guess_a}]", guess_a).strip() or guess_a
                 book = prompt(f"Book [{guess_b}]", _human_book_title(guess_b)).strip() or _human_book_title(guess_b)
+
+            cover = None
+            cover_mime = None
+            if cover_by_label:
+                cover, cover_mime = cover_by_label.get(label, (None, None))
+            else:
+                m4a = _first_m4a(book_root, recursive=(book_root != stage))
+                got = choose_cover(
+                    mp3_first=None,
+                    m4a_source=m4a,
+                    bookdir=book_root,
+                    stage_root=stage,
+                    group_root=book_root,
+                )
+                if got:
+                    cb, ext = got
+                    cover, cover_mime = (cb, _cover_mime_from_ext(ext))
 
             convert_m4a_in_place(book_root, recursive=(book_root != stage))
 
@@ -249,7 +305,10 @@ def run_import(cfg) -> None:
             if state.OPTS.wipe_id3 and not state.OPTS.dry_run:
                 wipe_id3(mp3s)
 
-            write_tags(mp3s, artist=author, album=book)
+            try:
+                write_tags(mp3s, artist=author, album=book, cover=cover, cover_mime=cover_mime)
+            except TypeError:
+                write_tags(mp3s, artist=author, album=book)
 
             publish = prompt_yes_no(f"Publish to archive ({ARCHIVE_ROOT})?", default_no=False)
             target = ARCHIVE_ROOT if publish else OUTPUT_ROOT
