@@ -6,8 +6,7 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
-
-import audiomason.state as state
+    import audiomason.state as _state
 from audiomason.paths import get_drop_root, get_stage_root, get_output_root, get_archive_root, ARCHIVE_EXTS
 from audiomason.util import out, die, ensure_dir, slug, prompt, prompt_yes_no
 from audiomason.ignore import load_ignore, add_ignore
@@ -212,8 +211,8 @@ def _preflight_book(i: int, n: int, b: BookGroup, default_title: str = "") -> st
 
         # OpenLibrary existence check (book)
         try:
-            import audiomason.state as state
-            do_lookup = bool(getattr(getattr(state, 'OPTS', None), 'lookup', False))
+    import audiomason.state as _state
+            do_lookup = bool(getattr(getattr(_state, 'OPTS', None), 'lookup', False))
         except Exception:
             do_lookup = False
         if do_lookup:
@@ -473,8 +472,8 @@ def run_import(cfg: dict) -> None:
             na = normalize_name(author)
             # OpenLibrary existence check (author)
             try:
-                import audiomason.state as state
-                do_lookup = bool(getattr(getattr(state, 'OPTS', None), 'lookup', False))
+    import audiomason.state as _state
+                do_lookup = bool(getattr(getattr(_state, 'OPTS', None), 'lookup', False))
             except Exception:
                 do_lookup = False
             if do_lookup:
