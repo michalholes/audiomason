@@ -28,3 +28,15 @@ def normalize_name(s: str) -> str:
     s = " ".join(parts)
 
     return s
+
+def normalize_sentence(s: str) -> str:
+    """
+    Sentence case normalization:
+    - collapse whitespace
+    - lowercase everything
+    - capitalize only first character
+    """
+    if not s:
+        return s
+    t = " ".join(s.strip().split()).lower()
+    return t[0].upper() + t[1:] if t else t

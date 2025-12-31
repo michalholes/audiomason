@@ -1,6 +1,6 @@
 from __future__ import annotations
 from audiomason.openlibrary import validate_author, validate_book
-from audiomason.naming import normalize_name
+from audiomason.naming import normalize_name, normalize_sentence
 
 import shutil
 from dataclasses import dataclass
@@ -219,7 +219,7 @@ def _preflight_book(i: int, n: int, b: BookGroup, default_title: str = "") -> st
     out(f"[book-meta] {i}/{n}: {b.label}")
     default_title = (default_title or (b.label if b.label != "__ROOT_AUDIO__" else "Untitled"))
     title = prompt(f"[book {i}/{n}] Book title", default_title).strip()
-    nt = normalize_name(title)
+    nt = normalize_sentence(title)
     if nt != title:
         out(f"[name] book suggestion: '{title}' -> '{nt}'")
         if prompt_yes_no("Apply suggested book title?", default_no=True):
