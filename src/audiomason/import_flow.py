@@ -324,15 +324,40 @@ def run_import(cfg) -> None:
             mp3dir = mp3s[0].parent
             mp3s = rename_sequential(mp3dir, mp3s)
 
-            # Choose cover (embedded/file/url prompt)
+            # Choose cover (batch policy: embedded/file/ask)
             m4as = sorted(stage.rglob("*.m4a"))
-            cover = choose_cover(
-                mp3_first=mp3s[0] if mp3s else None,
-                m4a_source=m4as[0] if m4as else None,
-                bookdir=mp3dir,          # cover will be written here first if needed
-                stage_root=stage,
-                group_root=mp3dir,
-            )
+            old_yes = state.OPTS.yes
+            try:
+                if cover_mode in {"embedded", "file"}:
+                    state.OPTS.yes = True  # auto-accept default choices
+                if cover_mode == "embedded":
+                    # bias to embedded by removing file/m4a hints
+                    cover = choose_cover(
+                        mp3_first=mp3s[0] if mp3s else None,
+                        m4a_source=None,
+                        bookdir=None,
+                        stage_root=stage,
+                        group_root=mp3dir,
+                    )
+                elif cover_mode == "file":
+                    # bias to existing cover files in folder
+                    cover = choose_cover(
+                        mp3_first=None,
+                        m4a_source=None,
+                        bookdir=mp3dir,
+                        stage_root=stage,
+                        group_root=mp3dir,
+                    )
+                else:
+                    cover = choose_cover(
+                        mp3_first=mp3s[0] if mp3s else None,
+                        m4a_source=m4as[0] if m4as else None,
+                        bookdir=mp3dir,          # cover will be written here first if needed
+                        stage_root=stage,
+                        group_root=mp3dir,
+                    )
+            finally:
+                state.OPTS.yes = old_yes
             cover_bytes = cover[0] if cover else None
             cover_mime = cover[1] if cover else None
 
