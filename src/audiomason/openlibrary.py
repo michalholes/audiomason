@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 import json
 import time
 from dataclasses import dataclass
@@ -110,7 +111,8 @@ def validate_author(name: str) -> OLResult:
 
     if hits == 0:
         _cache_put(ck, {"ok": False, "status": "author:not_found", "hits": 0, "top": top})
-    return OLResult(False, "author:not_found", 0, top)
+        return OLResult(False, "author:not_found", 0, top)
+
     _cache_put(ck, {"ok": True, "status": "author:ok", "hits": hits, "top": top})
     return OLResult(True, "author:ok", hits, top)
 
@@ -150,6 +152,7 @@ def validate_book(author: str, title: str) -> OLResult:
 
     if hits == 0:
         _cache_put(ck, {"ok": False, "status": "book:not_found", "hits": 0, "top": top})
-    return OLResult(False, "book:not_found", 0, top)
+        return OLResult(False, "book:not_found", 0, top)
+
     _cache_put(ck, {"ok": True, "status": "book:ok", "hits": hits, "top": top})
     return OLResult(True, "book:ok", hits, top)
