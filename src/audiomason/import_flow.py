@@ -215,7 +215,7 @@ def run_import(cfg) -> None:
             author = prompt(f"Author [{guess_a}]", guess_a).strip() or guess_a
             book = prompt(f"Book [{guess_b}]", _human_book_title(guess_b)).strip() or _human_book_title(guess_b)
 
-            convert_m4a_in_place(book_root)
+            convert_m4a_in_place(book_root, recursive=(book_root != stage))
 
             # IMPORTANT: for __ROOT_AUDIO__ only take files in stage root, not recursively
             if book_root == stage:

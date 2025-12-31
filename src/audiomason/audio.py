@@ -93,8 +93,8 @@ def m4a_split_by_chapters(src: Path, outdir: Path) -> list[Path]:
     return produced
 
 
-def convert_m4a_in_place(stage: Path) -> None:
-    m4as = sorted(stage.rglob("*.m4a"), key=lambda p: p.as_posix().lower())
+def convert_m4a_in_place(stage: Path, recursive: bool = True) -> None:
+    m4as = sorted((stage.rglob("*.m4a") if recursive else stage.glob("*.m4a")), key=lambda p: p.as_posix().lower())
     if not m4as:
         return
 
