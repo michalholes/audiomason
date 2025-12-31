@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 import audiomason.state as state
-from audiomason.paths import get_drop_root, get_stage_root, get_archive_root, ARCHIVE_EXTS
+from audiomason.paths import get_drop_root, get_stage_root, get_output_root, get_archive_root, ARCHIVE_EXTS
 from audiomason.util import out, die, ensure_dir, slug, prompt, prompt_yes_no
 from audiomason.ignore import load_ignore, add_ignore
 from audiomason.archives import unpack
@@ -225,10 +225,10 @@ def _copy_audio_to_out(group_root: Path, outdir: Path) -> list[Path]:
     return rename_sequential(outdir, copied)
 
 
-def _process_book(i: int, n: int, b: BookGroup, archive_root: Path, author: str, title: str, wipe: bool) -> None:
+def _process_book(i: int, n: int, b: BookGroup, dest_root: Path, author: str, title: str, wipe: bool) -> None:
     out(f"[book] {i}/{n}: {b.label}")
 
-    outdir = _output_dir(archive_root, author, title)
+    outdir = _output_dir(dest_root, author, title)
     if outdir.exists() and any(outdir.iterdir()):
         die(f"Conflict: output already exists and is not empty: {outdir}")
 
@@ -258,10 +258,12 @@ def run_import(cfg: dict) -> None:
     drop_root = get_drop_root(cfg)
     stage_root = get_stage_root(cfg)
     archive_root = get_archive_root(cfg)
+    output_root = get_output_root(cfg)
 
     ensure_dir(drop_root)
     ensure_dir(stage_root)
     ensure_dir(archive_root)
+    ensure_dir(output_root)
 
     sources = _list_sources(drop_root)
     picked_sources = _choose_source(sources)
@@ -301,6 +303,7 @@ def run_import(cfg: dict) -> None:
         picked_books = _choose_books(books)
 
         publish, wipe = _preflight_global()  # decided before any output writes
+        dest_root = archive_root if publish else output_root
 
         # AUTHOR is per-source (not per-book)
         default_author = src.name if src.is_dir() else src.stem
@@ -316,7 +319,7 @@ def run_import(cfg: dict) -> None:
 
         # processing phase (no prompts)
         for bi, (b, title) in enumerate(meta, 1):
-            _process_book(bi, len(meta), b, archive_root, author, title, wipe)
+            _process_book(bi, len(meta), b, dest_root, author, title, wipe)
 
         if publish:
             out("[publish] skipped (not implemented)")
