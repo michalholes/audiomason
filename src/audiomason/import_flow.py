@@ -217,7 +217,11 @@ def run_import(cfg) -> None:
 
             convert_m4a_in_place(book_root)
 
-            mp3s = natural_sort(list(book_root.rglob("*.mp3")))
+            # IMPORTANT: for __ROOT_AUDIO__ only take files in stage root, not recursively
+            if book_root == stage:
+                mp3s = natural_sort(list(book_root.glob("*.mp3")))
+            else:
+                mp3s = natural_sort(list(book_root.rglob("*.mp3")))
             if not mp3s:
                 out("[skip] no mp3")
                 continue
