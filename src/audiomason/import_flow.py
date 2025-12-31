@@ -405,7 +405,7 @@ def run_import(cfg) -> None:
                 shutil.move(str(cov), str(bookdir_out / "cover.jpg"))
 
             out(f"[done] {book_key} -> {bookdir_out}")
-            add_ignore(source_key)
+            add_ignore(src_path.parent, src_path.name)
 
 
             # Cleanup stage if enabled
