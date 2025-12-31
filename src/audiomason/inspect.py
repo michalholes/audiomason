@@ -9,7 +9,7 @@ def inspect_source(path: Path) -> None:
         out(f"[inspect] file: {path.name}")
         if path.suffix.lower() in ARCHIVE_EXTS:
             out("  type: archive")
-        elif __is_audio(path):
+        elif _is_audio(path):
             out("  type: audio")
         else:
             out("  type: other")
@@ -24,7 +24,7 @@ def inspect_source(path: Path) -> None:
         if p.is_dir():
             books.append(p.name)
         elif p.is_file():
-            if __is_audio(p):
+            if _is_audio(p):
                 audio.append(p.name)
             elif p.suffix.lower() in ARCHIVE_EXTS:
                 archives.append(p.name)
