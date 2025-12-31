@@ -41,7 +41,14 @@ def get_output_root(cfg) -> Path:
 
 
 def get_archive_root(cfg) -> Path:
-    return _get(cfg, "archive", _DEFAULT_ARCHIVE)
+    try:
+        paths = cfg.get("paths", {})
+        val = paths.get("archive") or paths.get("archive_ro")
+        if val:
+            return Path(val).expanduser().resolve()
+    except Exception:
+        pass
+    return _DEFAULT_ARCHIVE
 
 
 def get_cache_root(cfg) -> Path:

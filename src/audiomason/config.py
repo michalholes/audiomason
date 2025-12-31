@@ -8,6 +8,7 @@ DEFAULTS = {
         "stage": "/mnt/warez/_am_stage",
         "ready": "/mnt/warez/_am_ready",
         "archive_ro": "/mnt/warez/abooks",
+        "archive": "/mnt/warez/abooks",
     },
     "publish": "ask",
     "ffmpeg": {
