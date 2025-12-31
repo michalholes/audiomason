@@ -97,7 +97,10 @@ yes=ns.yes,
         split_chapters=ns.split_chapters,
         ff_loglevel=ns.ff_loglevel,
         cpu_cores=getattr(ns, 'cpu_cores', None),
-    )def main() -> int:
+    )
+
+
+def main() -> int:
     cfg = load_config()
     ns = _parse_args()
     state.OPTS = _ns_to_opts(ns)
