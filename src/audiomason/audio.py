@@ -36,7 +36,11 @@ def m4a_chapters(path: Path) -> list[dict]:
 
 
 def ffmpeg_common_input() -> list[str]:
-    return ["-hide_banner", "-nostdin", "-stats", "-loglevel", state.OPTS.ff_loglevel]
+    import os
+    cores = getattr(state.OPTS, "cpu_cores", None) or os.cpu_count() or 1
+    # Deterministic conservative default (RPi-safe)
+    threads = min(2, max(1, int(cores) // 2))
+    return ["-hide_banner", "-nostdin", "-stats", "-loglevel", state.OPTS.ff_loglevel, "-threads", str(threads)]
 
 
 def m4a_to_mp3_single(src: Path, dst: Path) -> None:

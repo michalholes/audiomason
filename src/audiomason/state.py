@@ -22,6 +22,7 @@ class Opts:
     cleanup_stage: bool
     split_chapters: bool
     ff_loglevel: str                 # warning | error | info
+    cpu_cores: int | None
 
 
 # During refactor we keep global state for compatibility with legacy code.

@@ -36,7 +36,8 @@ def _parent_parser(cfg: Dict[str, Any]) -> argparse.ArgumentParser:
     pp.add_argument("--q-a", default=str(audio.get("q_a", "2")), help="lame VBR quality (2=high)")
     pp.add_argument("--split-chapters", dest="split_chapters", action="store_true", default=bool(audio.get("split_chapters", True)))
     pp.add_argument("--no-split-chapters", dest="split_chapters", action="store_false")
-    pp.add_argument("--ff-loglevel", choices=["info", "warning", "error"], default=str(audio.get("ff_loglevel", "warning")))
+        pp.add_argument("--cpu-cores", type=int, default=cfg.get("cpu_cores", None), help="override CPU core count for perf tuning")
+pp.add_argument("--ff-loglevel", choices=["info", "warning", "error"], default=str(audio.get("ff_loglevel", "warning")))
     return pp
 
 
@@ -88,6 +89,7 @@ def _ns_to_opts(ns: argparse.Namespace) -> Opts:
         cleanup_stage=True,
         split_chapters=ns.split_chapters,
         ff_loglevel=ns.ff_loglevel,
+        cpu_cores=getattr(ns, 'cpu_cores', None),
     )
 
 

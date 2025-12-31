@@ -3,6 +3,7 @@ from pathlib import Path
 import yaml
 
 DEFAULTS = {
+    "cpu_cores": None,
     "paths": {
         "inbox": "/mnt/warez/abooksinbox",
         "stage": "/mnt/warez/_am_stage",
