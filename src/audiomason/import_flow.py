@@ -1,6 +1,7 @@
 from __future__ import annotations
 from audiomason.naming import normalize_name
 
+from audiomason.openlibrary import validate_author, validate_book
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -208,6 +209,19 @@ def _preflight_book(i: int, n: int, b: BookGroup, default_title: str = "") -> st
         out(f"[name] book suggestion: '{title}' -> '{nt}'")
         if prompt_yes_no("Apply suggested book title?", default_no=True):
             title = nt
+
+        # OpenLibrary existence check (book)
+        try:
+            import audiomason.state as state
+            do_lookup = bool(getattr(getattr(state, 'OPTS', None), 'lookup', False))
+        except Exception:
+            do_lookup = False
+        if do_lookup:
+            br = validate_book(author, title)
+            if not br.ok:
+                out(f"[ol] book NOT FOUND: author='{author}' title='{title}' ({br.status})")
+                if not prompt_yes_no('Continue with unverified book title?', default_no=True):
+                    die('Aborted: book not found in OpenLibrary')
 
     if not title:
         die("Book title is required")
@@ -457,6 +471,19 @@ def run_import(cfg: dict) -> None:
         else:
             author = prompt("[source] Author", default_author2).strip()
             na = normalize_name(author)
+            # OpenLibrary existence check (author)
+            try:
+                import audiomason.state as state
+                do_lookup = bool(getattr(getattr(state, 'OPTS', None), 'lookup', False))
+            except Exception:
+                do_lookup = False
+            if do_lookup:
+                ar = validate_author(author)
+                if not ar.ok:
+                    out(f"[ol] author NOT FOUND: '{author}' ({ar.status})")
+                    if not prompt_yes_no('Continue with unverified author?', default_no=True):
+                        die('Aborted: author not found in OpenLibrary')
+
             if na != author:
                 out(f"[name] author suggestion: '{author}' -> '{na}'")
                 if prompt_yes_no("Apply suggested author name?", default_no=True):
