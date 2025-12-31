@@ -22,6 +22,7 @@ def _parent_parser(cfg: Dict[str, Any]) -> argparse.ArgumentParser:
     pp.add_argument("--dry-run", action="store_true", help="do not modify anything")
     pp.add_argument("--quiet", action="store_true", help="less output")
     pp.add_argument("--verbose", action="store_true", help="more output (overrides --quiet)")
+    pp.add_argument("--debug", action="store_true", help="prefix every out() line with [TRACE]")
     pp.add_argument("--verify", action="store_true", help="verify library after import")
 
     default_verify_root = Path(paths.get("verify_root", OUTPUT_ROOT))
@@ -94,6 +95,7 @@ def main() -> int:
     cfg = load_config()
     ns = _parse_args()
     state.OPTS = _ns_to_opts(ns)
+    state.DEBUG = bool(getattr(ns, 'debug', False))
 
     if ns.cmd == "verify":
         root = ns.root if ns.root is not None else state.OPTS.verify_root
