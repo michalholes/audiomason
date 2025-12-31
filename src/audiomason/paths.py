@@ -70,7 +70,7 @@ def get_ignore_file(cfg) -> Path:
 # ======================
 DROP_ROOT = BASE_ROOT / 'abooksinbox'
 STAGE_ROOT = BASE_ROOT / '_am_stage'
-OUTPUT_ROOT = BASE_ROOT / 'output'
+OUTPUT_ROOT = BASE_ROOT / 'abooks_ready'
 ARCHIVE_ROOT = BASE_ROOT / 'archive'
 CACHE_ROOT = _DEFAULT_CACHE
 
