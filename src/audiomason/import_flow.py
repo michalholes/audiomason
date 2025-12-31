@@ -278,6 +278,8 @@ def run_import(cfg) -> None:
 
         for idx, src in enumerate(chosen, 1):
 
+            unpacked_hint: str | None = None
+
             # Unified source key (archive and directory behave the same)
             peek = peek_source(src) or PeekResult(False, None)
             source_key = (
