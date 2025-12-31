@@ -1,4 +1,5 @@
 from __future__ import annotations
+from audiomason.openlibrary import validate_author, validate_book
 from audiomason.naming import normalize_name
 
 import shutil
@@ -26,6 +27,21 @@ class BookGroup:
     stage_root: Path    # stage src root (for cover search)
     m4a_hint: Optional[Path]
 
+
+def _ol_offer_top(kind: str, entered: str, res) -> str:
+    top = getattr(res, "top", None)
+    if isinstance(top, str):
+        top = top.strip()
+    if not top:
+        return entered
+    e = (entered or "").strip()
+    if top.casefold() == e.casefold():
+        return entered
+    from audiomason.util import out, prompt_yes_no
+    out(f"[ol] {kind} suggestion: '{e}' -> '{top}'")
+    if prompt_yes_no(f"Use suggested {kind} '{top}'?", default_no=True):
+        return top
+    return entered
 
 def _list_sources(drop_root: Path) -> list[Path]:
     # Filter ignored sources here so they never appear in the prompt list.
@@ -462,6 +478,12 @@ def run_import(cfg: dict) -> None:
                 if prompt_yes_no("Apply suggested author name?", default_no=True):
                     author = na
 
+                    # OpenLibrary suggestion (author)
+                    if getattr(getattr(state, 'OPTS', None), 'lookup', False):
+                        ar = validate_author(author)
+                        if getattr(ar, 'ok', False):
+                            author = _ol_offer_top('author', author, ar)
+
         if not author:
             die("Author is required")
         update_manifest(stage_run, {"decisions": {"author": author}})
@@ -476,6 +498,12 @@ def run_import(cfg: dict) -> None:
                 title = default_title
             else:
                 title = _preflight_book(bi, len(picked_books), b, default_title=default_title)
+
+                # OpenLibrary suggestion (book title)
+                if getattr(getattr(state, 'OPTS', None), 'lookup', False):
+                    br = validate_book(author, title)
+                    if getattr(br, 'ok', False):
+                        title = _ol_offer_top('book title', title, br)
 
             # cover decision (stored as mode: 'file'|'embedded'|'skip')
             default_cover_mode = str(bm.get(b.label, {}).get("cover_mode") or "").strip() if isinstance(bm, dict) else ""
