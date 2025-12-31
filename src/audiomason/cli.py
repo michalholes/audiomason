@@ -100,5 +100,10 @@ def main() -> int:
         verify_library(root)
         return 0
 
-    run_import(cfg)
+    try:
+        run_import(cfg)
+    except KeyboardInterrupt:
+        from audiomason.util import out
+        out("[abort] cancelled by user")
+        return 130
     return 0
