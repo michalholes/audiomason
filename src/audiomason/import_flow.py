@@ -59,6 +59,30 @@ def peek_source(src: Path) -> PeekResult:
             return PeekResult(True, items[0].name)
         return PeekResult(False, None)
 
+    # archive
+    try:
+        p = subprocess.run(
+            ["7z", "l", "-slt", str(src)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            check=True,
+        )
+    except Exception:
+        return PeekResult(False, None)
+
+    roots: set[str] = set()
+    for line in p.stdout.splitlines():
+        if line.startswith("Path = "):
+            path = line.split("=", 1)[1].strip().replace("\\", "/")
+            if "/" in path:
+                roots.add(path.split("/", 1)[0])
+
+    if len(roots) == 1:
+        return PeekResult(True, next(iter(roots)))
+    return PeekResult(False, None)
+
+
 def list_archive_books(archive: Path, root: str) -> list[str]:
     # Return sorted immediate subdirectories under the single-root folder in the archive
     try:
@@ -89,30 +113,6 @@ def list_archive_books(archive: Path, root: str) -> list[str]:
             subs.add(parts[0])
 
     return sorted(subs, key=lambda s: s.lower())
-
-
-    # archive
-    try:
-        p = subprocess.run(
-            ["7z", "l", "-slt", str(src)],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            text=True,
-            check=True,
-        )
-    except Exception:
-        return PeekResult(False, None)
-
-    roots: set[str] = set()
-    for line in p.stdout.splitlines():
-        if line.startswith("Path = "):
-            path = line.split("=", 1)[1].strip().replace("\\", "/")
-            if "/" in path:
-                roots.add(path.split("/", 1)[0])
-
-    if len(roots) == 1:
-        return PeekResult(True, next(iter(roots)))
-    return PeekResult(False, None)
 
 
 def _list_sources(inbox: Path, cfg) -> list[Path]:
@@ -405,7 +405,7 @@ def run_import(cfg) -> None:
 
             work_stage = stage
             if src.is_file() and src in archive_book_choice:
-                pk = peek_source(src)
+                pk = peek_source(src) or PeekResult(False, None) or PeekResult(False, None)
                 if pk.has_single_root and pk.top_level_name:
                     work_stage = stage / pk.top_level_name / archive_book_choice[src]
 
