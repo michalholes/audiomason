@@ -6,10 +6,10 @@ import subprocess
 
 import audiomason.state as state
 from audiomason.paths import (
-    DROP_ROOT,
-    STAGE_ROOT,
-    OUTPUT_ROOT,
-    ARCHIVE_ROOT,
+    get_drop_root,
+    get_stage_root,
+    get_output_root,
+    get_archive_root,
     ARCHIVE_EXTS,
 )
 from audiomason.util import (
@@ -135,6 +135,14 @@ def _decide_publish() -> bool:
 
 
 def run_import() -> None:
+    if state.OPTS is None:
+        raise SystemExit(2)
+
+    cfg = state.load_config()
+    DROP_ROOT = get_drop_root(cfg)
+    STAGE_ROOT = get_stage_root(cfg)
+    OUTPUT_ROOT = get_output_root(cfg)
+    ARCHIVE_ROOT = get_archive_root(cfg)
     try:
         if state.OPTS is None:
             raise SystemExit(2)
