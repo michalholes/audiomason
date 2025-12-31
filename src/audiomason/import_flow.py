@@ -249,6 +249,16 @@ def _copy_audio_to_out(group_root: Path, outdir: Path) -> list[Path]:
     return rename_sequential(outdir, copied)
 
 
+def _write_dry_run_summary(stage_run: Path, author: str, title: str, lines: list[str]) -> None:
+    name = f"{author} - {title}.dryrun.txt"
+    path = stage_run / name
+    header = [
+        "AudioMason dry-run summary",
+        f"Generated: {datetime.now().isoformat()}",
+        "",
+    ]
+    path.write_text("\n".join(header + lines) + "\n", encoding="utf-8")
+
 def _process_book(i: int, n: int, b: BookGroup, dest_root: Path, author: str, title: str, out_title: str, wipe: bool, cover_mode: str, overwrite: bool) -> None:
     out(f"[book] {i}/{n}: {b.label}")
 
@@ -431,7 +441,8 @@ def run_import(cfg: dict) -> None:
 
         # preflight per-book metadata (must happen before touching output)
         # ISSUE #12: unify decisions upfront (title + cover choice). Processing must not prompt.
-        meta: list[tuple[BookGroup, str, str, Path, str, bool]] = []  # (book, title, cover_mode, dest_root, out_title, overwrite)
+        meta: list[tuple[BookGroup, str, str, Path, str, bool]] = []
+        dry_run_lines: list[str] = []  # (book, title, cover_mode, dest_root, out_title, overwrite)
         for bi, b in enumerate(picked_books, 1):
             # title
             default_title = str(bm.get(b.label, {}).get("title") or "").strip() if isinstance(bm, dict) else ""
@@ -526,7 +537,15 @@ def run_import(cfg: dict) -> None:
             # persist
             dest_kind = "archive" if dest_root2 == archive_root else "output"
             meta.append((b, title, cover_mode, dest_root2, out_title, overwrite))
-            update_manifest(stage_run, {"book_meta": {b.label: {"title": title, "cover_mode": cover_mode, "dest_kind": dest_kind, "out_title": out_title, "overwrite": bool(overwrite)}}})
+                        if state.OPTS and state.OPTS.dry_run:
+                dry_run_lines.extend([
+                    f"Author: {author}",
+                    f"Book: {out_title}",
+                    f"Destination root: {dest_root2}",
+                    f"Overwrite destination: {overwrite}",
+                    f"Cover mode: {cover_mode}",
+                ])
+update_manifest(stage_run, {"book_meta": {b.label: {"title": title, "cover_mode": cover_mode, "dest_kind": dest_kind, "out_title": out_title, "overwrite": bool(overwrite)}}})
 
         # processing phase (no prompts)
         for bi, (b, title, cover_mode, dest_root2, out_title, overwrite) in enumerate(meta, 1):
