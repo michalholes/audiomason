@@ -295,6 +295,9 @@ def run_import(cfg: dict) -> None:
         stage_src = stage_run / "src"
         fp = source_fingerprint(src)
         update_manifest(stage_run, {"source": {"fingerprint": fp}})
+        mf = load_manifest(stage_run)
+        dec = mf.get("decisions", {})
+        bm = mf.get("book_meta", {})
         reuse = False
         if stage_src.exists():
             mf = load_manifest(stage_run)
@@ -327,24 +330,55 @@ def run_import(cfg: dict) -> None:
             },
         })
 
-        publish, wipe = _preflight_global()  # decided before any output writes
+        if "publish" in dec and "wipe_id3" in dec:
+
+
+            publish = bool(dec.get("publish"))
+
+
+            wipe = bool(dec.get("wipe_id3"))
+
+
+        else:
+
+
+            publish, wipe = _preflight_global()  # decided before any output writes
+
+
+            update_manifest(stage_run, {"decisions": {"publish": bool(publish), "wipe_id3": bool(wipe)}})
         update_manifest(stage_run, {"decisions": {"publish": bool(publish), "wipe_id3": bool(wipe)}})
         dest_root = archive_root if publish else output_root
 
         # AUTHOR is per-source (not per-book)
         default_author = src.name if src.is_dir() else src.stem
-        author = prompt("[source] Author", default_author).strip()
-        if not author:
-            die("Author is required")
-        update_manifest(stage_run, {"decisions": {"author": author}})
+        author = str(dec.get("author") or "").strip()
 
+        if not author:
+
+            author = str(dec.get("author") or "").strip()
+
+
+            if not author:
+
+
+                author = prompt("[source] Author", default_author).strip()
+            if not author:
+
+                die("Author is required")
+
+            update_manifest(stage_run, {"decisions": {"author": author}})
         # preflight per-book metadata (must happen before touching output)
         meta: list[tuple[BookGroup, str]] = []
         for bi, b in enumerate(picked_books, 1):
-            title = _preflight_book(bi, len(picked_books), b)
-            meta.append((b, title))
-            update_manifest(stage_run, {"book_meta": {b.label: {"title": title}}})
+            title = str(bm.get(b.label, {}).get("title") or "").strip()
 
+            if not title:
+
+                title = _preflight_book(bi, len(picked_books), b)
+
+            meta.append((b, title))
+
+            update_manifest(stage_run, {"book_meta": {b.label: {"title": title}}})
         # processing phase (no prompts)
         for bi, (b, title) in enumerate(meta, 1):
             _process_book(bi, len(meta), b, dest_root, author, title, wipe)
