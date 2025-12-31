@@ -83,8 +83,10 @@ def peek_source(src: Path) -> PeekResult:
     return PeekResult(False, None)
 
 
-def list_archive_books(archive: Path, root: str) -> list[str]:
-    # Return sorted immediate subdirectories under the single-root folder in the archive
+def list_archive_candidates(archive: Path) -> list[str]:
+    # Return sorted candidate "book roots" inside archive WITHOUT unpacking.
+    # - If archive has multiple top-level roots -> those are candidates.
+    # - If archive has single top-level root and multiple 2nd-level dirs -> root/second are candidates.
     try:
         p = subprocess.run(
             ["7z", "l", "-slt", str(archive)],
@@ -95,6 +97,34 @@ def list_archive_books(archive: Path, root: str) -> list[str]:
         )
     except Exception:
         return []
+
+    roots: set[str] = set()
+    seconds: set[str] = set()
+
+    for line in p.stdout.splitlines():
+        if not line.startswith("Path = "):
+            continue
+        path = line.split("=", 1)[1].strip().replace("\\", "/").strip("/")
+        if not path:
+            continue
+        parts = [x for x in path.split("/") if x]
+        if len(parts) >= 1:
+            roots.add(parts[0])
+        if len(parts) >= 2:
+            seconds.add(parts[1])
+
+    if len(roots) > 1:
+        return sorted(roots, key=lambda s: s.lower())
+
+    if len(roots) == 1 and len(seconds) > 1:
+        root = next(iter(roots))
+        return sorted([f"{root}/{s}" for s in seconds], key=lambda s: s.lower())
+
+    if len(roots) == 1:
+        return [next(iter(roots))]
+
+    return []
+
 
     subs: set[str] = set()
     rootp = root.replace("\\", "/").strip("/")
@@ -256,11 +286,11 @@ def run_import(cfg) -> None:
             if src0.is_file() and src0.suffix.lower() in ARCHIVE_EXTS:
                 pk = peek_source(src0) or PeekResult(False, None)
                 if pk.has_single_root and pk.top_level_name:
-                    books = list_archive_books(src0, pk.top_level_name)
+                    books = list_archive_candidates(src0)
                     if len(books) > 1:
                         out(f"[books] found {len(books)} in {src0.name}:")
                         for i, b in enumerate(books, 1):
-                            out(f"  {i}) {b}")
+                            out(f"  {i}) {b.split("/", 1)[-1]}")
                         ans = prompt("Choose book number", "1").strip()
                         try:
                             bi = int(ans)
@@ -305,6 +335,10 @@ def run_import(cfg) -> None:
             # Ask book titles for all upfront
             for src in chosen:
                 peek = peek_source(src) or PeekResult(False, None)
+            if src.is_file() and src in archive_book_choice:
+                peek = PeekResult(True, archive_book_choice[src].split('/', 1)[-1])
+                if src.is_file() and src in archive_book_choice:
+                    peek = PeekResult(True, archive_book_choice[src].split('/', 1)[-1])
                 if src.is_dir() and src.parent != DROP_ROOT and src.parent.is_dir() and src.parent.parent == DROP_ROOT:
                     g_a, g_b = (author_all or src.parent.name), _human_book_title(src.name)
                 else:
@@ -405,9 +439,7 @@ def run_import(cfg) -> None:
 
             work_stage = stage
             if src.is_file() and src in archive_book_choice:
-                pk = peek_source(src) or PeekResult(False, None) or PeekResult(False, None)
-                if pk.has_single_root and pk.top_level_name:
-                    work_stage = stage / pk.top_level_name / archive_book_choice[src]
+                work_stage = stage / archive_book_choice[src]
 
             mp3s = natural_sort(list(work_stage.rglob("*.mp3")))
             if not mp3s:
