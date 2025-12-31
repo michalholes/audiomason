@@ -132,10 +132,51 @@ def choose_cover(
     bookdir: Path,
     stage_root: Path,
     group_root: Path,
+    mode: Optional[str] = None,  # 'file' | 'embedded' | 'skip' | None
 ) -> Optional[Tuple[bytes, str]]:
     file_cover = find_file_cover(stage_root, group_root)
     embedded = extract_embedded_cover_from_mp3(mp3_first) if mp3_first else None
 
+    # ISSUE #12: allow preflight to force cover choice (no prompts during processing)
+    if mode == "skip":
+        out("[cover] skipped")
+        return None
+    if mode == "embedded":
+        if embedded:
+            data, mime = embedded
+            if not (state.OPTS and state.OPTS.dry_run):
+                (bookdir / COVER_NAME).write_bytes(data)
+            out("[cover] used embedded cover")
+            return data, mime
+        out("[cover] skipped")
+        return None
+    if mode == "file":
+        if file_cover:
+            dst = bookdir / COVER_NAME
+            ext = file_cover.suffix.lower()
+            if ext in {".jpg", ".jpeg"}:
+                data = file_cover.read_bytes() if not (state.OPTS and state.OPTS.dry_run) else b""
+                if not (state.OPTS and state.OPTS.dry_run):
+                    dst.write_bytes(data)
+                out(f"[cover] used file cover: {file_cover.name}")
+                return (data, "image/jpeg")
+            if ext == ".png":
+                data = file_cover.read_bytes() if not (state.OPTS and state.OPTS.dry_run) else b""
+                if not (state.OPTS and state.OPTS.dry_run):
+                    dst.write_bytes(data)
+                out(f"[cover] used file cover: {file_cover.name}")
+                return (data, "image/png")
+        # fallback
+        if embedded:
+            data, mime = embedded
+            if not (state.OPTS and state.OPTS.dry_run):
+                (bookdir / COVER_NAME).write_bytes(data)
+            out("[cover] used embedded cover")
+            return data, mime
+        out("[cover] skipped")
+        return None
+
+    # interactive/default path (legacy behavior)
     if embedded and file_cover and not (state.OPTS and state.OPTS.yes):
         print("Cover options found:")
         print("  1) embedded cover from audio")

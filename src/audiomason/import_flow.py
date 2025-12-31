@@ -12,7 +12,7 @@ from audiomason.ignore import load_ignore, add_ignore
 from audiomason.archives import unpack
 from audiomason.audio import convert_m4a_in_place
 from audiomason.rename import natural_sort, rename_sequential
-from audiomason.covers import choose_cover
+from audiomason.covers import choose_cover, find_file_cover, extract_embedded_cover_from_mp3
 from audiomason.tags import wipe_id3, write_tags
 from audiomason.manifest import update_manifest, load_manifest, source_fingerprint
 _AUDIO_EXTS = {".mp3", ".m4a"}
@@ -224,7 +224,7 @@ def _copy_audio_to_out(group_root: Path, outdir: Path) -> list[Path]:
     return rename_sequential(outdir, copied)
 
 
-def _process_book(i: int, n: int, b: BookGroup, dest_root: Path, author: str, title: str, wipe: bool) -> None:
+def _process_book(i: int, n: int, b: BookGroup, dest_root: Path, author: str, title: str, wipe: bool, cover_mode: str) -> None:
     out(f"[book] {i}/{n}: {b.label}")
 
     outdir = _output_dir(dest_root, author, title)
@@ -248,6 +248,7 @@ def _process_book(i: int, n: int, b: BookGroup, dest_root: Path, author: str, ti
         bookdir=outdir,
         stage_root=b.stage_root,
         group_root=b.group_root,
+        mode=cover_mode,
     )
     cover_bytes = cover[0] if cover else None
     cover_mime = cover[1] if cover else None
@@ -399,18 +400,61 @@ def run_import(cfg: dict) -> None:
         update_manifest(stage_run, {"decisions": {"author": author}})
 
         # preflight per-book metadata (must happen before touching output)
-        meta: list[tuple[BookGroup, str]] = []
+        # ISSUE #12: unify decisions upfront (title + cover choice). Processing must not prompt.
+        meta: list[tuple[BookGroup, str, str]] = []  # (book, title, cover_mode)
         for bi, b in enumerate(picked_books, 1):
+            # title
             default_title = str(bm.get(b.label, {}).get("title") or "").strip() if isinstance(bm, dict) else ""
             if reuse_stage and use_manifest_answers and default_title:
                 title = default_title
             else:
                 title = _preflight_book(bi, len(picked_books), b, default_title=default_title)
-            meta.append((b, title))
-            update_manifest(stage_run, {"book_meta": {b.label: {"title": title}}})
+
+            # cover decision (stored as mode: 'file'|'embedded'|'skip')
+            default_cover_mode = str(bm.get(b.label, {}).get("cover_mode") or "").strip() if isinstance(bm, dict) else ""
+            mp3s = _collect_audio_files(b.group_root)
+            mp3_first = mp3s[0] if mp3s else None
+            file_cover = find_file_cover(b.stage_root, b.group_root)
+            embedded = extract_embedded_cover_from_mp3(mp3_first) if mp3_first else None
+
+            cover_mode = ""
+            if reuse_stage and use_manifest_answers and default_cover_mode:
+                cover_mode = default_cover_mode
+            else:
+                # deterministic default (no prompt) unless both options exist and user is interactive
+                if file_cover:
+                    cover_mode = "file"
+                elif embedded:
+                    cover_mode = "embedded"
+                else:
+                    cover_mode = "skip"
+
+                if file_cover and embedded and not (state.OPTS and state.OPTS.yes):
+                    # prompt with defaults from manifest if present
+                    d = "2"
+                    if default_cover_mode == "embedded":
+                        d = "1"
+                    elif default_cover_mode == "skip":
+                        d = "s"
+                    out(f"[cover-meta] {bi}/{len(picked_books)}: {author} / {title}")
+                    print("Cover options:")
+                    print("  1) embedded cover from audio")
+                    print(f"  2) {file_cover.name} (preferred)")
+                    print("  s) skip cover")
+                    ans = prompt("Choose cover [1/2/s]", d).strip().lower()
+                    if ans == "1":
+                        cover_mode = "embedded"
+                    elif ans == "s":
+                        cover_mode = "skip"
+                    else:
+                        cover_mode = "file"
+
+            meta.append((b, title, cover_mode))
+            update_manifest(stage_run, {"book_meta": {b.label: {"title": title, "cover_mode": cover_mode}}})
+
         # processing phase (no prompts)
-        for bi, (b, title) in enumerate(meta, 1):
-            _process_book(bi, len(meta), b, dest_root, author, title, wipe)
+        for bi, (b, title, cover_mode) in enumerate(meta, 1):
+            _process_book(bi, len(meta), b, dest_root, author, title, wipe, cover_mode)
 
         if publish:
             out("[publish] skipped (not implemented)")
