@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from dataclasses import dataclass
 import subprocess
+import shutil
 
 import audiomason.state as state
 from audiomason.paths import (
@@ -27,6 +28,20 @@ from audiomason.audio import convert_m4a_in_place
 from audiomason.rename import natural_sort, rename_sequential
 from audiomason.covers import choose_cover
 from audiomason.tags import write_tags
+
+
+def _copy_dir_into(src: Path, dst: Path) -> None:
+    ensure_dir(dst)
+    # copy contents of src into dst (dst already exists)
+    for item in src.iterdir():
+        if item.name.startswith("."):
+            continue
+        target = dst / item.name
+        if item.is_dir():
+            shutil.copytree(item, target, dirs_exist_ok=True)
+        else:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(item, target)
 
 @dataclass(frozen=True)
 class PeekResult:
@@ -205,7 +220,11 @@ def run_import(cfg) -> None:
             source_key = (
                 peek.top_level_name
                 if peek.has_single_root and peek.top_level_name
-                else src.stem if src.is_file() else src.name
+                else (
+                    f"{src.parent.name}-{src.name}"
+                    if src.is_dir() and src.parent != DROP_ROOT and src.parent.is_dir()
+                    else (src.stem if src.is_file() else src.name)
+                )
             )
             key = source_key
             if slug(key) in ignore:
@@ -217,12 +236,17 @@ def run_import(cfg) -> None:
 
             # Ask author/book (defaults guessed from source shape)
             peek = peek_source(src)
-            name_for_guess = (
-                peek.top_level_name
-                if peek.has_single_root and peek.top_level_name
-                else key
-            )
-            guess_a, guess_b = _guess_author_book(name_for_guess)
+
+            # If we are importing a book directory under an author dir: Author = parent, Book = dir name
+            if src.is_dir() and src.parent != DROP_ROOT and src.parent.is_dir() and src.parent.parent == DROP_ROOT:
+                guess_a, guess_b = src.parent.name, src.name
+            else:
+                name_for_guess = (
+                    peek.top_level_name
+                    if peek.has_single_root and peek.top_level_name
+                    else key
+                )
+                guess_a, guess_b = _guess_author_book(name_for_guess)
 
             # archive-first defaults: try to match an existing book in archive_ro before prompting
             archive_ro = cfg.get("paths", {}).get("archive_ro", "")
@@ -238,7 +262,10 @@ def run_import(cfg) -> None:
             ensure_dir(stage)
 
             try:
-                unpack(src, stage)
+                if src.is_dir():
+                    _copy_dir_into(src, stage)
+                else:
+                    unpack(src, stage)
             except Exception as e:
                 out(f"[error] unpack failed: {e}")
                 add_ignore(key)
