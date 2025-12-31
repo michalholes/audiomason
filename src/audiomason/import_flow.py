@@ -350,11 +350,11 @@ def run_import(cfg) -> None:
                 if cover_mode in {"embedded", "file"}:
                     state.OPTS.yes = True  # auto-accept default choices
                 if cover_mode == "embedded":
-                    # bias to embedded by removing file/m4a hints
+                    # embedded: still write cover into mp3dir if choose_cover decides to materialize cover.jpg
                     cover = choose_cover(
                         mp3_first=mp3s[0] if mp3s else None,
                         m4a_source=None,
-                        bookdir=None,
+                        bookdir=mp3dir,
                         stage_root=stage,
                         group_root=mp3dir,
                     )
