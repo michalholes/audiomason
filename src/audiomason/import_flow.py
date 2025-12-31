@@ -297,7 +297,6 @@ def run_import(cfg) -> None:
             # Ask book titles for all upfront
             for src in chosen:
                 peek = peek_source(src) or PeekResult(False, None)
-                                    peek = PeekResult(True, archive_book_choice[src].split('/', 1)[-1])
                 if src.is_dir() and src.parent != DROP_ROOT and src.parent.is_dir() and src.parent.parent == DROP_ROOT:
                     g_a, g_b = (author_all or src.parent.name), _human_book_title(src.name)
                 else:
@@ -421,10 +420,7 @@ def run_import(cfg) -> None:
             convert_m4a_in_place(stage)
 
             work_stage = stage
-            if src.is_file() and src in archive_book_choice:
-                work_stage = stage / archive_book_choice[src]
-
-            mp3s = natural_sort(list(stage.rglob("*.mp3")))
+                        mp3s = natural_sort(list(stage.rglob("*.mp3")))
             if not mp3s:
                 out("[skip] no mp3 found after unpack/convert")
                 continue
