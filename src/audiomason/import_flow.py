@@ -220,25 +220,33 @@ def run_import(cfg) -> None:
 
         chosen = expanded
 
-        # Batch preflight: if multiple books are selected, ask metadata once, then process all
+        # Batch preflight: ask everything BEFORE any work starts
         meta_by_src: dict[Path, tuple[str, str]] = {}
         publish_override: bool | None = None
-        cover_mode = "ask"  # placeholder (future): embedded/file/ask
+        cover_mode = "ask"  # embedded/file/ask
 
         if len(chosen) > 1:
-            # one publish prompt for all
-            publish_override = _decide_publish(archive_root)
+            # If all chosen are book dirs under one author dir, ask author once
+            parents = {
+                src.parent
+                for src in chosen
+                if src.is_dir()
+                and src.parent != DROP_ROOT
+                and src.parent.is_dir()
+                and src.parent.parent == DROP_ROOT
+            }
+            author_all: str | None = None
+            if len(parents) == 1 and len(chosen) == len(parents) * len(chosen):
+                author_all = next(iter(parents)).name
 
-            # (requested) one cover policy prompt for all (currently informational; per-book cover chooser still runs)
-            cover_mode = prompt("Covers for all (embedded/file/ask)", "ask").strip().lower() or "ask"
-            if cover_mode not in {"embedded", "file", "ask"}:
-                cover_mode = "ask"
+            if author_all is not None:
+                author_all = prompt("Author (all books)", author_all).strip() or author_all
 
-            # ask book titles for all upfront (author defaults to parent dir for Author/Book sources)
+            # Ask book titles for all upfront
             for src in chosen:
                 peek = peek_source(src)
                 if src.is_dir() and src.parent != DROP_ROOT and src.parent.is_dir() and src.parent.parent == DROP_ROOT:
-                    g_a, g_b = src.parent.name, _human_book_title(src.name)
+                    g_a, g_b = (author_all or src.parent.name), _human_book_title(src.name)
                 else:
                     name_for_guess = (
                         peek.top_level_name
@@ -248,9 +256,20 @@ def run_import(cfg) -> None:
                     g_a, g_b = _guess_author_book(name_for_guess)
                     g_b = _human_book_title(g_b)
 
-                a = prompt(f"Author for {src.name}", g_a).strip() or g_a
+                a = author_all or (prompt(f"Author for {src.name}", g_a).strip() or g_a)
                 b = prompt(f"Book for {src.name}", g_b).strip() or g_b
                 meta_by_src[src] = (a, b)
+
+            # Cover policy (numeric)
+            out("[covers] choose policy for all books:")
+            out("  1) Embedded cover (from audio files)")
+            out("  2) Cover file in folder (cover.jpg/png/etc)")
+            out("  3) Ask per book (current behavior)")
+            c = prompt("Choose cover policy", "3").strip()
+            cover_mode = {"1": "embedded", "2": "file", "3": "ask"}.get(c, "ask")
+
+            # Publish policy (once)
+            publish_override = _decide_publish(archive_root)
 
         for idx, src in enumerate(chosen, 1):
 
