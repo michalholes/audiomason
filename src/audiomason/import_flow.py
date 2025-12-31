@@ -254,7 +254,7 @@ def run_import(cfg) -> None:
                         chosen_labels.append(f"{src0.name} / {b.name}")
                     continue
             if src0.is_file() and src0.suffix.lower() in ARCHIVE_EXTS:
-                pk = peek_source(src0)
+                pk = peek_source(src0) or PeekResult(False, None)
                 if pk.has_single_root and pk.top_level_name:
                     books = list_archive_books(src0, pk.top_level_name)
                     if len(books) > 1:
