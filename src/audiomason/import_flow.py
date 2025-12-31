@@ -203,6 +203,12 @@ def _preflight_book(i: int, n: int, b: BookGroup, default_title: str = "") -> st
     out(f"[book-meta] {i}/{n}: {b.label}")
     default_title = (default_title or (b.label if b.label != "__ROOT_AUDIO__" else "Untitled"))
     title = prompt(f"[book {i}/{n}] Book title", default_title).strip()
+    nt = normalize_name(title)
+    if nt != title:
+        out(f"[name] book suggestion: '{title}' -> '{nt}'")
+        if prompt_yes_no("Apply suggested book title?", default_no=True):
+            title = nt
+
     if not title:
         die("Book title is required")
     return title
@@ -450,6 +456,12 @@ def run_import(cfg: dict) -> None:
             author = str(dec.get("author") or "").strip()
         else:
             author = prompt("[source] Author", default_author2).strip()
+            na = normalize_name(author)
+            if na != author:
+                out(f"[name] author suggestion: '{author}' -> '{na}'")
+                if prompt_yes_no("Apply suggested author name?", default_no=True):
+                    author = na
+
         if not author:
             die("Author is required")
         update_manifest(stage_run, {"decisions": {"author": author}})
