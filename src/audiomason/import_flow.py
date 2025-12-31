@@ -103,7 +103,7 @@ def _list_sources(inbox: Path, cfg) -> list[Path]:
             and p.resolve() != stage_root
             and (
                 p.is_dir()
-                or (p.is_file() and p.suffix.lower() in ARCHIVE_EXTS)
+                or (p.is_file() and (p.suffix.lower() in ARCHIVE_EXTS or p.suffix.lower() in {'.m4a', '.mp3'}))
             )
         ),
         key=lambda p: p.name.lower(),
@@ -347,7 +347,24 @@ def run_import(cfg) -> None:
                 if src.is_dir():
                     _copy_dir_into(src, stage)
                 else:
-                    unpack(src, stage)
+                    if src.suffix.lower() in {'.m4a', '.mp3'}:
+                        shutil.copy2(src, stage / src.name)
+                    else:
+                        unpack(src, stage)
+
+                # If audio files exist in stage root, treat them as a separate book
+                try:
+                    root_audio = [x for x in stage.iterdir()
+                                  if x.is_file() and x.suffix.lower() in {".m4a", ".mp3"} and not x.name.startswith(".")]
+                    if root_audio:
+                        ra_dir = stage / "__ROOT_AUDIO__"
+                        ensure_dir(ra_dir)
+                        for f in root_audio:
+                            shutil.move(str(f), str(ra_dir / f.name))
+                except Exception:
+                    pass
+
+                # If the source is a single audio file (m4a/mp3), it was staged above; no unpack needed
 
                 # Normalize single-root archives: dive into the single root dir
                 try:
