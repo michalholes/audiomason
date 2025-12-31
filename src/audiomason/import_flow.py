@@ -106,12 +106,14 @@ def _book_candidates(stage: Path) -> list[Path]:
     if _has_audio_here(stage):
         cands.append(stage)
 
-    subs = sorted([d for d in stage.iterdir() if d.is_dir() and not d.name.startswith(".")], key=lambda x: x.name.lower())
+    subs = sorted(
+        [d for d in stage.iterdir() if d.is_dir() and not d.name.startswith(".")],
+        key=lambda x: x.name.lower(),
+    )
     for d in subs:
         if _has_audio_anywhere(d):
             cands.append(d)
 
-    # de-dup while keeping order
     seen: set[Path] = set()
     outc: list[Path] = []
     for c in cands:
@@ -188,12 +190,11 @@ def run_import(cfg) -> None:
             out("[skip] no book candidates")
             continue
 
-        # pick book(s) if multiple
         picked: list[Path] = books
         if len(books) > 1 and not state.OPTS.yes:
             out(f"[books] found {len(books)} in {src.name}:")
             for i, b in enumerate(books, 1):
-                label = b.name if b != stage else "(root audio)"
+                label = "__ROOT_AUDIO__" if b == stage else b.name
                 out(f"  {i}) {label}")
             bsel = prompt("Choose book number, or 'a' for all", "a").strip().lower()
             if bsel in {"a", "all"}:
@@ -206,16 +207,14 @@ def run_import(cfg) -> None:
                     picked = [books[0]]
 
         for bidx, book_root in enumerate(picked, 1):
-            label = book_root.name if book_root != stage else src.stem
+            label = "__ROOT_AUDIO__" if book_root == stage else book_root.name
             out(f"[book] {bidx}/{len(picked)}: {src.name} -> {label}")
 
-            # defaults
-            guess_a, guess_b = _guess_author_book(label)
+            guess_a, guess_b = _guess_author_book(src.stem if label == "__ROOT_AUDIO__" else label)
             out(f"[meta] {src.name} -> {label}")
             author = prompt(f"Author [{guess_a}]", guess_a).strip() or guess_a
             book = prompt(f"Book [{guess_b}]", _human_book_title(guess_b)).strip() or _human_book_title(guess_b)
 
-            # convert + discover mp3
             convert_m4a_in_place(book_root)
 
             mp3s = natural_sort(list(book_root.rglob("*.mp3")))
@@ -242,4 +241,3 @@ def run_import(cfg) -> None:
             out(f"[done] {author} / {book} -> {outdir}")
 
         add_ignore(inbox, src.name)
-
