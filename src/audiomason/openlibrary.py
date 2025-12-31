@@ -12,6 +12,64 @@ BASE = "https://openlibrary.org"
 UA = "AudioMason/1.0 (https://github.com/michalholes/audiomason)"
 
 
+
+# Disk cache (deterministic): AUDIOMASON_ROOT/_state/openlibrary_cache.json
+_CACHE: dict[str, dict] | None = None
+
+def _cache_path() -> Path | None:
+    try:
+        import os
+        root = os.environ.get("AUDIOMASON_ROOT")
+        if not root:
+            return None
+        return Path(root) / "_state" / "openlibrary_cache.json"
+    except Exception:
+        return None
+
+def _cache_load() -> dict[str, dict]:
+    global _CACHE
+    if _CACHE is not None:
+        return _CACHE
+    cp = _cache_path()
+    if not cp or not cp.exists():
+        _CACHE = {}
+        return _CACHE
+    try:
+        raw = cp.read_text(encoding="utf-8")
+        data = json.loads(raw)
+        _CACHE = data if isinstance(data, dict) else {}
+        return _CACHE
+    except Exception:
+        _CACHE = {}
+        return _CACHE
+
+def _cache_get(key: str) -> dict | None:
+    c = _cache_load()
+    v = c.get(key)
+    return v if isinstance(v, dict) else None
+
+def _cache_put(key: str, payload: dict) -> None:
+    # respect dry-run: no cache writes
+    try:
+        import audiomason.state as state
+        if getattr(getattr(state, "OPTS", None), "dry_run", False):
+            return
+    except Exception:
+        pass
+
+    cp = _cache_path()
+    if not cp:
+        return
+    cp.parent.mkdir(parents=True, exist_ok=True)
+
+    c = _cache_load()
+    c[key] = payload
+
+    tmp = cp.with_suffix(cp.suffix + ".tmp")
+    tmp.write_text(json.dumps(c, ensure_ascii=False, sort_keys=True), encoding="utf-8")
+    tmp.replace(cp)
+
+
 @dataclass(frozen=True)
 class OLResult:
     ok: bool
@@ -34,6 +92,11 @@ def validate_author(name: str) -> OLResult:
     if not q:
         return OLResult(False, "author:empty", 0, None)
 
+    ck = "author:" + q
+    hit = _cache_get(ck)
+    if hit is not None:
+        return OLResult(bool(hit.get("ok")), str(hit.get("status")), int(hit.get("hits") or 0), hit.get("top"))
+
     try:
         data = _get_json("/search/authors.json", {"q": q, "limit": 5})
     except Exception as e:
@@ -46,7 +109,9 @@ def validate_author(name: str) -> OLResult:
         top = str(docs[0].get("name") or "") or None
 
     if hits == 0:
-        return OLResult(False, "author:not_found", 0, top)
+        _cache_put(ck, {"ok": False, "status": "author:not_found", "hits": 0, "top": top})
+    return OLResult(False, "author:not_found", 0, top)
+    _cache_put(ck, {"ok": True, "status": "author:ok", "hits": hits, "top": top})
     return OLResult(True, "author:ok", hits, top)
 
 
@@ -55,6 +120,11 @@ def validate_book(author: str, title: str) -> OLResult:
     t = (title or "").strip()
     if not a or not t:
         return OLResult(False, "book:empty", 0, None)
+
+    ck = f"book:{a}|{t}"
+    hit = _cache_get(ck)
+    if hit is not None:
+        return OLResult(bool(hit.get("ok")), str(hit.get("status")), int(hit.get("hits") or 0), hit.get("top"))
 
     # Explicit fields due to /search.json default field changes.
     params = {
@@ -79,5 +149,7 @@ def validate_book(author: str, title: str) -> OLResult:
         top = str(docs[0].get("title") or "") or None
 
     if hits == 0:
-        return OLResult(False, "book:not_found", 0, top)
+        _cache_put(ck, {"ok": False, "status": "book:not_found", "hits": 0, "top": top})
+    return OLResult(False, "book:not_found", 0, top)
+    _cache_put(ck, {"ok": True, "status": "book:ok", "hits": hits, "top": top})
     return OLResult(True, "book:ok", hits, top)
