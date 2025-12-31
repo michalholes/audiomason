@@ -267,7 +267,7 @@ def run_import(cfg) -> None:
 
         for bidx, book_root in enumerate(picked, 1):
             label = "__ROOT_AUDIO__" if book_root == stage else book_root.name
-            out(f"[book] {bidx}/{len(picked)}: {src.name} -> {label}")
+            out(f"[book] {bidx}/{len(picked)}: {label}")
 
             if meta_by_label:
                 author, book = meta_by_label[label]
