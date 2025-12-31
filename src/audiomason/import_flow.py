@@ -83,21 +83,6 @@ def peek_source(src: Path) -> PeekResult:
     return PeekResult(False, None)
 
 
-def list_archive_candidates(archive: Path) -> list[str]:
-    # Return sorted candidate "book roots" inside archive WITHOUT unpacking.
-    # - If archive has multiple top-level roots -> those are candidates.
-    # - If archive has single top-level root and multiple 2nd-level dirs -> root/second are candidates.
-    try:
-        p = subprocess.run(
-            ["7z", "l", "-slt", str(archive)],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            text=True,
-            check=True,
-        )
-    except Exception:
-        return []
-
     roots: set[str] = set()
     seconds: set[str] = set()
 
@@ -265,7 +250,6 @@ def run_import(cfg) -> None:
         # If an author directory contains multiple book subdirectories, ask whether to process all or one.
         expanded: list[Path] = []
         chosen_labels: list[str] = []
-        archive_book_choice: dict[Path, str] = {}
         for src0 in chosen:
             if src0.is_dir():
                 subs = sorted(
@@ -283,28 +267,6 @@ def run_import(cfg) -> None:
                         expanded.append(b)
                         chosen_labels.append(f"{src0.name} / {b.name}")
                     continue
-            if src0.is_file() and src0.suffix.lower() in ARCHIVE_EXTS:
-                pk = peek_source(src0) or PeekResult(False, None)
-                if pk.has_single_root and pk.top_level_name:
-                    books = list_archive_candidates(src0)
-                    if len(books) > 1:
-                        out(f"[books] found {len(books)} in {src0.name}:")
-                        for i, b in enumerate(books, 1):
-                            out(f"  {i}) {b.split('/', 1)[-1]}")
-                        ans = prompt("Choose book number", "1").strip()
-                        try:
-                            bi = int(ans)
-                            if 1 <= bi <= len(books):
-                                archive_book_choice[src0] = books[bi - 1]
-                                expanded.append(src0)
-                                chosen_labels.append(f"{src0.name} / {books[bi - 1]}")
-                                continue
-                        except ValueError:
-                            pass
-                        archive_book_choice[src0] = books[0]
-                        expanded.append(src0)
-                        chosen_labels.append(f"{src0.name} / {books[0]}")
-                        continue
             expanded.append(src0)
             chosen_labels.append(src0.name)
 
@@ -335,9 +297,7 @@ def run_import(cfg) -> None:
             # Ask book titles for all upfront
             for src in chosen:
                 peek = peek_source(src) or PeekResult(False, None)
-            if src.is_file() and src in archive_book_choice:
                 peek = PeekResult(True, archive_book_choice[src].split('/', 1)[-1])
-                if src.is_file() and src in archive_book_choice:
                     peek = PeekResult(True, archive_book_choice[src].split('/', 1)[-1])
                 if src.is_dir() and src.parent != DROP_ROOT and src.parent.is_dir() and src.parent.parent == DROP_ROOT:
                     g_a, g_b = (author_all or src.parent.name), _human_book_title(src.name)
@@ -431,6 +391,30 @@ def run_import(cfg) -> None:
                     _copy_dir_into(src, stage)
                 else:
                     unpack(src, stage)
+
+                # If archive produced multiple top-level dirs, choose one now (post-unpack)
+                if not state.OPTS.yes:
+                    tops = sorted(
+                        [d for d in stage.iterdir() if d.is_dir() and not d.name.startswith(".")],
+                        key=lambda x: x.name.lower(),
+                    )
+                    if len(tops) > 1:
+                        out(f"[books] found {len(tops)} in {src.name}:")
+                        for i, d in enumerate(tops, 1):
+                            out(f"  {i}) {d.name}")
+                        ans = prompt("Choose book number", "1").strip()
+                        try:
+                            bi = int(ans)
+                            if 1 <= bi <= len(tops):
+                                chosen_top = tops[bi - 1]
+                            else:
+                                chosen_top = tops[0]
+                        except ValueError:
+                            chosen_top = tops[0]
+                        # keep only chosen folder in stage
+                        for d in tops:
+                            if d != chosen_top:
+                                shutil.rmtree(d, ignore_errors=True)
             except Exception as e:
                 out(f"[error] unpack failed: {e}")
                 continue
@@ -441,7 +425,7 @@ def run_import(cfg) -> None:
             if src.is_file() and src in archive_book_choice:
                 work_stage = stage / archive_book_choice[src]
 
-            mp3s = natural_sort(list(work_stage.rglob("*.mp3")))
+            mp3s = natural_sort(list(stage.rglob("*.mp3")))
             if not mp3s:
                 out("[skip] no mp3 found after unpack/convert")
                 continue
@@ -451,7 +435,7 @@ def run_import(cfg) -> None:
             mp3s = rename_sequential(mp3dir, mp3s)
 
             # Choose cover (batch policy: embedded/file/ask)
-            m4as = sorted(work_stage.rglob("*.m4a"))
+            m4as = sorted(stage.rglob("*.m4a"))
             old_yes = state.OPTS.yes
             try:
                 if cover_mode in {"embedded", "file"}:
