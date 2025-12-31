@@ -28,6 +28,10 @@ def _parent_parser(cfg: Dict[str, Any]) -> argparse.ArgumentParser:
     default_verify_root = Path(paths.get("verify_root", OUTPUT_ROOT))
     pp.add_argument("--verify-root", type=Path, default=default_verify_root, help="root for --verify")
 
+    g2 = pp.add_mutually_exclusive_group()
+    g2.add_argument("--lookup", dest="lookup", action="store_true", default=True, help="enable OpenLibrary validation")
+    g2.add_argument("--no-lookup", dest="lookup", action="store_false", help="disable OpenLibrary validation")
+
     pp.add_argument("--publish", choices=["yes", "no", "ask"], default=str(paths.get("publish", "ask")))
     g = pp.add_mutually_exclusive_group()
     g.add_argument("--wipe-id3", dest="wipe_id3", action="store_true", default=None, help="full wipe ID3 tags before writing new tags")
@@ -88,7 +92,8 @@ def _ns_to_opts(ns: argparse.Namespace) -> Opts:
         q_a=ns.q_a,
         verify=ns.verify,
         verify_root=ns.verify_root,
-        lookup=True,
+        lookup=ns.lookup,
+
         cleanup_stage=True,
         split_chapters=ns.split_chapters,
         ff_loglevel=ns.ff_loglevel,

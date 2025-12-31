@@ -11,6 +11,8 @@ from mutagen.id3 import ID3, ID3NoHeaderError
 from audiomason.paths import COVER_NAME
 from audiomason.util import out
 
+from audiomason.openlibrary import validate_author, validate_book
+
 
 def verify_library(root: Path) -> None:
     """
@@ -20,6 +22,25 @@ def verify_library(root: Path) -> None:
     """
     books = [p for p in root.iterdir() if p.is_dir()]
     out(f"[verify] scanning {len(books)} book(s) under {root}")
+
+    # OpenLibrary validation (read-only)
+    try:
+        import audiomason.state as state
+        do_lookup = bool(getattr(getattr(state, "OPTS", None), "lookup", False))
+    except Exception:
+        do_lookup = False
+
+    if do_lookup and root.exists():
+        # Expect layout: root/Author/Book
+        authors = [p for p in sorted(root.iterdir()) if p.is_dir()]
+        out(f"[verify] openlibrary: authors={len(authors)}")
+        for a in authors:
+            ar = validate_author(a.name)
+            out(f"[ol] {a.name}: {ar.status} hits={ar.hits}" + (f" top='{ar.top}'" if ar.top else ""))
+            books = [p for p in sorted(a.iterdir()) if p.is_dir()]
+            for b in books:
+                br = validate_book(a.name, b.name)
+                out(f"[ol]   {b.name}: {br.status} hits={br.hits}" + (f" top='{br.top}'" if br.top else ""))
 
     missing_cover = 0
     missing_tags = 0
