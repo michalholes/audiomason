@@ -41,3 +41,6 @@ def load_config() -> dict:
     cfg = _deep_merge(cfg, _load_yaml(SYSTEM_CONFIG))
     cfg = _deep_merge(cfg, _load_yaml(USER_CONFIG))
     return cfg
+
+# CPU configuration
+cpu_cores: int | None = None  # None = autodetect
