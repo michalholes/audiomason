@@ -417,10 +417,7 @@ def run_import(cfg) -> None:
                 out(f"[error] unpack failed: {e}")
                 continue
 
-            convert_m4a_in_place(stage)
-
-            work_stage = stage
-                        mp3s = natural_sort(list(stage.rglob("*.mp3")))
+            convert_m4a_in_place(stage)                        mp3s = natural_sort(list(stage.rglob("*.mp3")))
             if not mp3s:
                 out("[skip] no mp3 found after unpack/convert")
                 continue
