@@ -298,11 +298,6 @@ def run_import(cfg) -> None:
 
             out(f"[book] {idx}/{len(chosen)}: {chosen_labels[idx-1]}")
             out(f"[import] {src.name}")
-            # Unpack/copy BEFORE prompting (so archives can be inspected from stage)
-            stage = STAGE_ROOT / slug(source_key)
-            ensure_dir(stage)
-            unpacked_hint: str | None = None
-
 
             # Ask author/book (defaults guessed from source shape)
             peek = peek_source(src) or PeekResult(False, None)
@@ -324,9 +319,44 @@ def run_import(cfg) -> None:
             if am_a and am_b:
                 guess_a, guess_b = am_a, am_b
 
-            # Unpack/copy BEFORE prompting (so archives can be inspected from stage)
+            # Stage + unpack/copy BEFORE prompting (so archives can be inspected)
             stage = STAGE_ROOT / slug(source_key)
             ensure_dir(stage)
+
+            try:
+                if src.is_dir():
+                    _copy_dir_into(src, stage)
+                else:
+                    unpack(src, stage)
+
+                # If archive produced multiple top-level dirs, choose one now (post-unpack)
+                tops = sorted(
+                    [d for d in stage.iterdir() if d.is_dir() and not d.name.startswith(".")],
+                    key=lambda x: x.name.lower(),
+                )
+                if len(tops) > 1:
+                    if not state.OPTS.yes:
+                        out(f"[books] found {len(tops)} in {src.name}:")
+                        for i, d in enumerate(tops, 1):
+                            out(f"  {i}) {d.name}")
+                        ans = prompt("Choose book number, or 'a' for all", "a").strip().lower()
+                        if ans in {"a", "all"}:
+                            keep = set(tops)
+                        else:
+                            try:
+                                bi = int(ans)
+                                keep = {tops[bi - 1]} if 1 <= bi <= len(tops) else {tops[0]}
+                            except ValueError:
+                                keep = {tops[0]}
+                    else:
+                        keep = {tops[0]}
+
+                    for d in tops:
+                        if d not in keep:
+                            shutil.rmtree(d, ignore_errors=True)
+            except Exception as e:
+                out(f"[error] unpack failed: {e}")
+                continue
 
             if src in meta_by_src:
                 author, book = meta_by_src[src]
@@ -345,39 +375,6 @@ def run_import(cfg) -> None:
                 and src.parent.parent == DROP_ROOT
             ):
                 source_root = src.parent
-
-            try:
-                if src.is_dir():
-                    _copy_dir_into(src, stage)
-                else:
-                    unpack(src, stage)
-
-                # If archive produced multiple top-level dirs, choose one now (post-unpack)
-                if not state.OPTS.yes:
-                    tops = sorted(
-                        [d for d in stage.iterdir() if d.is_dir() and not d.name.startswith(".")],
-                        key=lambda x: x.name.lower(),
-                    )
-                    if len(tops) > 1:
-                        out(f"[books] found {len(tops)} in {src.name}:")
-                        for i, d in enumerate(tops, 1):
-                            out(f"  {i}) {d.name}")
-                        ans = prompt("Choose book number", "1").strip()
-                        try:
-                            bi = int(ans)
-                            if 1 <= bi <= len(tops):
-                                chosen_top = tops[bi - 1]
-                            else:
-                                chosen_top = tops[0]
-                        except ValueError:
-                            chosen_top = tops[0]
-                        # keep only chosen folder in stage
-                        for d in tops:
-                            if d != chosen_top:
-                                shutil.rmtree(d, ignore_errors=True)
-            except Exception as e:
-                out(f"[error] unpack failed: {e}")
-                continue
 
             convert_m4a_in_place(stage)
 
