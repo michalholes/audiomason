@@ -4,6 +4,45 @@ import json
 from pathlib import Path
 from typing import Any, Dict
 
+import os
+import hashlib
+
+def source_fingerprint(src: Path) -> str:
+    r = src.expanduser().resolve()
+    h = hashlib.sha256()
+    h.update(str(r).encode('utf-8'))
+    if r.is_file():
+        st = r.stat()
+        h.update(b'|F|')
+        h.update(str(st.st_size).encode('utf-8'))
+        h.update(b'|')
+        h.update(str(st.st_mtime_ns).encode('utf-8'))
+        return h.hexdigest()
+    h.update(b'|D|')
+    # Deterministic directory signature: sorted walk of relpaths + size + mtime_ns
+    for root, dirs, files in os.walk(r):
+        dirs.sort()
+        files.sort()
+        rp = Path(root)
+        for fn in files:
+            p = rp / fn
+            try:
+                st = p.stat()
+            except FileNotFoundError:
+                # Source changed during scan -> produce a different fingerprint deterministically
+                h.update(b'|MISSING|')
+                h.update(str(p.relative_to(r)).encode('utf-8'))
+                continue
+            rel = str(p.relative_to(r)).encode('utf-8')
+            h.update(b'|')
+            h.update(rel)
+            h.update(b'|')
+            h.update(str(st.st_size).encode('utf-8'))
+            h.update(b'|')
+            h.update(str(st.st_mtime_ns).encode('utf-8'))
+    return h.hexdigest()
+
+
 MANIFEST_NAME = "manifest.json"
 SCHEMA_VERSION = 1
 

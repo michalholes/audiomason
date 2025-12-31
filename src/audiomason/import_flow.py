@@ -14,9 +14,7 @@ from audiomason.audio import convert_m4a_in_place
 from audiomason.rename import natural_sort, rename_sequential
 from audiomason.covers import choose_cover
 from audiomason.tags import wipe_id3, write_tags
-from audiomason.manifest import update_manifest
-
-
+from audiomason.manifest import update_manifest, load_manifest, source_fingerprint
 _AUDIO_EXTS = {".mp3", ".m4a"}
 
 
@@ -295,6 +293,16 @@ def run_import(cfg: dict) -> None:
         stage_run = stage_root / slug(src.stem)
         stage_run = stage_root / slug(src.stem)
         stage_src = stage_run / "src"
+        fp = source_fingerprint(src)
+        update_manifest(stage_run, {"source": {"fingerprint": fp}})
+        reuse = False
+        if stage_src.exists():
+            mf = load_manifest(stage_run)
+            if mf.get("source", {}).get("fingerprint") == fp:
+                reuse = True
+        if reuse:
+            out("[stage] reuse")
+        else:
         ensure_dir(stage_run)
         update_manifest(stage_run, {
             "source": {
@@ -305,7 +313,7 @@ def run_import(cfg: dict) -> None:
                 "path": str(src),
             },
         })
-        _stage_source(src, stage_src)
+            _stage_source(src, stage_src)
 
         # Always convert m4a before book detection (so mp3s exist everywhere)
         convert_m4a_in_place(stage_src, recursive=True)
