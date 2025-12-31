@@ -241,7 +241,7 @@ def run_import(cfg: dict) -> None:
     picked_sources = _choose_source(sources)
 
     for si, src in enumerate(picked_sources, 1):
-        if slug(src.name) in load_ignore(drop_root):
+        if {slug(src.name), slug(src.stem)} & set(load_ignore(drop_root)):
             out(f"[source] {si}/{len(picked_sources)}: {src.name}")
             out("[source] skipped (ignored)")
             continue
