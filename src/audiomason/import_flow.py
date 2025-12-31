@@ -544,9 +544,4 @@ def run_import(cfg: dict) -> None:
             _process_book(bi, len(meta), b, dest_root2, author, title, out_title, wipe, cover_mode, overwrite)
 
         # FEATURE #26: clean stage at end (successful run only)
-if clean_stage and not (state.OPTS and state.OPTS.dry_run):
-            out(f"[stage] cleaning: {stage_run}")
-            if not (state.OPTS and state.OPTS.dry_run):
-                shutil.rmtree(stage_run, ignore_errors=True)
-            out(f"[stage] cleaned: {stage_run}")
 
