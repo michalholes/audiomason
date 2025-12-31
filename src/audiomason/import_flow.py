@@ -29,6 +29,14 @@ from audiomason.rename import natural_sort, rename_sequential
 from audiomason.covers import choose_cover
 from audiomason.tags import write_tags, wipe_id3
 
+_AUDIO_EXTS = {'.m4a', '.mp3'}
+
+def _has_audio_in_root(p: Path) -> bool:
+    try:
+        return any(x.is_file() and x.suffix.lower() in _AUDIO_EXTS for x in p.iterdir())
+    except Exception:
+        return False
+
 
 def _copy_dir_into(src: Path, dst: Path) -> None:
     ensure_dir(dst)
@@ -357,10 +365,13 @@ def run_import(cfg) -> None:
                     pass
 
                 # If archive produced multiple top-level dirs, choose one now (post-unpack)
-                tops = sorted(
-                    [d for d in stage.iterdir() if d.is_dir() and not d.name.startswith(".")],
-                    key=lambda x: x.name.lower(),
-                )
+                if _has_audio_in_root(stage):
+                    tops = []
+                else:
+                    tops = sorted(
+                        [d for d in stage.iterdir() if d.is_dir() and not d.name.startswith(".")],
+                        key=lambda x: x.name.lower(),
+                    )
                 if len(tops) > 1:
                     if not state.OPTS.yes:
                         out(f"[books] found {len(tops)} in {src.name}:")
