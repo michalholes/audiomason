@@ -83,53 +83,6 @@ def peek_source(src: Path) -> PeekResult:
     return PeekResult(False, None)
 
 
-    roots: set[str] = set()
-    seconds: set[str] = set()
-
-    for line in p.stdout.splitlines():
-        if not line.startswith("Path = "):
-            continue
-        path = line.split("=", 1)[1].strip().replace("\\", "/").strip("/")
-        if not path:
-            continue
-        parts = [x for x in path.split("/") if x]
-        if len(parts) >= 1:
-            roots.add(parts[0])
-        if len(parts) >= 2:
-            seconds.add(parts[1])
-
-    if len(roots) > 1:
-        return sorted(roots, key=lambda s: s.lower())
-
-    if len(roots) == 1 and len(seconds) > 1:
-        root = next(iter(roots))
-        return sorted([f"{root}/{s}" for s in seconds], key=lambda s: s.lower())
-
-    if len(roots) == 1:
-        return [next(iter(roots))]
-
-    return []
-
-
-    subs: set[str] = set()
-    rootp = root.replace("\\", "/").strip("/")
-
-    for line in p.stdout.splitlines():
-        if not line.startswith("Path = "):
-            continue
-        path = line.split("=", 1)[1].strip().replace("\\", "/").strip("/")
-        if not path:
-            continue
-        if not path.startswith(rootp + "/"):
-            continue
-        rest = path[len(rootp) + 1 :]
-        parts = [x for x in rest.split("/") if x]
-        if len(parts) >= 1:
-            subs.add(parts[0])
-
-    return sorted(subs, key=lambda s: s.lower())
-
-
 def _list_sources(inbox: Path, cfg) -> list[Path]:
     ensure_dir(inbox)
     ignore = load_ignore(inbox)
@@ -417,7 +370,9 @@ def run_import(cfg) -> None:
                 out(f"[error] unpack failed: {e}")
                 continue
 
-            convert_m4a_in_place(stage)                        mp3s = natural_sort(list(stage.rglob("*.mp3")))
+                        convert_m4a_in_place(stage)
+
+            mp3s = natural_sort(list(stage.rglob("*.mp3")))
             if not mp3s:
                 out("[skip] no mp3 found after unpack/convert")
                 continue
