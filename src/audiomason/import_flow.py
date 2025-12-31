@@ -153,13 +153,13 @@ def _detect_books(stage_src: Path) -> list[BookGroup]:
     return books
 
 
-def _choose_books(books: list[BookGroup]) -> list[BookGroup]:
+def _choose_books(books: list[BookGroup], default_ans: str = "1") -> list[BookGroup]:
     if len(books) == 1:
         return books
     out(f"[books] found {len(books)}:")
     for i, b in enumerate(books, 1):
         out(f"  {i}) {b.label}")
-    ans = prompt("Choose book number, or 'a' for all", "1").strip().lower()
+    ans = prompt("Choose book number, or 'a' for all", default_ans).strip().lower()
     if ans == "a":
         return books
     try:
@@ -197,9 +197,9 @@ def _preflight_global() -> tuple[bool, bool]:
     return (pub, wipe)
 
 
-def _preflight_book(i: int, n: int, b: BookGroup) -> str:
+def _preflight_book(i: int, n: int, b: BookGroup, default_title: str = "") -> str:
     out(f"[book-meta] {i}/{n}: {b.label}")
-    default_title = b.label if b.label != "__ROOT_AUDIO__" else "Untitled"
+    default_title = (default_title or (b.label if b.label != "__ROOT_AUDIO__" else "Untitled"))
     title = prompt(f"[book {i}/{n}] Book title", default_title).strip()
     if not title:
         die("Book title is required")
@@ -291,30 +291,42 @@ def run_import(cfg: dict) -> None:
             continue
 
         stage_run = stage_root / slug(src.stem)
-        stage_run = stage_root / slug(src.stem)
         stage_src = stage_run / "src"
+
         fp = source_fingerprint(src)
         update_manifest(stage_run, {"source": {"fingerprint": fp}})
         mf = load_manifest(stage_run)
         dec = mf.get("decisions", {})
         bm = mf.get("book_meta", {})
-        reuse = False
-        if stage_src.exists():
-            mf = load_manifest(stage_run)
-            if mf.get("source", {}).get("fingerprint") == fp:
-                reuse = True
-        if reuse:
+
+        reuse_possible = bool(stage_src.exists() and mf.get("source", {}).get("fingerprint") == fp)
+        reuse_stage = False
+        if reuse_possible:
+            reuse_stage = prompt_yes_no("[stage] Reuse existing staged source?", default_no=False)
+
+        use_manifest_answers = False
+        if reuse_stage:
             out("[stage] reuse")
+            use_manifest_answers = prompt_yes_no("[manifest] Use saved answers (skip prompts)?", default_no=False)
         else:
+            if reuse_possible:
+                out("[stage] delete")
+                shutil.rmtree(stage_run, ignore_errors=True)
+                # reset locals; we'll recreate stage + manifest below
+                mf = {}
+                dec = {}
+                bm = {}
+
             ensure_dir(stage_run)
             update_manifest(stage_run, {
-            "source": {
-                "name": src.name,
-                "stem": src.stem,
-                "is_dir": bool(src.is_dir()),
-                "is_file": bool(src.is_file()),
-                "path": str(src),
-            },
+                "source": {
+                    "name": src.name,
+                    "stem": src.stem,
+                    "is_dir": bool(src.is_dir()),
+                    "is_file": bool(src.is_file()),
+                    "path": str(src),
+                    "fingerprint": fp,
+                },
             })
             _stage_source(src, stage_src)
 
@@ -322,7 +334,29 @@ def run_import(cfg: dict) -> None:
         convert_m4a_in_place(stage_src, recursive=True)
 
         books = _detect_books(stage_src)
-        picked_books = _choose_books(books)
+
+        # book selection (skip when allowed, otherwise prompt with defaults)
+        picked_books: list[BookGroup] = []
+        picked = mf.get("books", {}).get("picked") if isinstance(mf, dict) else None
+        if reuse_stage and use_manifest_answers and isinstance(picked, list) and picked:
+            by_label = {b.label: b for b in books}
+            picked_books = [by_label[l] for l in picked if l in by_label]
+
+        default_ans = "1"
+        if (not picked_books) and isinstance(picked, list) and picked:
+            if len(picked) == len(books):
+                default_ans = "a"
+            else:
+                try:
+                    first = picked[0]
+                    idx = [b.label for b in books].index(first) + 1
+                    default_ans = str(idx)
+                except Exception:
+                    default_ans = "1"
+
+        if not picked_books:
+            picked_books = _choose_books(books, default_ans=default_ans)
+
         update_manifest(stage_run, {
             "books": {
                 "detected": [b.label for b in books],
@@ -330,54 +364,48 @@ def run_import(cfg: dict) -> None:
             },
         })
 
-        if "publish" in dec and "wipe_id3" in dec:
+        # publish/wipe (skip when allowed, otherwise prompt with defaults)
+        default_publish = bool(dec.get("publish")) if isinstance(dec, dict) and "publish" in dec else False
+        default_wipe = bool(dec.get("wipe_id3")) if isinstance(dec, dict) and "wipe_id3" in dec else False
 
-
+        if reuse_stage and use_manifest_answers and isinstance(dec, dict) and ("publish" in dec) and ("wipe_id3" in dec):
             publish = bool(dec.get("publish"))
-
-
             wipe = bool(dec.get("wipe_id3"))
-
-
         else:
+            # honor CLI overrides
+            if state.OPTS.publish is None:
+                publish = prompt_yes_no("Publish after import?", default_no=(not default_publish))
+            else:
+                publish = bool(state.OPTS.publish)
+            if state.OPTS.wipe_id3 is None:
+                wipe = prompt_yes_no("Full wipe ID3 tags before tagging?", default_no=(not default_wipe))
+            else:
+                wipe = bool(state.OPTS.wipe_id3)
 
-
-            publish, wipe = _preflight_global()  # decided before any output writes
-
-
-            update_manifest(stage_run, {"decisions": {"publish": bool(publish), "wipe_id3": bool(wipe)}})
         update_manifest(stage_run, {"decisions": {"publish": bool(publish), "wipe_id3": bool(wipe)}})
         dest_root = archive_root if publish else output_root
 
         # AUTHOR is per-source (not per-book)
         default_author = src.name if src.is_dir() else src.stem
-        author = str(dec.get("author") or "").strip()
+        default_author2 = str(dec.get("author") or default_author) if isinstance(dec, dict) else default_author
 
-        if not author:
-
+        if reuse_stage and use_manifest_answers and isinstance(dec, dict) and str(dec.get("author") or "").strip():
             author = str(dec.get("author") or "").strip()
+        else:
+            author = prompt("[source] Author", default_author2).strip()
+        if not author:
+            die("Author is required")
+        update_manifest(stage_run, {"decisions": {"author": author}})
 
-
-            if not author:
-
-
-                author = prompt("[source] Author", default_author).strip()
-            if not author:
-
-                die("Author is required")
-
-            update_manifest(stage_run, {"decisions": {"author": author}})
         # preflight per-book metadata (must happen before touching output)
         meta: list[tuple[BookGroup, str]] = []
         for bi, b in enumerate(picked_books, 1):
-            title = str(bm.get(b.label, {}).get("title") or "").strip()
-
-            if not title:
-
-                title = _preflight_book(bi, len(picked_books), b)
-
+            default_title = str(bm.get(b.label, {}).get("title") or "").strip() if isinstance(bm, dict) else ""
+            if reuse_stage and use_manifest_answers and default_title:
+                title = default_title
+            else:
+                title = _preflight_book(bi, len(picked_books), b, default_title=default_title)
             meta.append((b, title))
-
             update_manifest(stage_run, {"book_meta": {b.label: {"title": title}}})
         # processing phase (no prompts)
         for bi, (b, title) in enumerate(meta, 1):
