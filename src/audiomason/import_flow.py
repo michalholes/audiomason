@@ -209,9 +209,7 @@ def _preflight_book(i: int, n: int, b: BookGroup, default_title: str = "") -> st
             title = nt
 
         # OpenLibrary existence check (book)
-        try:
-    import audiomason.state as _state
-            do_lookup = bool(getattr(getattr(_state, 'OPTS', None), 'lookup', False))
+                    do_lookup = bool(getattr(getattr(_state, 'OPTS', None), 'lookup', False))
         except Exception:
             do_lookup = False
         if do_lookup:
@@ -470,9 +468,7 @@ def run_import(cfg: dict) -> None:
             author = prompt("[source] Author", default_author2).strip()
             na = normalize_name(author)
             # OpenLibrary existence check (author)
-            try:
-    import audiomason.state as _state
-                do_lookup = bool(getattr(getattr(_state, 'OPTS', None), 'lookup', False))
+                            do_lookup = bool(getattr(getattr(_state, 'OPTS', None), 'lookup', False))
             except Exception:
                 do_lookup = False
             if do_lookup:
