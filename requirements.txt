@@ -1,0 +1,2 @@
+PyYAML>=6.0.1
+mutagen>=1.47.0
