@@ -35,7 +35,6 @@ def _copy_dir_into(src: Path, dst: Path) -> None:
     # copy contents of src into dst (dst already exists)
     for item in src.iterdir():
         if item.name.startswith("."):
-            continue
         target = dst / item.name
         if item.is_dir():
             shutil.copytree(item, target, dirs_exist_ok=True)
