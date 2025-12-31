@@ -57,40 +57,66 @@ def m4a_split_by_chapters(src: Path, outdir: Path) -> list[Path]:
     if not ch or len(ch) < 2:
         return []
 
+    times: list[tuple[float, float]] = []
+    for c in ch:
+        try:
+            st = float(c["start_time"])
+            et = float(c["end_time"])
+        except Exception:
+            return []
+        if et <= st:
+            return []
+        times.append((st, et))
+
+    for i in range(1, len(times)):
+        if times[i][0] < times[i - 1][1]:
+            return []
+
+    start0 = times[0][0]
+    ends = [et for _, et in times]
+    total = ends[-1] - start0
+    if total <= 0:
+        return []
+
+    split_points = []
+    for e in ends[:-1]:
+        t = e - start0
+        if t <= 0:
+            return []
+        split_points.append(t)
+
     ensure_dir(outdir)
-    out(f"[split] splitting by chapters: {len(ch)} tracks")
+    out(f"[split] splitting by chapters: {len(times)} tracks (single-pass)")
 
-    produced: list[Path] = []
-    for i, c in enumerate(ch, 1):
-        start = c.get("start_time")
-        end = c.get("end_time")
-        if start is None or end is None:
-            continue
+    dst_pat = outdir / "%02d.mp3"
+    cmd = ["ffmpeg"] + ffmpeg_common_input() + [
+        "-y",
+        "-ss", str(start0),
+        "-i", str(src),
+        "-vn",
+        "-t", str(total),
+        "-map", "0:a:0",
+    ]
+    if state.OPTS.loudnorm:
+        cmd += ["-af", "loudnorm=I=-16:LRA=11:TP=-1.5"]
+    cmd += [
+        "-codec:a", "libmp3lame",
+        "-q:a", state.OPTS.q_a,
+        "-f", "segment",
+        "-segment_times", ",".join(str(x) for x in split_points),
+        "-segment_start_number", "1",
+        "-reset_timestamps", "1",
+        str(dst_pat),
+    ]
 
-        dst = outdir / f"{i:02d}.mp3"
-        out(f"[split] {i}/{len(ch)} {start} -> {end} -> {dst.name}")
+    produced = [outdir / f"{i:02d}.mp3" for i in range(1, len(times) + 1)]
 
-        cmd = ["ffmpeg"] + ffmpeg_common_input() + [
-            "-y",
-            "-i", str(src),
-            "-vn",
-            "-ss", str(start),
-            "-to", str(end),
-        ]
-        if state.OPTS.loudnorm:
-            cmd += ["-af", "loudnorm=I=-16:LRA=11:TP=-1.5"]
-        cmd += ["-codec:a", "libmp3lame", "-q:a", state.OPTS.q_a, str(dst)]
+    if state.OPTS.dry_run:
+        out("[dry-run] " + " ".join(cmd))
+        return produced
 
-        if state.OPTS.dry_run:
-            out("[dry-run] " + " ".join(cmd))
-        else:
-            subprocess.run(cmd, check=True)
-
-        produced.append(dst)
-
-    if not state.OPTS.dry_run:
-        produced = [p for p in produced if p.exists() and p.stat().st_size > 0]
-    return produced
+    subprocess.run(cmd, check=True)
+    return [p for p in produced if p.exists() and p.stat().st_size > 0]
 
 
 def convert_m4a_in_place(stage: Path, recursive: bool = True) -> None:
