@@ -35,6 +35,7 @@ def _copy_dir_into(src: Path, dst: Path) -> None:
     # copy contents of src into dst (dst already exists)
     for item in src.iterdir():
         if item.name.startswith("."):
+            continue
         target = dst / item.name
         if item.is_dir():
             shutil.copytree(item, target, dirs_exist_ok=True)
@@ -186,7 +187,7 @@ def run_import(cfg) -> None:
             raise SystemExit(2)
 
         inbox = DROP_ROOT
-        ignore = load_ignore()
+        ignore = load_ignore(inbox)
 
         sources = _list_sources(inbox, cfg)
         if not sources:
@@ -326,6 +327,16 @@ def run_import(cfg) -> None:
             stage = STAGE_ROOT / slug(source_key)
             ensure_dir(stage)
 
+            # ignore whole source (author folder) after success
+            source_root = src
+            if (
+                src.is_dir()
+                and src.parent != DROP_ROOT
+                and src.parent.is_dir()
+                and src.parent.parent == DROP_ROOT
+            ):
+                source_root = src.parent
+
             try:
                 if src.is_dir():
                     _copy_dir_into(src, stage)
@@ -333,7 +344,7 @@ def run_import(cfg) -> None:
                     unpack(src, stage)
             except Exception as e:
                 out(f"[error] unpack failed: {e}")
-                                continue
+                continue
 
             convert_m4a_in_place(stage)
 
@@ -408,7 +419,7 @@ def run_import(cfg) -> None:
                 shutil.move(str(cov), str(bookdir_out / "cover.jpg"))
 
             out(f"[done] {book_key} -> {bookdir_out}")
-            add_ignore(src0.name)
+            add_ignore(inbox, source_root.name)
 
             
 
