@@ -100,18 +100,18 @@ def main() -> int:
     cfg = load_config()
     ns = _parse_args()
     state.OPTS = _ns_to_opts(ns)
-    state.DEBUG = bool(getattr(ns, 'debug', False))
+    state.DEBUG = bool(getattr(ns, "debug", False))
     if state.DEBUG:
         from audiomason.util import enable_trace
         enable_trace()
 
-        if ns.cmd == "inspect":
+    if ns.cmd == "inspect":
+        from audiomason.inspect import inspect_source
+        inspect_source(ns.path)
+        return 0
 
-                from audiomason.inspect import inspect_source
-
-                inspect_source(ns.path)
-
-                return 0
+    if ns.cmd == "verify":
+        root = ns.root or state.OPTS.verify_root
         verify_library(root)
         return 0
 
