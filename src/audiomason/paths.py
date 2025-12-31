@@ -76,3 +76,8 @@ COVER_NAME = "cover.jpg"
 # Tag defaults
 # ======================
 GENRE = "Audiobook"
+
+# Legacy constants (kept for backward compatibility)
+TITLE_PREFIX = ""
+AUTHOR_PREFIX = ""
+BOOK_PREFIX = ""
