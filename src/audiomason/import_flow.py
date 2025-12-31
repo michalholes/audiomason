@@ -254,7 +254,6 @@ def _write_dry_run_summary(stage_run: Path, author: str, title: str, lines: list
     path = stage_run / name
     header = [
         "AudioMason dry-run summary",
-        f"Generated: {datetime.now().isoformat()}",
         "",
     ]
     path.write_text("\n".join(header + lines) + "\n", encoding="utf-8")
@@ -537,7 +536,7 @@ def run_import(cfg: dict) -> None:
             # persist
             dest_kind = "archive" if dest_root2 == archive_root else "output"
             meta.append((b, title, cover_mode, dest_root2, out_title, overwrite))
-                        if state.OPTS and state.OPTS.dry_run:
+        if state.OPTS and state.OPTS.dry_run:
                 dry_run_lines.extend([
                     f"Author: {author}",
                     f"Book: {out_title}",
