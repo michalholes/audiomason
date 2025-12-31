@@ -87,6 +87,7 @@ def _ns_to_opts(ns: argparse.Namespace) -> Opts:
 
 
 def main() -> int:
+    cfg = load_config()
     ns = _parse_args()
     state.OPTS = _ns_to_opts(ns)
 
@@ -95,5 +96,5 @@ def main() -> int:
         verify_library(root)
         return 0
 
-    run_import()
+    run_import(cfg)
     return 0
