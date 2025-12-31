@@ -6,7 +6,6 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
-    import audiomason.state as _state
 from audiomason.paths import get_drop_root, get_stage_root, get_output_root, get_archive_root, ARCHIVE_EXTS
 from audiomason.util import out, die, ensure_dir, slug, prompt, prompt_yes_no
 from audiomason.ignore import load_ignore, add_ignore
