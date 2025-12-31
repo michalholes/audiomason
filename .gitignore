@@ -10,7 +10,7 @@ htmlcov/
 # local config overrides
 .env
 .env.*
-
+.DS_Store
 .venv/
 __pycache__/
 *.egg-info/
