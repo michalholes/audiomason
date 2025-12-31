@@ -250,7 +250,7 @@ def _write_dry_run_summary(stage_run: Path, author: str, title: str, lines: list
     ]
     path.write_text("\n".join(header + lines) + "\n", encoding="utf-8")
 
-def _process_book(i: int, n: int, b: BookGroup, dest_root: Path, author: str, title: str, out_title: str, wipe: bool, cover_mode: str, overwrite: bool) -> None:
+def _process_book(i: int, n: int, b: BookGroup, stage_run: Path, dest_root: Path, author: str, title: str, out_title: str, wipe: bool, cover_mode: str, overwrite: bool) -> None:
     out(f"[book] {i}/{n}: {b.label}")
 
     outdir = _output_dir(dest_root, author, out_title)
@@ -554,7 +554,7 @@ def run_import(cfg: dict) -> None:
 
         # processing phase (no prompts)
         for bi, (b, title, cover_mode, dest_root2, out_title, overwrite) in enumerate(meta, 1):
-            _process_book(bi, len(meta), b, dest_root2, author, title, out_title, wipe, cover_mode, overwrite)
+            _process_book(bi, len(meta), b, stage_run, dest_root2, author, title, out_title, wipe, cover_mode, overwrite)
 
         # FEATURE #26: clean stage at end (successful run only)
 
