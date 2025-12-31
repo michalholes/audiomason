@@ -106,12 +106,12 @@ def main() -> int:
         enable_trace()
 
         if ns.cmd == "inspect":
-        from audiomason.inspect import inspect_source
-        inspect_source(ns.path)
-        return 0
 
-if ns.cmd == "verify":
-        root = ns.root if ns.root is not None else state.OPTS.verify_root
+                from audiomason.inspect import inspect_source
+
+                inspect_source(ns.path)
+
+                return 0
         verify_library(root)
         return 0
 
