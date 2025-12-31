@@ -241,24 +241,24 @@ def run_import(cfg: dict) -> None:
     picked_sources = _choose_source(sources)
 
     for si, src in enumerate(picked_sources, 1):
+        out(f"[source] {si}/{len(picked_sources)}: {src.name}")
+
         ignore_raw = load_ignore(drop_root)
         ignore_norm = {k.strip().lower() for k in ignore_raw}
         ignore_norm |= {slug(k).lower() for k in ignore_raw}
+
         candidates = {
             src.name.lower(),
             src.stem.lower(),
             slug(src.name).lower(),
             slug(src.stem).lower(),
         }
-            out(f"[source] {si}/{len(picked_sources)}: {src.name}")
+
         if candidates & ignore_norm:
             out("[source] skipped (ignored)")
             continue
-            out("[source] skipped (ignored)")
-            continue
 
-        out(f"[source] {si}/{len(picked_sources)}: {src.name}")
-
+        stage_run = stage_root / slug(src.stem)
         stage_run = stage_root / slug(src.stem)
         stage_src = stage_run / "src"
         _stage_source(src, stage_src)
