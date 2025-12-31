@@ -199,7 +199,7 @@ def _preflight_global() -> tuple[bool, bool]:
 
 
 def _preflight_book(i: int, n: int, b: BookGroup) -> tuple[str, str]:
-    out(f"[book] {i}/{n}: {b.label}")
+    out(f"[book-meta] {i}/{n}: {b.label}")
     default_author = b.label if b.label != "__ROOT_AUDIO__" else ""
     author = prompt(f"[book {i}/{n}] Author", default_author).strip()
     if not author:
