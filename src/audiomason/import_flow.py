@@ -102,6 +102,10 @@ def _list_sources(inbox: Path, cfg) -> list[Path]:
     )
 
 
+def _human_book_title(name: str) -> str:
+    return name.replace('_', ' ').strip()
+
+
 def _guess_author_book(stem: str) -> tuple[str, str]:
     # Heuristics: "Author - Book", "Author.Book", "Author_Book"
     s = stem.replace("_", " ").strip()
@@ -213,9 +217,43 @@ def run_import(cfg) -> None:
                     continue
             expanded.append(src0)
             chosen_labels.append(src0.name)
+
         chosen = expanded
 
+        # Batch preflight: if multiple books are selected, ask metadata once, then process all
+        meta_by_src: dict[Path, tuple[str, str]] = {}
+        publish_override: bool | None = None
+        cover_mode = "ask"  # placeholder (future): embedded/file/ask
+
+        if len(chosen) > 1:
+            # one publish prompt for all
+            publish_override = _decide_publish(archive_root)
+
+            # (requested) one cover policy prompt for all (currently informational; per-book cover chooser still runs)
+            cover_mode = prompt("Covers for all (embedded/file/ask)", "ask").strip().lower() or "ask"
+            if cover_mode not in {"embedded", "file", "ask"}:
+                cover_mode = "ask"
+
+            # ask book titles for all upfront (author defaults to parent dir for Author/Book sources)
+            for src in chosen:
+                peek = peek_source(src)
+                if src.is_dir() and src.parent != DROP_ROOT and src.parent.is_dir() and src.parent.parent == DROP_ROOT:
+                    g_a, g_b = src.parent.name, _human_book_title(src.name)
+                else:
+                    name_for_guess = (
+                        peek.top_level_name
+                        if peek.has_single_root and peek.top_level_name
+                        else (src.stem if src.is_file() else src.name)
+                    )
+                    g_a, g_b = _guess_author_book(name_for_guess)
+                    g_b = _human_book_title(g_b)
+
+                a = prompt(f"Author for {src.name}", g_a).strip() or g_a
+                b = prompt(f"Book for {src.name}", g_b).strip() or g_b
+                meta_by_src[src] = (a, b)
+
         for idx, src in enumerate(chosen, 1):
+
             # Unified source key (archive and directory behave the same)
             peek = peek_source(src)
             source_key = (
@@ -255,8 +293,11 @@ def run_import(cfg) -> None:
             if am_a and am_b:
                 guess_a, guess_b = am_a, am_b
 
-            author = prompt("Author", guess_a).strip() or guess_a
-            book = prompt("Book", guess_b).strip() or guess_b
+            if src in meta_by_src:
+                author, book = meta_by_src[src]
+            else:
+                author = prompt("Author", guess_a).strip() or guess_a
+                book = prompt("Book", guess_b).strip() or guess_b
 
             book_key = f"{slug(author)}.{slug(book)}"
             stage = STAGE_ROOT / slug(source_key)
@@ -306,7 +347,7 @@ def run_import(cfg) -> None:
             )
 
             # Move to output + optionally publish
-            publish = _decide_publish(archive_root)
+            publish = publish_override if publish_override is not None else _decide_publish(archive_root)
             target_root = archive_root if publish else OUTPUT_ROOT
             bookdir_out = target_root / slug(author) / slug(book)
             ensure_dir(bookdir_out)
