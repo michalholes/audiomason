@@ -1,7 +1,5 @@
 from pathlib import Path
 from audiomason.util import out
-from audiomason.archives import ARCHIVE_EXTS
-
 def inspect_source(path: Path) -> None:
     if not path.exists():
         out(f"[inspect] not found: {path}")
@@ -11,7 +9,7 @@ def inspect_source(path: Path) -> None:
         out(f"[inspect] file: {path.name}")
         if path.suffix.lower() in ARCHIVE_EXTS:
             out("  type: archive")
-        elif _is_audio(path):
+        elif __is_audio(path):
             out("  type: audio")
         else:
             out("  type: other")
@@ -26,7 +24,7 @@ def inspect_source(path: Path) -> None:
         if p.is_dir():
             books.append(p.name)
         elif p.is_file():
-            if _is_audio(p):
+            if __is_audio(p):
                 audio.append(p.name)
             elif p.suffix.lower() in ARCHIVE_EXTS:
                 archives.append(p.name)
