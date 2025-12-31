@@ -329,6 +329,14 @@ def run_import(cfg) -> None:
                 else:
                     unpack(src, stage)
 
+                # Normalize single-root archives: dive into the single root dir (so root-level m4a isn't missed)
+                try:
+                    vis = [p for p in stage.iterdir() if not p.name.startswith(".")]
+                    if len(vis) == 1 and vis[0].is_dir():
+                        stage = vis[0]
+                except Exception:
+                    pass
+
                 # If archive produced multiple top-level dirs, choose one now (post-unpack)
                 tops = sorted(
                     [d for d in stage.iterdir() if d.is_dir() and not d.name.startswith(".")],
