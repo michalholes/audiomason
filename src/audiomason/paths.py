@@ -1,4 +1,9 @@
 from pathlib import Path
+import os
+
+# Env override (used by tests + legacy)
+AUDIOMASON_ROOT = os.environ.get('AUDIOMASON_ROOT')
+BASE_ROOT = Path(AUDIOMASON_ROOT).expanduser().resolve() if AUDIOMASON_ROOT else Path.cwd()
 
 # ======================
 # Archive extensions
@@ -63,10 +68,10 @@ def get_ignore_file(cfg) -> Path:
 # Backward-compatible symbols
 # (DO NOT REMOVE)
 # ======================
-DROP_ROOT = _DEFAULT_INBOX
-STAGE_ROOT = _DEFAULT_STAGE
-OUTPUT_ROOT = _DEFAULT_OUTPUT
-ARCHIVE_ROOT = _DEFAULT_ARCHIVE
+DROP_ROOT = BASE_ROOT / 'abooksinbox'
+STAGE_ROOT = BASE_ROOT / '_am_stage'
+OUTPUT_ROOT = BASE_ROOT / 'output'
+ARCHIVE_ROOT = BASE_ROOT / 'archive'
 CACHE_ROOT = _DEFAULT_CACHE
 
 IGNORE_FILE = Path(".abook_ignore")
