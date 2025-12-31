@@ -191,14 +191,6 @@ def _preflight_global() -> tuple[bool, bool]:
     # wipe ID3 decision
     if state.OPTS.wipe_id3 is None:
         wipe = prompt_yes_no("Full wipe ID3 tags before tagging?", default_no=True)
-        # FEATURE #26: stage cleanup decision (persisted in manifest)
-        dec = (manifest.get("decisions") or {}) if isinstance(manifest, dict) else {}
-        default_clean = bool(dec.get("clean_stage") is True)
-        if reuse_stage and use_manifest_answers and ("clean_stage" in dec):
-            clean_stage = default_clean
-        else:
-            clean_stage = prompt_yes_no("Clean stage after successful import?", default_no=True)
-        update_manifest(stage_run, {"decisions": {"clean_stage": bool(clean_stage)}})
 
     else:
         wipe = bool(state.OPTS.wipe_id3)
@@ -424,6 +416,13 @@ def run_import(cfg: dict) -> None:
                 wipe = bool(state.OPTS.wipe_id3)
 
         update_manifest(stage_run, {"decisions": {"publish": bool(publish), "wipe_id3": bool(wipe)}})
+        # FEATURE #26: stage cleanup decision (manifest-backed)
+        default_clean = bool(dec.get("clean_stage")) if isinstance(dec, dict) and ("clean_stage" in dec) else False
+        if reuse_stage and use_manifest_answers and isinstance(dec, dict) and ("clean_stage" in dec):
+            clean_stage = bool(dec.get("clean_stage"))
+        else:
+            clean_stage = prompt_yes_no("Clean stage after successful import?", default_no=(not default_clean))
+        update_manifest(stage_run, {"decisions": {"clean_stage": bool(clean_stage)}})
         dest_root = archive_root if publish else output_root
 
         # AUTHOR is per-source (not per-book)
@@ -441,7 +440,6 @@ def run_import(cfg: dict) -> None:
         # preflight per-book metadata (must happen before touching output)
         # ISSUE #12: unify decisions upfront (title + cover choice). Processing must not prompt.
         meta: list[tuple[BookGroup, str, str, Path, str, bool]] = []
-        dry_run_lines: list[str] = []  # (book, title, cover_mode, dest_root, out_title, overwrite)
         for bi, b in enumerate(picked_books, 1):
             # title
             default_title = str(bm.get(b.label, {}).get("title") or "").strip() if isinstance(bm, dict) else ""
@@ -536,15 +534,7 @@ def run_import(cfg: dict) -> None:
             # persist
             dest_kind = "archive" if dest_root2 == archive_root else "output"
             meta.append((b, title, cover_mode, dest_root2, out_title, overwrite))
-        if state.OPTS and state.OPTS.dry_run:
-                dry_run_lines.extend([
-                    f"Author: {author}",
-                    f"Book: {out_title}",
-                    f"Destination root: {dest_root2}",
-                    f"Overwrite destination: {overwrite}",
-                    f"Cover mode: {cover_mode}",
-                ])
-update_manifest(stage_run, {"book_meta": {b.label: {"title": title, "cover_mode": cover_mode, "dest_kind": dest_kind, "out_title": out_title, "overwrite": bool(overwrite)}}})
+            update_manifest(stage_run, {"book_meta": {b.label: {"title": title, "cover_mode": cover_mode, "dest_kind": dest_kind, "out_title": out_title, "overwrite": bool(overwrite)}}})
 
         # processing phase (no prompts)
         for bi, (b, title, cover_mode, dest_root2, out_title, overwrite) in enumerate(meta, 1):
