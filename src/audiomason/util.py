@@ -15,17 +15,13 @@ import os
 
 
 def out(msg: str) -> None:
-    if OPTS is None or not OPTS.quiet:
-        try:
-            from audiomason import state
-            if getattr(state, "DEBUG", False):
-                print(f"[TRACE] {msg}", flush=True)
-            else:
-                print(msg, flush=True)
-        except Exception:
+    try:
+        if state.OPTS.debug:
+            print(f"[TRACE] {msg}", flush=True)
+        else:
             print(msg, flush=True)
-
-
+    except BrokenPipeError:
+        return
 def die(msg: str, code: int = 2) -> None:
     print(f"[FATAL] {msg}", flush=True)
     raise SystemExit(code)
