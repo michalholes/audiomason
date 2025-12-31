@@ -10,7 +10,14 @@ from audiomason.state import OPTS
 
 def out(msg: str) -> None:
     if OPTS is None or not OPTS.quiet:
-        print(msg, flush=True)
+        try:
+            from audiomason import state
+            if getattr(state, "DEBUG", False):
+                print(f"[TRACE] {msg}", flush=True)
+            else:
+                print(msg, flush=True)
+        except Exception:
+            print(msg, flush=True)
 
 
 def die(msg: str, code: int = 2) -> None:
