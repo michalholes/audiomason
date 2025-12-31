@@ -122,6 +122,26 @@ def _pick_sources_interactive(sources: list[Path]) -> list[Path]:
     return [sources[0]]
 
 
+def _pick_books_interactive(author_dir: Path, book_dirs: list[Path]) -> list[Path]:
+    out(f"[books] found {len(book_dirs)} in {author_dir.name}:")
+    for i, b in enumerate(book_dirs, 1):
+        out(f"  {i}) {b.name}")
+
+    ans = prompt("Choose book number, or 'a' for all", "a").strip().lower()
+    if ans in {"a", "all"}:
+        return book_dirs
+
+    try:
+        idx = int(ans)
+        if 1 <= idx <= len(book_dirs):
+            return [book_dirs[idx - 1]]
+    except ValueError:
+        pass
+
+    out("[pick] invalid choice -> using all")
+    return book_dirs
+
+
 def _decide_publish() -> bool:
     # state.OPTS.publish: True/False/None(ask)
     if state.OPTS is None:
@@ -160,7 +180,26 @@ def run_import(cfg) -> None:
             out("[abort]")
             return
 
-        for src in chosen:
+        # If an author directory contains multiple book subdirectories, ask whether to process all or one.
+        expanded: list[Path] = []
+        chosen_labels: list[str] = []
+        for src0 in chosen:
+            if src0.is_dir():
+                subs = sorted(
+                    [d for d in src0.iterdir() if d.is_dir() and not d.name.startswith(".")],
+                    key=lambda x: x.name.lower(),
+                )
+                if len(subs) > 1:
+                    picked = _pick_books_interactive(src0, subs)
+                    for b in picked:
+                        expanded.append(b)
+                        chosen_labels.append(f"{src0.name} / {b.name}")
+                    continue
+            expanded.append(src0)
+            chosen_labels.append(src0.name)
+        chosen = expanded
+
+        for idx, src in enumerate(chosen, 1):
             # Unified source key (archive and directory behave the same)
             peek = peek_source(src)
             source_key = (
@@ -173,6 +212,7 @@ def run_import(cfg) -> None:
                 out(f"[skip] ignored: {src.name}")
                 continue
 
+            out(f"[book] {idx}/{len(chosen)}: {chosen_labels[idx-1]}")
             out(f"[import] {src.name}")
 
             # Ask author/book (defaults guessed from source shape)
