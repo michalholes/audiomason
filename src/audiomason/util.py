@@ -6,6 +6,12 @@ from pathlib import Path
 from typing import Optional
 
 from audiomason.state import OPTS
+import subprocess
+
+import shutil
+
+import os
+
 
 
 def out(msg: str) -> None:
@@ -173,3 +179,76 @@ def find_archive_match(archive_ro: str, author_hint: str, book_hint: str):
         return uniq[0]
 
     return (None, None)
+
+_TRACE_ENABLED = False
+
+def enable_trace() -> None:
+    """
+    ISSUE #9: Full TRACE mode.
+    When enabled, prints every low-level action (subprocess/shutil/os) as [TRACE-OP] ...
+    Deterministic: no behavior change, logging only.
+    """
+    global _TRACE_ENABLED
+    if _TRACE_ENABLED:
+        return
+    _TRACE_ENABLED = True
+
+    def _t(msg: str) -> None:
+        # Respect --quiet
+        try:
+            if OPTS is not None and OPTS.quiet:
+                return
+        except Exception:
+            pass
+        print(f"[TRACE-OP] {msg}", flush=True)
+
+    # --- subprocess ---
+    _sub_run = subprocess.run
+    _sub_cc = subprocess.check_call
+    _sub_co = subprocess.check_output
+    _sub_popen = subprocess.Popen
+
+    def run(*args, **kwargs):
+        _t(f"subprocess.run args={args!r} kwargs={kwargs!r}")
+        return _sub_run(*args, **kwargs)
+
+    def check_call(*args, **kwargs):
+        _t(f"subprocess.check_call args={args!r} kwargs={kwargs!r}")
+        return _sub_cc(*args, **kwargs)
+
+    def check_output(*args, **kwargs):
+        _t(f"subprocess.check_output args={args!r} kwargs={kwargs!r}")
+        return _sub_co(*args, **kwargs)
+
+    class Popen(_sub_popen):
+        def __init__(self, *args, **kwargs):
+            _t(f"subprocess.Popen args={args!r} kwargs={kwargs!r}")
+            super().__init__(*args, **kwargs)
+
+    subprocess.run = run
+    subprocess.check_call = check_call
+    subprocess.check_output = check_output
+    subprocess.Popen = Popen
+
+    # --- shutil ---
+    for name in ["copy2", "copytree", "rmtree", "move", "copyfile", "copymode", "copystat", "make_archive", "unpack_archive"]:
+        if hasattr(shutil, name):
+            fn = getattr(shutil, name)
+            def _wrap(fn, nm):
+                def w(*args, **kwargs):
+                    _t(f"shutil.{nm} args={args!r} kwargs={kwargs!r}")
+                    return fn(*args, **kwargs)
+                return w
+            setattr(shutil, name, _wrap(fn, name))
+
+    # --- os (covers Path ops internally: rename/unlink/mkdir/etc.) ---
+    for name in ["rename", "replace", "remove", "unlink", "mkdir", "rmdir", "makedirs", "chmod", "chown", "utime"]:
+        if hasattr(os, name):
+            fn = getattr(os, name)
+            def _wrap(fn, nm):
+                def w(*args, **kwargs):
+                    _t(f"os.{nm} args={args!r} kwargs={kwargs!r}")
+                    return fn(*args, **kwargs)
+                return w
+            setattr(os, name, _wrap(fn, name))
+

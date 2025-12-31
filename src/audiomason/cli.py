@@ -96,6 +96,9 @@ def main() -> int:
     ns = _parse_args()
     state.OPTS = _ns_to_opts(ns)
     state.DEBUG = bool(getattr(ns, 'debug', False))
+    if state.DEBUG:
+        from audiomason.util import enable_trace
+        enable_trace()
 
     if ns.cmd == "verify":
         root = ns.root if ns.root is not None else state.OPTS.verify_root
