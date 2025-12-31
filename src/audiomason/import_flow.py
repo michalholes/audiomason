@@ -14,33 +14,39 @@ from audiomason.paths import (
     ARCHIVE_EXTS,
 )
 from audiomason.util import (
-    find_archive_match,
     out,
     ensure_dir,
     slug,
     prompt,
     prompt_yes_no,
-    prune_empty_dirs,
 )
 from audiomason.ignore import load_ignore, add_ignore
 from audiomason.archives import unpack
 from audiomason.audio import convert_m4a_in_place
 from audiomason.rename import natural_sort, rename_sequential
-from audiomason.covers import choose_cover
 from audiomason.tags import write_tags, wipe_id3
 
-_AUDIO_EXTS = {'.m4a', '.mp3'}
+AUDIO_EXTS = {".mp3", ".m4a", ".aac", ".m4b"}
 
-def _has_audio_in_root(p: Path) -> bool:
-    try:
-        return any(x.is_file() and x.suffix.lower() in _AUDIO_EXTS for x in p.iterdir())
-    except Exception:
-        return False
+
+def _human_book_title(name: str) -> str:
+    return name.replace("_", " ").strip()
+
+
+def _guess_author_book(stem: str) -> tuple[str, str]:
+    s = stem.replace("_", " ").strip()
+    if " - " in s:
+        a, b = s.split(" - ", 1)
+        return a.strip(), b.strip()
+    if "." in s:
+        parts = [x.strip() for x in s.split(".") if x.strip()]
+        if len(parts) >= 2:
+            return parts[0], " ".join(parts[1:])
+    return s, s
 
 
 def _copy_dir_into(src: Path, dst: Path) -> None:
     ensure_dir(dst)
-    # copy contents of src into dst (dst already exists)
     for item in src.iterdir():
         if item.name.startswith("."):
             continue
@@ -50,45 +56,6 @@ def _copy_dir_into(src: Path, dst: Path) -> None:
         else:
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(item, target)
-
-@dataclass(frozen=True)
-class PeekResult:
-    has_single_root: bool
-    top_level_name: str | None
-
-
-def peek_source(src: Path) -> PeekResult:
-    if src.is_dir():
-        try:
-            items = [p for p in src.iterdir() if not p.name.startswith(".")]
-        except Exception:
-            return PeekResult(False, None)
-        if len(items) == 1 and items[0].is_dir():
-            return PeekResult(True, items[0].name)
-        return PeekResult(False, None)
-
-    # archive
-    try:
-        p = subprocess.run(
-            ["7z", "l", "-slt", str(src)],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            text=True,
-            check=True,
-        )
-    except Exception:
-        return PeekResult(False, None)
-
-    roots: set[str] = set()
-    for line in p.stdout.splitlines():
-        if line.startswith("Path = "):
-            path = line.split("=", 1)[1].strip().replace("\\", "/")
-            if "/" in path:
-                roots.add(path.split("/", 1)[0])
-
-    if len(roots) == 1:
-        return PeekResult(True, next(iter(roots)))
-    return PeekResult(False, None)
 
 
 def _list_sources(inbox: Path, cfg) -> list[Path]:
@@ -103,435 +70,176 @@ def _list_sources(inbox: Path, cfg) -> list[Path]:
             and p.resolve() != stage_root
             and (
                 p.is_dir()
-                or (p.is_file() and (p.suffix.lower() in ARCHIVE_EXTS or p.suffix.lower() in {'.m4a', '.mp3'}))
+                or p.suffix.lower() in ARCHIVE_EXTS
+                or p.suffix.lower() in AUDIO_EXTS
             )
         ),
         key=lambda p: p.name.lower(),
     )
 
 
-def _human_book_title(name: str) -> str:
-    return name.replace('_', ' ').strip()
+def _normalize_single_root(stage: Path) -> Path:
+    try:
+        vis = [p for p in stage.iterdir() if not p.name.startswith(".")]
+        if len(vis) == 1 and vis[0].is_dir():
+            return vis[0]
+    except Exception:
+        pass
+    return stage
 
 
-def _guess_author_book(stem: str) -> tuple[str, str]:
-    # Heuristics: "Author - Book", "Author.Book", "Author_Book"
-    s = stem.replace("_", " ").strip()
-    if " - " in s:
-        a, b = s.split(" - ", 1)
-        return a.strip(), b.strip()
-    if "." in s:
-        parts = [x.strip() for x in s.split(".") if x.strip()]
-        if len(parts) >= 2:
-            return parts[0], " ".join(parts[1:])
-    return s, s
+def _has_audio_anywhere(p: Path) -> bool:
+    return any(x.suffix.lower() in AUDIO_EXTS for x in p.rglob("*") if x.is_file())
 
 
-def _pick_sources_interactive(sources: list[Path]) -> list[Path]:
+def _has_audio_here(p: Path) -> bool:
+    return any(x.is_file() and x.suffix.lower() in AUDIO_EXTS for x in p.iterdir())
+
+
+def _book_candidates(stage: Path) -> list[Path]:
+    """
+    Candidate "book roots" inside stage:
+      - stage itself IF it contains audio files directly (root-level m4a/mp3)
+      - each immediate subdir that contains any audio recursively
+    """
+    cands: list[Path] = []
+    if _has_audio_here(stage):
+        cands.append(stage)
+
+    subs = sorted([d for d in stage.iterdir() if d.is_dir() and not d.name.startswith(".")], key=lambda x: x.name.lower())
+    for d in subs:
+        if _has_audio_anywhere(d):
+            cands.append(d)
+
+    # de-dup while keeping order
+    seen: set[Path] = set()
+    outc: list[Path] = []
+    for c in cands:
+        if c not in seen:
+            seen.add(c)
+            outc.append(c)
+    return outc
+
+
+def run_import(cfg) -> None:
+    state.CFG = cfg
+    DROP_ROOT = get_drop_root(cfg)
+    STAGE_ROOT = get_stage_root(cfg)
+    OUTPUT_ROOT = get_output_root(cfg)
+    ARCHIVE_ROOT = get_archive_root(cfg)
+
+    if state.OPTS is None:
+        raise SystemExit(2)
+
+    inbox = DROP_ROOT
+    ignore = load_ignore(inbox)
+
+    sources = _list_sources(inbox, cfg)
     if not sources:
-        return []
+        out("[inbox] empty")
+        return
+
     out("[inbox] sources:")
     for i, p in enumerate(sources, 1):
         out(f"  {i}) {p.name}")
 
     ans = prompt("Choose source number, or 'a' for all", "1").strip().lower()
     if ans in {"a", "all"}:
-        return sources
-
-    try:
-        idx = int(ans)
-        if 1 <= idx <= len(sources):
-            return [sources[idx - 1]]
-    except ValueError:
-        pass
-
-    out("[pick] invalid choice -> using 1")
-    return [sources[0]]
-
-
-def _pick_books_interactive(author_dir: Path, book_dirs: list[Path]) -> list[Path]:
-    out(f"[books] found {len(book_dirs)} in {author_dir.name}:")
-    for i, b in enumerate(book_dirs, 1):
-        out(f"  {i}) {b.name}")
-
-    ans = prompt("Choose book number, or 'a' for all", "a").strip().lower()
-    if ans in {"a", "all"}:
-        return book_dirs
-
-    try:
-        idx = int(ans)
-        if 1 <= idx <= len(book_dirs):
-            return [book_dirs[idx - 1]]
-    except ValueError:
-        pass
-
-    out("[pick] invalid choice -> using all")
-    return book_dirs
-
-
-def _decide_publish(archive_root: Path) -> bool:
-    # state.OPTS.publish: True/False/None(ask)
-    if state.OPTS is None:
-        return False
-    if state.OPTS.publish is True:
-        return True
-    if state.OPTS.publish is False:
-        return False
-    # ask
-    return prompt_yes_no(f"Publish to archive ({archive_root})?", default_no=False)
-
-
-def run_import(cfg) -> None:
-    state.CFG = cfg
-    archive_root = get_archive_root(cfg)
-    if state.OPTS is None:
-        raise SystemExit(2)
-
-    DROP_ROOT = get_drop_root(cfg)
-    STAGE_ROOT = get_stage_root(cfg)
-    OUTPUT_ROOT = get_output_root(cfg)
-    try:
-        if state.OPTS is None:
-            raise SystemExit(2)
-
-        inbox = DROP_ROOT
-        ignore = load_ignore(inbox)
-
-        sources = _list_sources(inbox, cfg)
-        if not sources:
-            out("[inbox] empty (no .rar/.zip/.7z)")
-            return
-
+        chosen_sources = sources
+    else:
         try:
-            chosen = _pick_sources_interactive(sources)
-        except KeyboardInterrupt:
-            out("[abort]")
-            return
+            chosen_sources = [sources[int(ans) - 1]]
+        except Exception:
+            chosen_sources = [sources[0]]
 
-        # If an author directory contains multiple book subdirectories, ask whether to process all or one.
-        expanded: list[Path] = []
-        chosen_labels: list[str] = []
-        for src0 in chosen:
-            if src0.is_dir():
-                subs = sorted(
-                    [
-                        d for d in src0.iterdir()
-                        if d.is_dir()
-                        and not d.name.startswith(".")
-                        and slug(d.name) not in load_ignore(src0)
-                    ],
-                    key=lambda x: x.name.lower(),
-                )
-                if len(subs) > 1:
-                    picked = _pick_books_interactive(src0, subs)
-                    for b in picked:
-                        expanded.append(b)
-                        chosen_labels.append(f"{src0.name} / {b.name}")
-                    continue
-            expanded.append(src0)
-            chosen_labels.append(src0.name)
+    # ---- ID3 WIPE (ONCE PER RUN, NUMERIC, DEFAULT NO) ----
+    if state.OPTS.wipe_id3 is None:
+        if state.OPTS.yes:
+            state.OPTS.wipe_id3 = False
+        else:
+            out("[id3] full wipe before tagging?")
+            out("  1) No")
+            out("  2) Yes")
+            state.OPTS.wipe_id3 = (prompt("Choose", "1").strip() == "2")
 
-        chosen = expanded
+    for sidx, src in enumerate(chosen_sources, 1):
+        out(f"[source] {sidx}/{len(chosen_sources)}: {src.name}")
 
-        # ID3 wipe policy (prompt once per run; numeric; default No; BEFORE publish prompt)
-        if state.OPTS is not None and state.OPTS.wipe_id3 is None:
-            if state.OPTS.yes:
-                state.OPTS.wipe_id3 = False
+        stage = STAGE_ROOT / slug(src.stem if src.is_file() else src.name)
+        ensure_dir(stage)
+
+        # if stage already has something -> do NOT unpack/copy again
+        if not any(stage.iterdir()):
+            if src.is_dir():
+                _copy_dir_into(src, stage)
+            elif src.suffix.lower() in ARCHIVE_EXTS:
+                unpack(src, stage)
+            elif src.suffix.lower() in AUDIO_EXTS:
+                shutil.copy2(src, stage / src.name)
+
+        stage = _normalize_single_root(stage)
+
+        if not _has_audio_anywhere(stage):
+            out("[skip] no audio found")
+            continue
+
+        books = _book_candidates(stage)
+        if not books:
+            out("[skip] no book candidates")
+            continue
+
+        # pick book(s) if multiple
+        picked: list[Path] = books
+        if len(books) > 1 and not state.OPTS.yes:
+            out(f"[books] found {len(books)} in {src.name}:")
+            for i, b in enumerate(books, 1):
+                label = b.name if b != stage else "(root audio)"
+                out(f"  {i}) {label}")
+            bsel = prompt("Choose book number, or 'a' for all", "a").strip().lower()
+            if bsel in {"a", "all"}:
+                picked = books
             else:
-                out("[id3] full wipe before tagging?")
-                out("  1) No")
-                out("  2) Yes")
-                ans = prompt("Choose", "1").strip()
-                state.OPTS.wipe_id3 = (ans == "2")
-
-        # Batch preflight: ask everything BEFORE any work starts
-        meta_by_src: dict[Path, tuple[str, str]] = {}
-        publish_override: bool | None = None
-        cover_mode = "ask"  # embedded/file/ask
-
-        if len(chosen) > 1:
-            # If all chosen are book dirs under one author dir, ask author once
-            parents = {
-                src.parent
-                for src in chosen
-                if src.is_dir()
-                and src.parent != DROP_ROOT
-                and src.parent.is_dir()
-                and src.parent.parent == DROP_ROOT
-            }
-            author_all: str | None = None
-            if len(parents) == 1 and len(chosen) == len(parents) * len(chosen):
-                author_all = next(iter(parents)).name
-
-            if author_all is not None:
-                author_all = prompt("Author (all books)", author_all.replace(".", " ")).strip() or author_all.replace(".", " ")
-
-            # Ask book titles for all upfront
-            for src in chosen:
-                peek = peek_source(src) or PeekResult(False, None)
-                if src.is_dir() and src.parent != DROP_ROOT and src.parent.is_dir() and src.parent.parent == DROP_ROOT:
-                    g_a, g_b = (author_all or src.parent.name), _human_book_title(src.name)
-                else:
-                    name_for_guess = (
-                        peek.top_level_name
-                        if peek.has_single_root and peek.top_level_name
-                        else (src.stem if src.is_file() else src.name)
-                    )
-                    g_a, g_b = _guess_author_book(name_for_guess)
-                    g_b = _human_book_title(g_b)
-
-                a = author_all or (prompt(f"Author for {src.name}", g_a.replace(".", " ")).strip() or g_a.replace(".", " "))
-                b = prompt(f"Book for {src.name}", _human_book_title(g_b)).strip() or _human_book_title(g_b)
-                meta_by_src[src] = (a, b)
-
-            # Cover policy (numeric)
-            out("[covers] choose policy for all books:")
-            out("  1) Embedded cover (from audio files)")
-            out("  2) Cover file in folder (cover.jpg/png/etc)")
-            out("  3) Ask per book (current behavior)")
-            c = prompt("Choose cover policy", "3").strip()
-            cover_mode = {"1": "embedded", "2": "file", "3": "ask"}.get(c, "ask")
-
-            # Publish policy (once)
-            publish_override = _decide_publish(archive_root)
-
-        for idx, src in enumerate(chosen, 1):
-
-            unpacked_hint: str | None = None
-
-            # Unified source key (archive and directory behave the same)
-            peek = peek_source(src) or PeekResult(False, None)
-            source_key = (
-                peek.top_level_name
-                if peek.has_single_root and peek.top_level_name
-                else (
-                    f"{src.parent.name}-{src.name}"
-                    if src.is_dir() and src.parent != DROP_ROOT and src.parent.is_dir()
-                    else (src.stem if src.is_file() else src.name)
-                )
-            )
-            key = source_key
-            if slug(key) in ignore:
-                out(f"[skip] ignored: {src.name}")
-                continue
-
-            out(f"[book] {idx}/{len(chosen)}: {chosen_labels[idx-1]}")
-            out(f"[import] {src.name}")
-
-            # Ask author/book (defaults guessed from source shape)
-            peek = peek_source(src) or PeekResult(False, None)
-
-            # If we are importing a book directory under an author dir: Author = parent, Book = dir name
-            if src.is_dir() and src.parent != DROP_ROOT and src.parent.is_dir() and src.parent.parent == DROP_ROOT:
-                guess_a, guess_b = src.parent.name, src.name
-            else:
-                name_for_guess = (
-                    peek.top_level_name
-                    if peek.has_single_root and peek.top_level_name
-                    else key
-                )
-                guess_a, guess_b = _guess_author_book(name_for_guess)
-
-            # archive-first defaults: try to match an existing book in archive_ro before prompting
-            archive_ro = cfg.get("paths", {}).get("archive_ro", "")
-            am_a, am_b = find_archive_match(archive_ro, guess_a, guess_b)
-            if am_a and am_b:
-                guess_a, guess_b = am_a, am_b
-
-            # Stage + unpack/copy BEFORE prompting (so archives can be inspected)
-            stage = STAGE_ROOT / slug(source_key)
-            ensure_dir(stage)
-            stage_root = stage
-
-            try:
-                if src.is_dir():
-                    _copy_dir_into(src, stage)
-                else:
-                    if src.suffix.lower() in {'.m4a', '.mp3'}:
-                        shutil.copy2(src, stage / src.name)
-                    else:
-                        unpack(src, stage)
-
-                # If audio files exist in stage root, treat them as a separate book
                 try:
-                    root_audio = [x for x in stage.iterdir()
-                                  if x.is_file() and x.suffix.lower() in {".m4a", ".mp3"} and not x.name.startswith(".")]
-                    if root_audio:
-                        ra_dir = stage / "__ROOT_AUDIO__"
-                        ensure_dir(ra_dir)
-                        for f in root_audio:
-                            shutil.move(str(f), str(ra_dir / f.name))
+                    bi = int(bsel)
+                    picked = [books[bi - 1]] if 1 <= bi <= len(books) else [books[0]]
                 except Exception:
-                    pass
+                    picked = [books[0]]
 
-                # If the source is a single audio file (m4a/mp3), it was staged above; no unpack needed
+        for bidx, book_root in enumerate(picked, 1):
+            label = book_root.name if book_root != stage else src.stem
+            out(f"[book] {bidx}/{len(picked)}: {src.name} -> {label}")
 
-                # Normalize single-root archives: dive into the single root dir
-                try:
-                    vis = [p for p in stage.iterdir() if not p.name.startswith(".")]
-                    if len(vis) == 1 and vis[0].is_dir():
-                        stage = vis[0]
-                except Exception:
-                    pass
+            # defaults
+            guess_a, guess_b = _guess_author_book(label)
+            out(f"[meta] {src.name} -> {label}")
+            author = prompt(f"Author [{guess_a}]", guess_a).strip() or guess_a
+            book = prompt(f"Book [{guess_b}]", _human_book_title(guess_b)).strip() or _human_book_title(guess_b)
 
-                # Normalize single-root archives: dive into the single root dir (so root-level m4a isn't missed)
-                try:
-                    vis = [p for p in stage.iterdir() if not p.name.startswith(".")]
-                    if len(vis) == 1 and vis[0].is_dir():
-                        stage = vis[0]
-                except Exception:
-                    pass
+            # convert + discover mp3
+            convert_m4a_in_place(book_root)
 
-                # If archive produced multiple top-level dirs, choose one now (post-unpack)
-                if _has_audio_in_root(stage):
-                    tops = []
-                else:
-                    tops = sorted(
-                        [d for d in stage.iterdir() if d.is_dir() and not d.name.startswith(".")],
-                        key=lambda x: x.name.lower(),
-                    )
-                if len(tops) > 1:
-                    if not state.OPTS.yes:
-                        out(f"[books] found {len(tops)} in {src.name}:")
-                        for i, d in enumerate(tops, 1):
-                            out(f"  {i}) {d.name}")
-                        ans = prompt("Choose book number, or 'a' for all", "a").strip().lower()
-                        if ans in {"a", "all"}:
-                            keep = set(tops)
-                        else:
-                            try:
-                                bi = int(ans)
-                                keep = {tops[bi - 1]} if 1 <= bi <= len(tops) else {tops[0]}
-                            except ValueError:
-                                keep = {tops[0]}
-                    else:
-                        keep = {tops[0]}
-
-                    for d in tops:
-                        if d not in keep:
-                            shutil.rmtree(d, ignore_errors=True)
-            except Exception as e:
-                out(f"[error] unpack failed: {e}")
-                continue
-
-            if src in meta_by_src:
-                author, book = meta_by_src[src]
-            else:
-                author = prompt("Author", guess_a.replace('.', ' ')).strip() or guess_a.replace('.', ' ')
-                book = prompt("Book", _human_book_title(guess_b)).strip() or _human_book_title(guess_b)
-
-            book_key = f"{slug(author)}.{slug(book)}"
-
-            # ignore whole source (author folder) after success
-            source_root = src
-            if (
-                src.is_dir()
-                and src.parent != DROP_ROOT
-                and src.parent.is_dir()
-                and src.parent.parent == DROP_ROOT
-            ):
-                source_root = src.parent
-
-            convert_m4a_in_place(stage_root)
-            if stage != stage_root:
-                convert_m4a_in_place(stage)
-
-            mp3s = natural_sort(list(stage.rglob("*.mp3")) + ([] if stage == stage_root else list(stage_root.rglob("*.mp3"))))
+            mp3s = natural_sort(list(book_root.rglob("*.mp3")))
             if not mp3s:
-                out("[skip] no mp3 found after unpack/convert")
+                out("[skip] no mp3")
                 continue
 
-            # Rename sequential in the mp3 folder
             mp3dir = mp3s[0].parent
             mp3s = rename_sequential(mp3dir, mp3s)
 
-            # Choose cover (batch policy: embedded/file/ask)
-            m4as = sorted(stage.rglob("*.m4a"))
-            old_yes = state.OPTS.yes
-            try:
-                if cover_mode in {"embedded", "file"}:
-                    state.OPTS.yes = True  # auto-accept default choices
-                if cover_mode == "embedded":
-                    # embedded: still write cover into mp3dir if choose_cover decides to materialize cover.jpg
-                    cover = choose_cover(
-                        mp3_first=mp3s[0] if mp3s else None,
-                        m4a_source=None,
-                        bookdir=mp3dir,
-                        stage_root=stage,
-                        group_root=mp3dir,
-                    )
-                elif cover_mode == "file":
-                    # bias to existing cover files in folder
-                    cover = choose_cover(
-                        mp3_first=None,
-                        m4a_source=None,
-                        bookdir=mp3dir,
-                        stage_root=stage,
-                        group_root=mp3dir,
-                    )
-                else:
-                    cover = choose_cover(
-                        mp3_first=mp3s[0] if mp3s else None,
-                        m4a_source=m4as[0] if m4as else None,
-                        bookdir=mp3dir,          # cover will be written here first if needed
-                        stage_root=stage,
-                        group_root=mp3dir,
-                    )
-            finally:
-                state.OPTS.yes = old_yes
-            cover_bytes = cover[0] if cover else None
-            cover_mime = cover[1] if cover else None
-            if state.OPTS is not None and state.OPTS.wipe_id3 and not state.OPTS.dry_run:
+            if state.OPTS.wipe_id3 and not state.OPTS.dry_run:
                 wipe_id3(mp3s)
 
-            # Write tags
-            write_tags(
-                mp3s,
-                artist=author,
-                album=book,
-                cover=cover_bytes,
-                cover_mime=cover_mime,
-                track_start=1,
-            )
+            write_tags(mp3s, artist=author, album=book)
 
-            # Move to output + optionally publish
-            publish = publish_override if publish_override is not None else _decide_publish(archive_root)
-            target_root = archive_root if publish else OUTPUT_ROOT
-            bookdir_out = target_root / author / book
-            ensure_dir(bookdir_out)
+            publish = prompt_yes_no(f"Publish to archive ({ARCHIVE_ROOT})?", default_no=False)
+            target = ARCHIVE_ROOT if publish else OUTPUT_ROOT
+            outdir = target / author / book
+            ensure_dir(outdir)
 
             for mp3 in mp3s:
-                shutil.move(str(mp3), str(bookdir_out / mp3.name))
+                shutil.move(str(mp3), str(outdir / mp3.name))
 
-            # Also move cover.jpg if it exists in mp3dir
-            cov = mp3dir / "cover.jpg"
-            if cov.exists():
-                shutil.move(str(cov), str(bookdir_out / "cover.jpg"))
+            out(f"[done] {author} / {book} -> {outdir}")
 
-            out(f"[done] {book_key} -> {bookdir_out}")
-            add_ignore(inbox, source_root.name)
+        add_ignore(inbox, src.name)
 
-            
-
-            # Cleanup stage if enabled
-            if state.OPTS.cleanup_stage and not state.OPTS.dry_run:
-                try:
-                    # remove stage dir if empty-ish
-                    for p in sorted(stage.rglob("*"), reverse=True):
-                        if p.is_file():
-                            p.unlink(missing_ok=True)
-                        elif p.is_dir():
-                            try:
-                                p.rmdir()
-                            except OSError:
-                                pass
-                    try:
-                        stage.rmdir()
-                    except OSError:
-                        pass
-                    prune_empty_dirs(stage.parent, STAGE_ROOT)
-                except Exception:
-                    pass
-    except KeyboardInterrupt:
-        out("[abort]")
-        return
