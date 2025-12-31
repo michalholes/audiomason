@@ -1,5 +1,5 @@
-from audiomason.naming import normalize_name
 from __future__ import annotations
+from audiomason.naming import normalize_name
 
 import shutil
 from dataclasses import dataclass
