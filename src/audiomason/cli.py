@@ -83,7 +83,7 @@ def _parse_args() -> argparse.Namespace:
 def _ns_to_opts(ns: argparse.Namespace) -> Opts:
     publish = {"yes": True, "no": False, "ask": None}[ns.publish]
     return Opts(
-        yes=ns.yes,
+yes=ns.yes,
         dry_run=ns.dry_run,
         quiet=ns.quiet,
         publish=publish,
@@ -92,16 +92,12 @@ def _ns_to_opts(ns: argparse.Namespace) -> Opts:
         q_a=ns.q_a,
         verify=ns.verify,
         verify_root=ns.verify_root,
-        lookup=ns.lookup,
-
+        lookup=getattr(ns, "lookup", True),
         cleanup_stage=True,
         split_chapters=ns.split_chapters,
         ff_loglevel=ns.ff_loglevel,
         cpu_cores=getattr(ns, 'cpu_cores', None),
-    )
-
-
-def main() -> int:
+    )def main() -> int:
     cfg = load_config()
     ns = _parse_args()
     state.OPTS = _ns_to_opts(ns)
