@@ -259,6 +259,12 @@ def run_import(cfg) -> None:
                 else:
                     cover_by_label[lbl] = (None, None)
 
+        # Publish preflight: ask ONCE right before processing files
+        publish_choice = None
+        if not state.OPTS.yes:
+            out('[publish] preflight')
+            publish_choice = prompt('Publish after processing? [y/N]', 'n').strip().lower() in {'y','yes'}
+
         for bidx, book_root in enumerate(picked, 1):
             label = "__ROOT_AUDIO__" if book_root == stage else book_root.name
             out(f"[book] {bidx}/{len(picked)}: {src.name} -> {label}")
@@ -310,7 +316,10 @@ def run_import(cfg) -> None:
             except TypeError:
                 write_tags(mp3s, artist=author, album=book)
 
-            publish = prompt_yes_no(f"Publish to archive ({ARCHIVE_ROOT})?", default_no=False)
+            if publish_choice is None:
+                publish = prompt_yes_no(f"Publish to archive ({ARCHIVE_ROOT})?", default_no=False)
+            else:
+                publish = bool(publish_choice)
             target = ARCHIVE_ROOT if publish else OUTPUT_ROOT
             outdir = target / author / book
             ensure_dir(outdir)
