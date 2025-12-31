@@ -256,8 +256,11 @@ def _process_book(i: int, n: int, b: BookGroup, dest_root: Path, author: str, ti
     outdir = _output_dir(dest_root, author, out_title)
     if _is_dir_nonempty(outdir):
         if overwrite:
-            out(f"[dest] overwrite: {outdir}")
-            if not state.OPTS.dry_run:
+            if state.OPTS and state.OPTS.dry_run:
+                out(f"[dest] would overwrite: {outdir}")
+            else:
+                out(f"[dest] overwrite: {outdir}")
+            if not (state.OPTS and state.OPTS.dry_run):
                 shutil.rmtree(outdir, ignore_errors=True)
         else:
             die(f"Conflict: output already exists and is not empty: {outdir}")
@@ -541,7 +544,7 @@ def run_import(cfg: dict) -> None:
             _process_book(bi, len(meta), b, dest_root2, author, title, out_title, wipe, cover_mode, overwrite)
 
         # FEATURE #26: clean stage at end (successful run only)
-        if clean_stage:
+if clean_stage and not (state.OPTS and state.OPTS.dry_run):
             out(f"[stage] cleaning: {stage_run}")
             if not (state.OPTS and state.OPTS.dry_run):
                 shutil.rmtree(stage_run, ignore_errors=True)
