@@ -20,17 +20,18 @@ def _resolve_ignore_file(path: Path | None) -> Path:
     return path
 
 
-def load_ignore(path: Path | None = None) -> set[str]:
-    f = _resolve_ignore_file(path)
-    if not f.exists():
-        return set()
-    return {
-        line.strip()
-        for line in f.read_text(encoding="utf-8", errors="ignore").splitlines()
-        if line.strip() and not line.strip().startswith("#")
-    }
-
-
+def load_ignore(drop_root: Path) -> set[str]:
+    keys: set[str] = set()
+    for name in ('.abook_ignore', '.ignore'):
+        f = drop_root / name
+        if not f.exists():
+            continue
+        for line in f.read_text(encoding='utf-8', errors='ignore').splitlines():
+            s = line.strip()
+            if not s or s == '~' or s.startswith('#'):
+                continue
+            keys.add(s)
+    return keys
 def add_ignore(path_or_name: Path | str, name: str | None = None) -> None:
     # Back-compat:
     #   add_ignore("Some.Source") -> global IGNORE_FILE
