@@ -16,7 +16,8 @@ import os
 
 def out(msg: str) -> None:
     try:
-        if state.OPTS.debug:
+        import audiomason.state as state
+        if getattr(state, "OPTS", None) and getattr(state.OPTS, "debug", False):
             print(f"[TRACE] {msg}", flush=True)
         else:
             print(msg, flush=True)
