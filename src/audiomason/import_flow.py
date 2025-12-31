@@ -241,6 +241,7 @@ def _process_book(i: int, n: int, b: BookGroup, dest_root: Path, author: str, ti
         wipe_id3(mp3s)
 
     mp3_first = mp3s[0] if mp3s else None
+    out(f"[cover] request: {i}/{n}: {author} / {title}")
     cover = choose_cover(
         mp3_first=mp3_first,
         m4a_source=b.m4a_hint,
