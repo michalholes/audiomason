@@ -334,8 +334,7 @@ def run_import(cfg) -> None:
                     unpack(src, stage)
             except Exception as e:
                 out(f"[error] unpack failed: {e}")
-                add_ignore(src.parent, src.name)
-                continue
+                                continue
 
             convert_m4a_in_place(stage)
 
@@ -410,8 +409,9 @@ def run_import(cfg) -> None:
                 shutil.move(str(cov), str(bookdir_out / "cover.jpg"))
 
             out(f"[done] {book_key} -> {bookdir_out}")
-            add_ignore(src.parent, src.name)
+            add_ignore(src0.name)
 
+            
 
             # Cleanup stage if enabled
             if state.OPTS.cleanup_stage and not state.OPTS.dry_run:
