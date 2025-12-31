@@ -308,7 +308,7 @@ def run_import(cfg) -> None:
             # Move to output + optionally publish
             publish = _decide_publish(archive_root)
             target_root = archive_root if publish else OUTPUT_ROOT
-            bookdir_out = target_root / book_key
+            bookdir_out = target_root / slug(author) / slug(book)
             ensure_dir(bookdir_out)
 
             for mp3 in mp3s:
