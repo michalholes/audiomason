@@ -68,10 +68,10 @@ def peek_source(src: Path) -> PeekResult:
     return PeekResult(False, None)
 
 
-def _list_sources(inbox: Path) -> list[Path]:
+def _list_sources(inbox: Path, cfg) -> list[Path]:
     ensure_dir(inbox)
     ignore = load_ignore()
-    stage_root = STAGE_ROOT.resolve()
+    stage_root = get_stage_root(cfg).resolve()
     return sorted(
         (
             p for p in inbox.iterdir()
@@ -134,11 +134,10 @@ def _decide_publish() -> bool:
     return prompt_yes_no("Publish to archive (/mnt/warez/abooks)?", default_no=False)
 
 
-def run_import() -> None:
+def run_import(cfg) -> None:
     if state.OPTS is None:
         raise SystemExit(2)
 
-    cfg = state.load_config()
     DROP_ROOT = get_drop_root(cfg)
     STAGE_ROOT = get_stage_root(cfg)
     OUTPUT_ROOT = get_output_root(cfg)
@@ -150,7 +149,7 @@ def run_import() -> None:
         inbox = DROP_ROOT
         ignore = load_ignore()
 
-        sources = _list_sources(inbox)
+        sources = _list_sources(inbox, cfg)
         if not sources:
             out("[inbox] empty (no .rar/.zip/.7z)")
             return
