@@ -166,17 +166,18 @@ def _decide_publish() -> bool:
     if state.OPTS.publish is False:
         return False
     # ask
-    return prompt_yes_no("Publish to archive (/mnt/warez/abooks)?", default_no=False)
+    return prompt_yes_no(f"Publish to archive ({get_archive_root(state.CFG)})?", default_no=False)
 
 
 def run_import(cfg) -> None:
+    state.CFG = cfg
+    archive_root = get_archive_root(cfg)
     if state.OPTS is None:
         raise SystemExit(2)
 
     DROP_ROOT = get_drop_root(cfg)
     STAGE_ROOT = get_stage_root(cfg)
     OUTPUT_ROOT = get_output_root(cfg)
-    ARCHIVE_ROOT = get_archive_root(cfg)
     try:
         if state.OPTS is None:
             raise SystemExit(2)
@@ -305,8 +306,8 @@ def run_import(cfg) -> None:
             )
 
             # Move to output + optionally publish
-            target_root = ARCHIVE_ROOT if _decide_publish() else OUTPUT_ROOT
-            ensure_dir(target_root)
+            publish = _decide_publish()
+            target_root = archive_root if publish else OUTPUT_ROOT
             bookdir_out = target_root / book_key
             ensure_dir(bookdir_out)
 
