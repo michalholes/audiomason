@@ -303,8 +303,8 @@ def run_import(cfg: dict) -> None:
         if reuse:
             out("[stage] reuse")
         else:
-        ensure_dir(stage_run)
-        update_manifest(stage_run, {
+            ensure_dir(stage_run)
+            update_manifest(stage_run, {
             "source": {
                 "name": src.name,
                 "stem": src.stem,
@@ -312,7 +312,7 @@ def run_import(cfg: dict) -> None:
                 "is_file": bool(src.is_file()),
                 "path": str(src),
             },
-        })
+            })
             _stage_source(src, stage_src)
 
         # Always convert m4a before book detection (so mp3s exist everywhere)
