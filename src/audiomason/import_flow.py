@@ -539,4 +539,3 @@ def run_import(cfg: dict) -> None:
                 shutil.rmtree(stage_run, ignore_errors=True)
             out(f"[stage] cleaned: {stage_run}")
 
-        if publish:
