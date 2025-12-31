@@ -249,7 +249,7 @@ def run_import(cfg) -> None:
 
             # Ask book titles for all upfront
             for src in chosen:
-                peek = peek_source(src) or PeekResult(False, None)
+                peek = (PeekResult(True, unpacked_hint) if unpacked_hint else (peek_source(src) or PeekResult(False, None)))
                 if src.is_dir() and src.parent != DROP_ROOT and src.parent.is_dir() and src.parent.parent == DROP_ROOT:
                     g_a, g_b = (author_all or src.parent.name), _human_book_title(src.name)
                 else:
@@ -296,6 +296,11 @@ def run_import(cfg) -> None:
 
             out(f"[book] {idx}/{len(chosen)}: {chosen_labels[idx-1]}")
             out(f"[import] {src.name}")
+            # Unpack/copy BEFORE prompting (so archives can be inspected from stage)
+            stage = STAGE_ROOT / slug(source_key)
+            ensure_dir(stage)
+            unpacked_hint: str | None = None
+
 
             # Ask author/book (defaults guessed from source shape)
             peek = peek_source(src) or PeekResult(False, None)
@@ -324,8 +329,6 @@ def run_import(cfg) -> None:
                 book = prompt("Book", _human_book_title(guess_b)).strip() or _human_book_title(guess_b)
 
             book_key = f"{slug(author)}.{slug(book)}"
-            stage = STAGE_ROOT / slug(source_key)
-            ensure_dir(stage)
 
             # ignore whole source (author folder) after success
             source_root = src
