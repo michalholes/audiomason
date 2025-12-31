@@ -28,18 +28,50 @@ class BookGroup:
 
 
 def _list_sources(drop_root: Path) -> list[Path]:
+    # Filter ignored sources here so they never appear in the prompt list.
+    import unicodedata
+    from audiomason.util import slug
+    from audiomason.ignore import load_ignore
+
+    def _norm(s: str) -> str:
+        return unicodedata.normalize("NFKC", s).strip().casefold()
+
+    ignore_raw = load_ignore(drop_root)
+    ignore_norm = {_norm(k) for k in ignore_raw}
+    ignore_norm |= {_norm(slug(k)) for k in ignore_raw}
+
     if not drop_root.exists():
         ensure_dir(drop_root)
         return []
-    items = []
-    for p in sorted(drop_root.iterdir(), key=lambda x: x.name.lower()):
-        if p.name.startswith("."):
+
+    items: list[Path] = []
+    for src in sorted(drop_root.iterdir(), key=lambda x: x.name.lower()):
+        name = src.name
+        if name.startswith("."):
             continue
-        if p.is_dir():
-            items.append(p)
+        # never treat internal/work artifacts as sources
+        if name in {"_am_stage", "import.log.jsonl", ".DS_Store"}:
             continue
-        if p.is_file() and p.suffix.lower() in ARCHIVE_EXTS:
-            items.append(p)
+        if name.startswith("_"):
+            continue
+
+        # allow only dirs + supported archives
+        if src.is_file() and src.suffix.lower() not in ARCHIVE_EXTS:
+            continue
+        if not (src.is_dir() or (src.is_file() and src.suffix.lower() in ARCHIVE_EXTS)):
+            continue
+
+        candidates = {
+            _norm(src.name),
+            _norm(src.stem),
+            _norm(slug(src.name)),
+            _norm(slug(src.stem)),
+        }
+        if candidates & ignore_norm:
+            continue
+
+        items.append(src)
+
     return items
 
 
