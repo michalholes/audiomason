@@ -304,7 +304,7 @@ def run_import(cfg) -> None:
 
             # Ask book titles for all upfront
             for src in chosen:
-                peek = peek_source(src)
+                peek = peek_source(src) or PeekResult(False, None)
                 if src.is_dir() and src.parent != DROP_ROOT and src.parent.is_dir() and src.parent.parent == DROP_ROOT:
                     g_a, g_b = (author_all or src.parent.name), _human_book_title(src.name)
                 else:
@@ -334,7 +334,7 @@ def run_import(cfg) -> None:
         for idx, src in enumerate(chosen, 1):
 
             # Unified source key (archive and directory behave the same)
-            peek = peek_source(src)
+            peek = peek_source(src) or PeekResult(False, None)
             source_key = (
                 peek.top_level_name
                 if peek.has_single_root and peek.top_level_name
@@ -353,7 +353,7 @@ def run_import(cfg) -> None:
             out(f"[import] {src.name}")
 
             # Ask author/book (defaults guessed from source shape)
-            peek = peek_source(src)
+            peek = peek_source(src) or PeekResult(False, None)
 
             # If we are importing a book directory under an author dir: Author = parent, Book = dir name
             if src.is_dir() and src.parent != DROP_ROOT and src.parent.is_dir() and src.parent.parent == DROP_ROOT:
