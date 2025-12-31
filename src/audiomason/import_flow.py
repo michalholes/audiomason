@@ -257,7 +257,7 @@ def run_import(cfg) -> None:
                     g_b = _human_book_title(g_b)
 
                 a = author_all or (prompt(f"Author for {src.name}", g_a).strip() or g_a)
-                b = prompt(f"Book for {src.name}", g_b).strip() or g_b
+                b = prompt(f"Book for {src.name}", _human_book_title(g_b)).strip() or _human_book_title(g_b)
                 meta_by_src[src] = (a, b)
 
             # Cover policy (numeric)
@@ -316,7 +316,7 @@ def run_import(cfg) -> None:
                 author, book = meta_by_src[src]
             else:
                 author = prompt("Author", guess_a).strip() or guess_a
-                book = prompt("Book", guess_b).strip() or guess_b
+                book = prompt("Book", _human_book_title(guess_b)).strip() or _human_book_title(guess_b)
 
             book_key = f"{slug(author)}.{slug(book)}"
             stage = STAGE_ROOT / slug(source_key)
