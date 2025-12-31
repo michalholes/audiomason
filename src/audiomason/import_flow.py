@@ -206,14 +206,31 @@ def run_import(cfg) -> None:
                 except Exception:
                     picked = [books[0]]
 
+        meta_by_label: dict[str, tuple[str, str]] = {}
+        if len(picked) > 1 and not state.OPTS.yes:
+            # Ask ALL metadata upfront (author once, then book per folder) BEFORE doing any work
+            guess_a, _ = _guess_author_book(src.stem)
+            out(f"[meta] preflight: {src.name}")
+            author_all = prompt(f"Author [{guess_a}]", guess_a).strip() or guess_a
+
+            for br in picked:
+                lbl = "__ROOT_AUDIO__" if br == stage else br.name
+                _, guess_b = _guess_author_book(src.stem if lbl == "__ROOT_AUDIO__" else lbl)
+                out(f"[meta] {src.name} -> {lbl}")
+                book_name = prompt(f"Book [{guess_b}]", _human_book_title(guess_b)).strip() or _human_book_title(guess_b)
+                meta_by_label[lbl] = (author_all, book_name)
+
         for bidx, book_root in enumerate(picked, 1):
             label = "__ROOT_AUDIO__" if book_root == stage else book_root.name
             out(f"[book] {bidx}/{len(picked)}: {src.name} -> {label}")
 
-            guess_a, guess_b = _guess_author_book(src.stem if label == "__ROOT_AUDIO__" else label)
-            out(f"[meta] {src.name} -> {label}")
-            author = prompt(f"Author [{guess_a}]", guess_a).strip() or guess_a
-            book = prompt(f"Book [{guess_b}]", _human_book_title(guess_b)).strip() or _human_book_title(guess_b)
+            if meta_by_label:
+                author, book = meta_by_label[label]
+            else:
+                guess_a, guess_b = _guess_author_book(src.stem if label == "__ROOT_AUDIO__" else label)
+                out(f"[meta] {src.name} -> {label}")
+                author = prompt(f"Author [{guess_a}]", guess_a).strip() or guess_a
+                book = prompt(f"Book [{guess_b}]", _human_book_title(guess_b)).strip() or _human_book_title(guess_b)
 
             convert_m4a_in_place(book_root, recursive=(book_root != stage))
 
