@@ -6,7 +6,7 @@ DEFAULTS = {
     "paths": {
         "inbox": "/mnt/warez/abooksinbox",
         "stage": "/mnt/warez/_am_stage",
-        "ready": "/mnt/warez/_am_ready",
+        "output": "/mnt/warez/abooks_ready",
         "archive_ro": "/mnt/warez/abooks",
         "archive": "/mnt/warez/abooks",
     },
