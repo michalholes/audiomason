@@ -14,6 +14,7 @@ from audiomason.audio import convert_m4a_in_place
 from audiomason.rename import natural_sort, rename_sequential
 from audiomason.covers import choose_cover
 from audiomason.tags import wipe_id3, write_tags
+from audiomason.manifest import update_manifest
 
 
 _AUDIO_EXTS = {".mp3", ".m4a"}
@@ -294,6 +295,16 @@ def run_import(cfg: dict) -> None:
         stage_run = stage_root / slug(src.stem)
         stage_run = stage_root / slug(src.stem)
         stage_src = stage_run / "src"
+        ensure_dir(stage_run)
+        update_manifest(stage_run, {
+            "source": {
+                "name": src.name,
+                "stem": src.stem,
+                "is_dir": bool(src.is_dir()),
+                "is_file": bool(src.is_file()),
+                "path": str(src),
+            },
+        })
         _stage_source(src, stage_src)
 
         # Always convert m4a before book detection (so mp3s exist everywhere)
@@ -301,8 +312,15 @@ def run_import(cfg: dict) -> None:
 
         books = _detect_books(stage_src)
         picked_books = _choose_books(books)
+        update_manifest(stage_run, {
+            "books": {
+                "detected": [b.label for b in books],
+                "picked": [b.label for b in picked_books],
+            },
+        })
 
         publish, wipe = _preflight_global()  # decided before any output writes
+        update_manifest(stage_run, {"decisions": {"publish": bool(publish), "wipe_id3": bool(wipe)}})
         dest_root = archive_root if publish else output_root
 
         # AUTHOR is per-source (not per-book)
@@ -310,12 +328,14 @@ def run_import(cfg: dict) -> None:
         author = prompt("[source] Author", default_author).strip()
         if not author:
             die("Author is required")
+        update_manifest(stage_run, {"decisions": {"author": author}})
 
         # preflight per-book metadata (must happen before touching output)
         meta: list[tuple[BookGroup, str]] = []
         for bi, b in enumerate(picked_books, 1):
             title = _preflight_book(bi, len(picked_books), b)
             meta.append((b, title))
+            update_manifest(stage_run, {"book_meta": {b.label: {"title": title}}})
 
         # processing phase (no prompts)
         for bi, (b, title) in enumerate(meta, 1):
