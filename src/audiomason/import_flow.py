@@ -20,10 +20,6 @@ _AUDIO_EXTS = {".mp3", ".m4a"}
 
 @dataclass(frozen=True)
 class BookGroup:
-    label: str          # "__ROOT_AUDIO__" or folder name
-    group_root: Path    # where to pull audio from (stage src root OR a subdir)
-    stage_root: Path    # stage src root (for cover search)
-    m4a_hint: Optional[Path]
 
 
 def _list_sources(drop_root: Path) -> list[Path]:
