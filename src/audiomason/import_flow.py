@@ -198,18 +198,13 @@ def _preflight_global() -> tuple[bool, bool]:
     return (pub, wipe)
 
 
-def _preflight_book(i: int, n: int, b: BookGroup) -> tuple[str, str]:
+def _preflight_book(i: int, n: int, b: BookGroup) -> str:
     out(f"[book-meta] {i}/{n}: {b.label}")
-    default_author = b.label if b.label != "__ROOT_AUDIO__" else ""
-    author = prompt(f"[book {i}/{n}] Author", default_author).strip()
-    if not author:
-        die("Author is required")
     default_title = b.label if b.label != "__ROOT_AUDIO__" else "Untitled"
     title = prompt(f"[book {i}/{n}] Book title", default_title).strip()
     if not title:
         die("Book title is required")
-    return (author, title)
-
+    return title
 
 def _output_dir(archive_root: Path, author: str, title: str) -> Path:
     # NO slug() in output paths; keep as user entered
@@ -259,7 +254,6 @@ def _process_book(i: int, n: int, b: BookGroup, archive_root: Path, author: str,
 
     write_tags(mp3s, artist=author, album=title, cover=cover_bytes, cover_mime=cover_mime, track_start=1)
 
-
 def run_import(cfg: dict) -> None:
     drop_root = get_drop_root(cfg)
     stage_root = get_stage_root(cfg)
@@ -308,14 +302,20 @@ def run_import(cfg: dict) -> None:
 
         publish, wipe = _preflight_global()  # decided before any output writes
 
+        # AUTHOR is per-source (not per-book)
+        default_author = src.name if src.is_dir() else src.stem
+        author = prompt("[source] Author", default_author).strip()
+        if not author:
+            die("Author is required")
+
         # preflight per-book metadata (must happen before touching output)
-        meta: list[tuple[BookGroup, str, str]] = []
+        meta: list[tuple[BookGroup, str]] = []
         for bi, b in enumerate(picked_books, 1):
-            author, title = _preflight_book(bi, len(picked_books), b)
-            meta.append((b, author, title))
+            title = _preflight_book(bi, len(picked_books), b)
+            meta.append((b, title))
 
         # processing phase (no prompts)
-        for bi, (b, author, title) in enumerate(meta, 1):
+        for bi, (b, title) in enumerate(meta, 1):
             _process_book(bi, len(meta), b, archive_root, author, title, wipe)
 
         if publish:
