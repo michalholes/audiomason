@@ -290,7 +290,7 @@ def run_import(cfg) -> None:
                     if len(books) > 1:
                         out(f"[books] found {len(books)} in {src0.name}:")
                         for i, b in enumerate(books, 1):
-                            out(f"  {i}) {b.split("/", 1)[-1]}")
+                            out(f"  {i}) {b.split('/', 1)[-1]}")
                         ans = prompt("Choose book number", "1").strip()
                         try:
                             bi = int(ans)
