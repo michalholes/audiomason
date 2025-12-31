@@ -205,6 +205,22 @@ def _preflight_book(i: int, n: int, b: BookGroup, default_title: str = "") -> st
         die("Book title is required")
     return title
 
+def _is_dir_nonempty(p: Path) -> bool:
+    return p.exists() and p.is_dir() and any(p.iterdir())
+
+def _next_available_title(author_dir: Path, title: str) -> str:
+    # Deterministic: Title, Title (2), Title (3), ...
+    if not author_dir.exists():
+        return title
+    if not _is_dir_nonempty(author_dir / title) and not (author_dir / title).exists():
+        return title
+    n = 2
+    while True:
+        cand = f"{title} ({n})"
+        if not (author_dir / cand).exists() and not _is_dir_nonempty(author_dir / cand):
+            return cand
+        n += 1
+
 def _output_dir(archive_root: Path, author: str, title: str) -> Path:
     # NO slug() in output paths; keep as user entered
     return archive_root / author / title
@@ -224,12 +240,17 @@ def _copy_audio_to_out(group_root: Path, outdir: Path) -> list[Path]:
     return rename_sequential(outdir, copied)
 
 
-def _process_book(i: int, n: int, b: BookGroup, dest_root: Path, author: str, title: str, wipe: bool, cover_mode: str) -> None:
+def _process_book(i: int, n: int, b: BookGroup, dest_root: Path, author: str, title: str, out_title: str, wipe: bool, cover_mode: str, overwrite: bool) -> None:
     out(f"[book] {i}/{n}: {b.label}")
 
-    outdir = _output_dir(dest_root, author, title)
-    if outdir.exists() and any(outdir.iterdir()):
-        die(f"Conflict: output already exists and is not empty: {outdir}")
+    outdir = _output_dir(dest_root, author, out_title)
+    if _is_dir_nonempty(outdir):
+        if overwrite:
+            out(f"[dest] overwrite: {outdir}")
+            if not state.OPTS.dry_run:
+                shutil.rmtree(outdir, ignore_errors=True)
+        else:
+            die(f"Conflict: output already exists and is not empty: {outdir}")
 
     if state.OPTS.dry_run:
         out(f"[dry-run] would create: {outdir}")
@@ -401,7 +422,7 @@ def run_import(cfg: dict) -> None:
 
         # preflight per-book metadata (must happen before touching output)
         # ISSUE #12: unify decisions upfront (title + cover choice). Processing must not prompt.
-        meta: list[tuple[BookGroup, str, str]] = []  # (book, title, cover_mode)
+        meta: list[tuple[BookGroup, str, str, Path, str, bool]] = []  # (book, title, cover_mode, dest_root, out_title, overwrite)
         for bi, b in enumerate(picked_books, 1):
             # title
             default_title = str(bm.get(b.label, {}).get("title") or "").strip() if isinstance(bm, dict) else ""
@@ -449,12 +470,58 @@ def run_import(cfg: dict) -> None:
                     else:
                         cover_mode = "file"
 
-            meta.append((b, title, cover_mode))
-            update_manifest(stage_run, {"book_meta": {b.label: {"title": title, "cover_mode": cover_mode}}})
+            # ISSUE #1: destination conflict handling (prompt overwrite, else fallback to abooks_ready, else offer new folder)
+            bm_entry = (bm.get(b.label, {}) if isinstance(bm, dict) else {})
+            m_overwrite = bool(bm_entry.get("overwrite") is True)
+            m_dest_kind = str(bm_entry.get("dest_kind") or "")
+            m_out_title = str(bm_entry.get("out_title") or "").strip()
+
+            dest_root2 = dest_root
+            if m_dest_kind == "output":
+                dest_root2 = output_root
+            elif m_dest_kind == "archive":
+                dest_root2 = archive_root
+
+            out_title = m_out_title or title
+            overwrite = m_overwrite
+
+            # compute candidate outdir
+            outdir = _output_dir(dest_root2, author, out_title)
+            if _is_dir_nonempty(outdir) and not (reuse_stage and use_manifest_answers):
+                # conflict: 1) offer overwrite
+                if not (state.OPTS and state.OPTS.yes):
+                    out(f"[dest] exists: {outdir}")
+                    overwrite = prompt_yes_no("Destination exists. Overwrite?", default_no=True)
+                else:
+                    overwrite = False
+
+                if not overwrite:
+                    # 2) fallback to abooks_ready if we are not already there
+                    if dest_root2 != output_root:
+                        dest_root2 = output_root
+                        outdir = _output_dir(dest_root2, author, out_title)
+
+                    # 3) if still conflict, offer new folder (interactive), else deterministic next available title
+                    if _is_dir_nonempty(outdir):
+                        if not (state.OPTS and state.OPTS.yes):
+                            out(f"[dest] exists in abooks_ready: {outdir}")
+                            mk_new = prompt_yes_no("Create new destination folder?", default_no=False)
+                            if mk_new:
+                                author_dir = _output_dir(dest_root2, author, "").parent
+                                out_title = _next_available_title(author_dir, title)
+                        else:
+                            # non-interactive: deterministic new folder name
+                            author_dir = _output_dir(dest_root2, author, "").parent
+                            out_title = _next_available_title(author_dir, title)
+
+            # persist
+            dest_kind = "archive" if dest_root2 == archive_root else "output"
+            meta.append((b, title, cover_mode, dest_root2, out_title, overwrite))
+            update_manifest(stage_run, {"book_meta": {b.label: {"title": title, "cover_mode": cover_mode, "dest_kind": dest_kind, "out_title": out_title, "overwrite": bool(overwrite)}}})
 
         # processing phase (no prompts)
-        for bi, (b, title, cover_mode) in enumerate(meta, 1):
-            _process_book(bi, len(meta), b, dest_root, author, title, wipe, cover_mode)
+        for bi, (b, title, cover_mode, dest_root2, out_title, overwrite) in enumerate(meta, 1):
+            _process_book(bi, len(meta), b, dest_root2, author, title, out_title, wipe, cover_mode, overwrite)
 
         if publish:
             out("[publish] skipped (not implemented)")
