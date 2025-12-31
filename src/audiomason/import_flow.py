@@ -524,5 +524,3 @@ def run_import(cfg: dict) -> None:
             _process_book(bi, len(meta), b, dest_root2, author, title, out_title, wipe, cover_mode, overwrite)
 
         if publish:
-            out("[publish] skipped (not implemented)")
-
