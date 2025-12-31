@@ -191,6 +191,15 @@ def _preflight_global() -> tuple[bool, bool]:
     # wipe ID3 decision
     if state.OPTS.wipe_id3 is None:
         wipe = prompt_yes_no("Full wipe ID3 tags before tagging?", default_no=True)
+        # FEATURE #26: stage cleanup decision (persisted in manifest)
+        dec = (manifest.get("decisions") or {}) if isinstance(manifest, dict) else {}
+        default_clean = bool(dec.get("clean_stage") is True)
+        if reuse_stage and use_manifest_answers and ("clean_stage" in dec):
+            clean_stage = default_clean
+        else:
+            clean_stage = prompt_yes_no("Clean stage after successful import?", default_no=True)
+        update_manifest(stage_run, {"decisions": {"clean_stage": bool(clean_stage)}})
+
     else:
         wipe = bool(state.OPTS.wipe_id3)
 
@@ -522,5 +531,12 @@ def run_import(cfg: dict) -> None:
         # processing phase (no prompts)
         for bi, (b, title, cover_mode, dest_root2, out_title, overwrite) in enumerate(meta, 1):
             _process_book(bi, len(meta), b, dest_root2, author, title, out_title, wipe, cover_mode, overwrite)
+
+        # FEATURE #26: clean stage at end (successful run only)
+        if clean_stage:
+            out(f"[stage] cleaning: {stage_run}")
+            if not (state.OPTS and state.OPTS.dry_run):
+                shutil.rmtree(stage_run, ignore_errors=True)
+            out(f"[stage] cleaned: {stage_run}")
 
         if publish:
