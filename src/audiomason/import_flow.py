@@ -240,7 +240,7 @@ def run_import(cfg) -> None:
                 author_all = next(iter(parents)).name
 
             if author_all is not None:
-                author_all = prompt("Author (all books)", author_all).strip() or author_all
+                author_all = prompt("Author (all books)", author_all.replace(".", " ")).strip() or author_all.replace(".", " ")
 
             # Ask book titles for all upfront
             for src in chosen:
@@ -256,7 +256,7 @@ def run_import(cfg) -> None:
                     g_a, g_b = _guess_author_book(name_for_guess)
                     g_b = _human_book_title(g_b)
 
-                a = author_all or (prompt(f"Author for {src.name}", g_a).strip() or g_a)
+                a = author_all or (prompt(f"Author for {src.name}", g_a.replace(".", " ")).strip() or g_a.replace(".", " "))
                 b = prompt(f"Book for {src.name}", _human_book_title(g_b)).strip() or _human_book_title(g_b)
                 meta_by_src[src] = (a, b)
 
@@ -315,7 +315,7 @@ def run_import(cfg) -> None:
             if src in meta_by_src:
                 author, book = meta_by_src[src]
             else:
-                author = prompt("Author", guess_a).strip() or guess_a
+                author = prompt("Author", guess_a.replace('.', ' ')).strip() or guess_a.replace('.', ' ')
                 book = prompt("Book", _human_book_title(guess_b)).strip() or _human_book_title(guess_b)
 
             book_key = f"{slug(author)}.{slug(book)}"
