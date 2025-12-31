@@ -249,7 +249,7 @@ def run_import(cfg) -> None:
 
             # Ask book titles for all upfront
             for src in chosen:
-                peek = (PeekResult(True, unpacked_hint) if unpacked_hint else (peek_source(src) or PeekResult(False, None)))
+                peek = peek_source(src) or PeekResult(False, None)
                 if src.is_dir() and src.parent != DROP_ROOT and src.parent.is_dir() and src.parent.parent == DROP_ROOT:
                     g_a, g_b = (author_all or src.parent.name), _human_book_title(src.name)
                 else:
