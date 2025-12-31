@@ -85,7 +85,7 @@ def peek_source(src: Path) -> PeekResult:
 
 def _list_sources(inbox: Path, cfg) -> list[Path]:
     ensure_dir(inbox)
-    ignore = load_ignore()
+    ignore = load_ignore(inbox)
     stage_root = get_stage_root(cfg).resolve()
     return sorted(
         (
@@ -206,7 +206,12 @@ def run_import(cfg) -> None:
         for src0 in chosen:
             if src0.is_dir():
                 subs = sorted(
-                    [d for d in src0.iterdir() if d.is_dir() and not d.name.startswith(".")],
+                    [
+                        d for d in src0.iterdir()
+                        if d.is_dir()
+                        and not d.name.startswith(".")
+                        and slug(d.name) not in load_ignore(src0)
+                    ],
                     key=lambda x: x.name.lower(),
                 )
                 if len(subs) > 1:
@@ -329,7 +334,7 @@ def run_import(cfg) -> None:
                     unpack(src, stage)
             except Exception as e:
                 out(f"[error] unpack failed: {e}")
-                add_ignore(key)
+                add_ignore(src.parent, src.name)
                 continue
 
             convert_m4a_in_place(stage)

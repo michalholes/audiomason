@@ -1,30 +1,61 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from audiomason.paths import IGNORE_FILE
 from audiomason.state import OPTS
 from audiomason.util import out, slug
 
+IGNORE_BASENAME = ".abook_ignore"
 
-def load_ignore() -> set[str]:
-    if not IGNORE_FILE.exists():
+
+def _resolve_ignore_file(path: Path | None) -> Path:
+    # Legacy/global behavior: if path is None, use IGNORE_FILE (paths.py)
+    if path is None:
+        return IGNORE_FILE
+    # Per-directory behavior: if path is a dir, use <dir>/.abook_ignore
+    if path.exists() and path.is_dir():
+        return path / IGNORE_BASENAME
+    # If caller passes a file path, use it directly
+    return path
+
+
+def load_ignore(path: Path | None = None) -> set[str]:
+    f = _resolve_ignore_file(path)
+    if not f.exists():
         return set()
     return {
         line.strip()
-        for line in IGNORE_FILE.read_text(encoding="utf-8", errors="ignore").splitlines()
+        for line in f.read_text(encoding="utf-8", errors="ignore").splitlines()
         if line.strip() and not line.strip().startswith("#")
     }
 
 
-def add_ignore(name: str) -> None:
-    key = slug(name)
+def add_ignore(path_or_name: Path | str, name: str | None = None) -> None:
+    # Back-compat:
+    #   add_ignore("Some.Source") -> global IGNORE_FILE
+    # New:
+    #   add_ignore(Path(dir), "BookDir") -> dir/.abook_ignore
+    if name is None:
+        dir_path: Path | None = None
+        raw = str(path_or_name)
+    else:
+        dir_path = Path(path_or_name)
+        raw = name
+
+    key = slug(raw)
     if not key:
         return
-    if key in load_ignore():
+
+    f = _resolve_ignore_file(dir_path)
+
+    if key in load_ignore(dir_path):
         return
     if OPTS is not None and OPTS.dry_run:
         out(f"[dry-run] would ignore source: {key}")
         return
-    IGNORE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with IGNORE_FILE.open("a", encoding="utf-8") as f:
-        f.write(key + "\n")
+
+    f.parent.mkdir(parents=True, exist_ok=True)
+    with f.open("a", encoding="utf-8") as fp:
+        fp.write(key + "\n")
     out(f"[ignore] added {key}")
