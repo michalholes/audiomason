@@ -311,7 +311,7 @@ def run_import(cfg) -> None:
             ensure_dir(bookdir_out)
 
             for mp3 in mp3s:
-                mp3.rename(bookdir_out / mp3.name)
+                shutil.move(str(mp3), str(bookdir_out / mp3.name))
 
             # Also move cover.jpg if it exists in mp3dir
             cov = mp3dir / "cover.jpg"
