@@ -10,6 +10,7 @@ from mutagen.id3 import ID3, ID3NoHeaderError
 
 from audiomason.paths import COVER_NAME
 from audiomason.util import out
+from audiomason.naming import normalize_name
 
 from audiomason.openlibrary import validate_author, validate_book
 
@@ -22,6 +23,16 @@ def verify_library(root: Path) -> None:
     """
     books = [p for p in root.iterdir() if p.is_dir()]
     out(f"[verify] scanning {len(books)} book(s) under {root}")
+
+    # Name normalization report (read-only)
+    for a in [p for p in sorted(root.iterdir()) if p.is_dir()]:
+        na = normalize_name(a.name)
+        if na != a.name:
+            out(f"[name] author: '{a.name}' -> '{na}'")
+        for b in [p for p in sorted(a.iterdir()) if p.is_dir()]:
+            nb = normalize_name(b.name)
+            if nb != b.name:
+                out(f"[name]   book: '{b.name}' -> '{nb}'")
 
     # OpenLibrary validation (read-only)
     try:

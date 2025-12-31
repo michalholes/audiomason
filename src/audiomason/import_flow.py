@@ -1,3 +1,4 @@
+from audiomason.naming import normalize_name
 from __future__ import annotations
 
 import shutil
