@@ -322,6 +322,10 @@ def run_import(cfg) -> None:
             if am_a and am_b:
                 guess_a, guess_b = am_a, am_b
 
+            # Unpack/copy BEFORE prompting (so archives can be inspected from stage)
+            stage = STAGE_ROOT / slug(source_key)
+            ensure_dir(stage)
+
             if src in meta_by_src:
                 author, book = meta_by_src[src]
             else:
