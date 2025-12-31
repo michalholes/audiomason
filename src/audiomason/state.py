@@ -11,6 +11,7 @@ class Opts:
     dry_run: bool
     quiet: bool
     publish: Optional[bool]          # None => ask unless --yes, else True/False
+    wipe_id3: Optional[bool]         # None => ask unless --yes, else True/False
     loudnorm: bool
     q_a: str
     verify: bool

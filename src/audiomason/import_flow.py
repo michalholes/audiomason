@@ -27,7 +27,7 @@ from audiomason.archives import unpack
 from audiomason.audio import convert_m4a_in_place
 from audiomason.rename import natural_sort, rename_sequential
 from audiomason.covers import choose_cover
-from audiomason.tags import write_tags
+from audiomason.tags import write_tags, wipe_id3
 
 
 def _copy_dir_into(src: Path, dst: Path) -> None:
@@ -423,6 +423,20 @@ def run_import(cfg) -> None:
                 state.OPTS.yes = old_yes
             cover_bytes = cover[0] if cover else None
             cover_mime = cover[1] if cover else None
+
+            # ID3 wipe policy (prompt once per run; numeric; default No)
+            if state.OPTS is not None and state.OPTS.wipe_id3 is None:
+                if state.OPTS.yes:
+                    state.OPTS.wipe_id3 = False
+                else:
+                    out("[id3] full wipe before tagging?")
+                    out("  1) No")
+                    out("  2) Yes")
+                    ans = prompt("Choose", "1").strip()
+                    state.OPTS.wipe_id3 = (ans == "2")
+
+            if state.OPTS is not None and state.OPTS.wipe_id3 and not state.OPTS.dry_run:
+                wipe_id3(mp3s)
 
             # Write tags
             write_tags(

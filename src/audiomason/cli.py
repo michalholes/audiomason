@@ -28,6 +28,9 @@ def _parent_parser(cfg: Dict[str, Any]) -> argparse.ArgumentParser:
     pp.add_argument("--verify-root", type=Path, default=default_verify_root, help="root for --verify")
 
     pp.add_argument("--publish", choices=["yes", "no", "ask"], default=str(paths.get("publish", "ask")))
+    g = pp.add_mutually_exclusive_group()
+    g.add_argument("--wipe-id3", dest="wipe_id3", action="store_true", default=None, help="full wipe ID3 tags before writing new tags")
+    g.add_argument("--no-wipe-id3", dest="wipe_id3", action="store_false", help="do not wipe ID3 tags (default)")
     pp.add_argument("--loudnorm", action="store_true", default=bool(audio.get("loudnorm", False)))
     pp.add_argument("--q-a", default=str(audio.get("q_a", "2")), help="lame VBR quality (2=high)")
     pp.add_argument("--split-chapters", dest="split_chapters", action="store_true", default=bool(audio.get("split_chapters", True)))
@@ -75,6 +78,7 @@ def _ns_to_opts(ns: argparse.Namespace) -> Opts:
         dry_run=ns.dry_run,
         quiet=ns.quiet,
         publish=publish,
+        wipe_id3=ns.wipe_id3,
         loudnorm=ns.loudnorm,
         q_a=ns.q_a,
         verify=ns.verify,

@@ -27,6 +27,15 @@ def _load_id3(p: Path) -> ID3:
         return ID3(p)
 
 
+def wipe_id3(files: Iterable[Path]) -> None:
+    for mp3 in files:
+        try:
+            ID3(mp3).delete(mp3)
+            out(f"[id3] wiped {mp3.name}")
+        except ID3NoHeaderError:
+            pass
+
+
 def write_tags(
     files: Iterable[Path],
     *,
