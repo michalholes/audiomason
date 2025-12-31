@@ -1,5 +1,6 @@
-DEBUG = False
 from __future__ import annotations
+
+DEBUG = False
 
 from dataclasses import dataclass
 from pathlib import Path
