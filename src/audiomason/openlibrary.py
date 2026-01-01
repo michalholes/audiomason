@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
+from audiomason.util import strip_diacritics
 from audiomason.googlebooks import suggest_title
 
 
@@ -114,8 +115,12 @@ def validate_author(name: str) -> OLResult:
         top = str(docs[0].get("name") or "") or None
 
     if hits == 0:
+        top = _sanitize_title_suggestion(t, top)
+
         _cache_put(ck, {"ok": False, "status": "author:not_found", "hits": 0, "top": top})
         return OLResult(False, "author:not_found", 0, top)
+
+    top = _sanitize_title_suggestion(t, top)
 
     _cache_put(ck, {"ok": True, "status": "author:ok", "hits": hits, "top": top})
     return OLResult(True, "author:ok", hits, top)
@@ -127,6 +132,18 @@ def _norm_title(s: str) -> str:
     s = s.lower()
     s = re.sub(r"\s+", " ", s).strip()
     return s
+
+def _sanitize_title_suggestion(entered: str, suggested: str | None) -> str | None:
+    """No-diacritics suggestion, and suppress suggestion if it matches entered."""
+    if not suggested:
+        return None
+    ss = strip_diacritics(str(suggested)).strip()
+    ss = re.sub(r"\s+", " ", ss).strip()
+    if not ss:
+        return None
+    if _norm_title(ss) == _norm_title(entered):
+        return None
+    return ss
 
 def _best_title_suggestion(entered: str, titles: list[str]) -> tuple[str | None, float, float]:
     n0 = _norm_title(entered)
@@ -294,8 +311,12 @@ def validate_book(author: str, title: str) -> OLResult:
             except Exception:
                 pass
 
+        top = _sanitize_title_suggestion(t, top)
+
         _cache_put(ck, {"ok": False, "status": "book:not_found", "hits": 0, "top": top})
         return OLResult(False, "book:not_found", 0, top)
+
+    top = _sanitize_title_suggestion(t, top)
 
     _cache_put(ck, {"ok": True, "status": "book:ok", "hits": hits, "top": top})
     return OLResult(True, "book:ok", hits, top)
