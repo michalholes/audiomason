@@ -150,6 +150,69 @@ def _best_title_suggestion(entered: str, titles: list[str]) -> tuple[str | None,
     return (best_title, float(best_score), float(second_score))
 
 
+def _fallback_q(title: str) -> str:
+    s = (title or "").strip()
+    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
+    s = s.lower()
+    s = re.sub(r"\b\d+\b", " ", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def _author_match(author: str, author_name: object) -> bool:
+    a = _norm_title(author)
+    if not a:
+        return False
+    vals: list[str] = []
+    if isinstance(author_name, list):
+        vals = [str(x) for x in author_name if x is not None]
+    elif isinstance(author_name, str):
+        vals = [author_name]
+    else:
+        return False
+    for v in vals:
+        nv = _norm_title(v)
+        if not nv:
+            continue
+        if nv == a or a in nv or nv in a:
+            return True
+    return False
+
+
+def _lang_codes(lang_obj: object) -> set[str]:
+    out: set[str] = set()
+    items = lang_obj if isinstance(lang_obj, list) else [lang_obj]
+    for it in items:
+        if isinstance(it, dict):
+            k = str(it.get("key") or "")
+            if k.startswith("/languages/"):
+                out.add(k.split("/languages/", 1)[1])
+        elif isinstance(it, str) and it.startswith("/languages/"):
+            out.add(it.split("/languages/", 1)[1])
+    return out
+
+
+def _pick_edition_title(work_key: str, prefer: list[str]) -> str | None:
+    if not work_key.startswith("/works/"):
+        return None
+    try:
+        time.sleep(0.2)
+        data = _get_json(work_key + "/editions.json", {"limit": 50, "fields": "title,languages"})
+        entries = data.get("entries") or []
+        for code in prefer:
+            for e in entries:
+                if not isinstance(e, dict):
+                    continue
+                langs = _lang_codes(e.get("languages"))
+                if code in langs:
+                    t = str(e.get("title") or "").strip()
+                    if t:
+                        return t
+    except Exception:
+        return None
+    return None
+
+
 def validate_book(author: str, title: str) -> OLResult:
     a = (author or "").strip()
     t = (title or "").strip()
@@ -188,27 +251,29 @@ def validate_book(author: str, title: str) -> OLResult:
         if top is None:
             try:
                 time.sleep(0.2)
-                data2 = _get_json("/search.json", {"q": t, "limit": 50, "fields": "title,author_name"})
+                q = _fallback_q(t)
+                data2 = _get_json("/search.json", {"q": q, "limit": 50, "fields": "key,title,author_name"})
                 docs2 = data2.get("docs") or []
-                a_norm = _norm_title(a)
-                titles: list[str] = []
+                cand: list[tuple[float, str, str]] = []  # (score, title, key)
                 for d in docs2:
                     if not isinstance(d, dict):
                         continue
-                    ans = d.get("author_name")
-                    if isinstance(ans, list):
-                        if a_norm and not any(_norm_title(str(x)) == a_norm for x in ans if x is not None):
-                            continue
-                    elif isinstance(ans, str):
-                        if a_norm and _norm_title(ans) != a_norm:
-                            continue
-                    elif a_norm:
+                    if not _author_match(a, d.get("author_name")):
                         continue
-                    titles.append(str(d.get("title") or ""))
+                    key = str(d.get("key") or "").strip()
+                    tt = str(d.get("title") or "").strip()
+                    if not key or not tt:
+                        continue
+                    score = difflib.SequenceMatcher(None, _norm_title(t), _norm_title(tt)).ratio()
+                    cand.append((score, tt, key))
 
-                sug, best, second = _best_title_suggestion(t, titles)
-                if sug and best >= 0.92 and (best - second) >= 0.03:
-                    top = sug
+                if cand:
+                    cand.sort(key=lambda x: (-x[0], x[1], x[2]))
+                    best_s, best_t, best_k = cand[0]
+                    second_s = cand[1][0] if len(cand) > 1 else 0.0
+                    if best_t and best_s >= 0.92 and (best_s - second_s) >= 0.03:
+                        loc = _pick_edition_title(best_k, ["cze", "slo"])
+                        top = loc or best_t
             except Exception:
                 pass
 
