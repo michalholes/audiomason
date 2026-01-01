@@ -18,7 +18,7 @@ from audiomason.archives import unpack
 from audiomason.audio import convert_m4a_in_place
 from audiomason.rename import natural_sort, rename_sequential
 from audiomason.covers import choose_cover, find_file_cover, extract_embedded_cover_from_mp3
-from audiomason.tags import wipe_id3, write_tags
+from audiomason.tags import wipe_id3, write_tags, write_cover
 from audiomason.manifest import update_manifest, load_manifest, source_fingerprint
 _AUDIO_EXTS = {".mp3", ".m4a"}
 
@@ -322,7 +322,7 @@ def _output_dir(archive_root: Path, author: str, title: str) -> Path:
     return archive_root / author / title
 
 
-def _copy_audio_to_out(group_root: Path, outdir: Path) -> list[Path]:
+def _copy_audio_to_out_no_rename(group_root: Path, outdir: Path) -> list[Path]:
     ensure_dir(outdir)
     src_mp3s = _collect_audio_files(group_root)
     if not src_mp3s:
@@ -332,9 +332,55 @@ def _copy_audio_to_out(group_root: Path, outdir: Path) -> list[Path]:
         dst = outdir / p.name
         shutil.copy2(p, dst)
         copied.append(dst)
-    copied = natural_sort(copied)
-    return rename_sequential(outdir, copied)
+    return natural_sort(copied)
 
+
+def _copy_audio_to_out(group_root: Path, outdir: Path) -> list[Path]:
+    copied = _copy_audio_to_out_no_rename(group_root, outdir)
+    return rename_sequential(outdir, copied)
+def _apply_book_steps(
+    *,
+    steps: list[str],
+    mp3s: list[Path],
+    outdir: Path,
+    author: str,
+    title: str,
+    out_title: str,
+    i: int,
+    n: int,
+    b: BookGroup,
+    cfg: dict,
+    cover_mode: str,
+) -> list[Path]:
+    # Only PROCESS-phase steps are applied here.
+    # Unknown steps are validated earlier by resolve_pipeline_steps().
+    for st in steps:
+        if st == "rename":
+            mp3s = rename_sequential(outdir, mp3s)
+        elif st == "tags":
+            write_tags(mp3s, artist=author, album=title, track_start=1)
+        elif st == "cover":
+            mp3_first = mp3s[0] if mp3s else None
+            out(f"[cover] request: {i}/{n}: {author} / {title}")
+            cover = choose_cover(
+                cfg=cfg,
+                mp3_first=mp3_first,
+                m4a_source=b.m4a_hint,
+                bookdir=outdir,
+                stage_root=b.stage_root,
+                group_root=b.group_root,
+                mode=cover_mode,
+            )
+            cover_bytes = cover[0] if cover else None
+            cover_mime = cover[1] if cover else None
+            write_cover(mp3s, cover=cover_bytes, cover_mime=cover_mime)
+        elif st == "publish":
+            # publish is resolved earlier via dest_root choice; keep step for ordering/visibility
+            pass
+        else:
+            # unpack/convert/chapters/split are stage-level in this codebase
+            pass
+    return mp3s
 
 def _write_dry_run_summary(stage_run: Path, author: str, title: str, lines: list[str]) -> None:
     name = f"{author} - {title}.dryrun.txt"
@@ -372,33 +418,29 @@ def _process_book(i: int, n: int, b: BookGroup, stage_run: Path, dest_root: Path
             f"Overwrite: {bool(overwrite)}",
             f"Cover mode: {cover_mode}",
             f"Wipe ID3: {bool(wipe)}",
+            f"Pipeline steps: {' -> '.join(steps)}",
         ]
         _write_dry_run_summary(stage_run, author, out_title, lines)
         out(f"[dry-run] wrote: {stage_run / (author + ' - ' + out_title + '.dryrun.txt')}")
         return
-
-    mp3s = _copy_audio_to_out(b.group_root, outdir)
+    mp3s = _copy_audio_to_out_no_rename(b.group_root, outdir)
 
     if wipe:
         wipe_id3(mp3s)
 
-    mp3_first = mp3s[0] if mp3s else None
-    out(f"[cover] request: {i}/{n}: {author} / {title}")
-    cover = choose_cover(
+    mp3s = _apply_book_steps(
+        steps=steps,
+        mp3s=mp3s,
+        outdir=outdir,
+        author=author,
+        title=title,
+        out_title=out_title,
+        i=i,
+        n=n,
+        b=b,
         cfg=cfg,
-        mp3_first=mp3_first,
-        m4a_source=b.m4a_hint,
-        bookdir=outdir,
-        stage_root=b.stage_root,
-        group_root=b.group_root,
-        mode=cover_mode,
+        cover_mode=cover_mode,
     )
-    cover_bytes = cover[0] if cover else None
-    cover_mime = cover[1] if cover else None
-
-    write_tags(mp3s, artist=author, album=title, track_start=1)
-
-    write_cover(mp3s, cover=cover_bytes, cover_mime=cover_mime)
 
 def _resolve_source_arg(drop_root: Path, src_path: Path) -> Path:
     p = src_path
