@@ -6,7 +6,13 @@ import importlib
 import pytest
 
 
-def test_cli_import_accepts_path(monkeypatch):
+def test_cli_import_accepts_path(monkeypatch, tmp_path):
+    monkeypatch.setenv("AUDIOMASON_ROOT", str(tmp_path))
+    # minimal contract layout
+    (tmp_path / "abooksinbox").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "_am_stage").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "abooks_ready").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "abooks").mkdir(parents=True, exist_ok=True)
     # parse_args is internal; we only assert that argparse accepts the positional PATH.
     import audiomason.cli as cli
     monkeypatch.setattr(sys, "argv", ["audiomason", "import", "/some/where/SomeBook"])
