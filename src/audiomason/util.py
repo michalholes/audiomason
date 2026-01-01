@@ -63,7 +63,12 @@ def unique_path(p: Path) -> Path:
 
 
 def prompt(msg: str, default: Optional[str] = None) -> str:
-    if OPTS is not None and OPTS.yes:
+    try:
+        import audiomason.state as state
+        _opts = getattr(state, 'OPTS', None)
+    except Exception:
+        _opts = None
+    if _opts is not None and getattr(_opts, 'yes', False):
         return default or ""
     try:
         if default is not None and default != "":
@@ -78,7 +83,12 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
 
 
 def prompt_yes_no(msg: str, default_no: bool = True) -> bool:
-    if OPTS is not None and OPTS.yes:
+    try:
+        import audiomason.state as state
+        _opts = getattr(state, 'OPTS', None)
+    except Exception:
+        _opts = None
+    if _opts is not None and getattr(_opts, 'yes', False):
         return False if default_no else True
     d = "y/N" if default_no else "Y/n"
     try:
