@@ -490,6 +490,11 @@ def _resolved_pipeline_steps(cfg: dict) -> list[str]:
     from audiomason.pipeline_steps import resolve_pipeline_steps
     return resolve_pipeline_steps(cfg)
 
+
+def _is_interactive() -> bool:
+    # Interactive = prompts are allowed (not --yes)
+    return not (state.OPTS and state.OPTS.yes)
+
 def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
     # validate pipeline_steps early (fail fast, before FS touch)
     steps = _resolved_pipeline_steps(cfg)
@@ -716,7 +721,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                         out(f"[ol] book result: ok={getattr(br,'ok',None)} status={getattr(br,'status',None)!r} hits={getattr(br,'hits',None)} top={getattr(br,'top',None)!r}")
                     title = _ol_offer_top('book title', title, br)
             # cover decision (stored as mode: 'file'|'embedded'|'skip')
-            default_cover_mode = str(bm.get(b.label, {}).get("cover_mode") or "").strip() if isinstance(bm, dict) else ""
+            default_cover_mode = (str(bm.get(b.label, {}).get("cover_mode") or "").strip() if (reuse_stage and use_manifest_answers and isinstance(bm, dict)) else "")
             mp3s = _collect_audio_files(b.group_root)
             mp3_first = mp3s[0] if mp3s else None
             file_cover = find_file_cover(b.stage_root, b.group_root)
@@ -732,7 +737,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                 elif embedded:
                     cover_mode = "embedded"
                 else:
-                    cover_mode = "skip"
+                    cover_mode = "" if _is_interactive() else "skip"
 
                 if file_cover and embedded and not (state.OPTS and state.OPTS.yes):
                     # prompt with defaults from manifest if present
