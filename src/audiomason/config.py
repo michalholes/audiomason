@@ -5,6 +5,7 @@ from audiomason.util import AmConfigError
 from audiomason.paths import require_audiomason_root
 
 DEFAULTS = {
+    "pipeline_steps": None,
     "cpu_cores": None,
     "split_chapters": True,
     "paths": {},
