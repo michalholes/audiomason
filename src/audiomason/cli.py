@@ -106,6 +106,7 @@ def main() -> int:
 
     # DEBUG wiring must be active before any out()/trace output
     state.DEBUG = bool(getattr(ns, "debug", False))
+    state.VERBOSE = bool(getattr(ns, \"verbose\", False))
     if state.DEBUG:
         from audiomason.util import enable_trace
         enable_trace()
