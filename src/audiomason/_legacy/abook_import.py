@@ -516,7 +516,7 @@ def parse_args() -> Opts:
     ap.add_argument("--loudnorm", action="store_true", help="normalize loudness during m4a->mp3")
     ap.add_argument("--q-a", default="2", help="lame VBR quality (2=high, 4=faster ok for audiobooks)")
     ap.add_argument("--verify", action="store_true", help="verify library (covers+tags)")
-    ap.add_argument("--verify-root", default=str(OUTPUT_ROOT), help="root for --verify (abooks_ready or abooks)")
+    ap.add_argument("--verify-root", default=None, help="root for --verify (defaults to OUTPUT_ROOT)")
     ap.add_argument("--no-cleanup-stage", action="store_true", help="keep stage after success (debug)")
     ap.add_argument("--split-chapters", action="store_true", help="split m4a by chapters when available")
     ap.add_argument("--no-split-chapters", action="store_true", help="disable split-by-chapters")
