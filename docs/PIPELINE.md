@@ -1,12 +1,45 @@
+# Pipeline
 
-# Pipeline steps
+AudioMason supports an optional configuration key pipeline_steps to control the order of steps.
 
-`pipeline_steps` allows overriding the default order.
+If pipeline_steps is not set or is null:
+- the internal default order is used
 
-Valid steps:
-- Stage-level: unpack, convert, chapters, split
-- Process-level: rename, tags, cover, publish
+## Valid step names
 
-Notes:
-- Unknown steps are rejected (fail fast).
-- Some reorders are disallowed by design because stage-level steps must happen before process-level steps.
+- Stage-level steps (happen before PREPARE in this codebase):
+  - unpack
+  - convert
+  - chapters
+  - split
+
+- Process-level steps (happen during PROCESS):
+  - rename
+  - tags
+  - cover
+  - publish
+
+Unknown step names are rejected (fail fast).
+
+## Ordering rules
+
+- Stage-level steps must occur before process-level steps
+- PROCESS only applies process-level steps; stage-level steps are handled earlier
+- Reordering process-level steps is supported to the extent allowed by validation
+
+## Practical examples
+
+Typical full order:
+
+- unpack
+- convert
+- chapters
+- split
+- rename
+- tags
+- cover
+- publish
+
+If you disable or reorder, keep these invariants:
+- tags should run before cover application if tag writer requires cover data at tag time
+- cover must run after any ID3 wipe (wipe happens before PROCESS steps)
