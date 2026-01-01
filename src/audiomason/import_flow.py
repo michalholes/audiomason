@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import json
 from audiomason.openlibrary import validate_author, validate_book
 from audiomason.naming import normalize_name, normalize_sentence
 
@@ -26,6 +28,75 @@ class BookGroup:
     group_root: Path    # where to pull audio from (stage src root OR a subdir)
     stage_root: Path    # stage src root (for cover search)
     m4a_hint: Optional[Path]
+
+def _build_json_report(stage_runs: list[Path]) -> dict:
+    # Deterministic: derived from manifest.json only
+    sources: list[dict] = []
+    books: list[dict] = []
+    decisions: list[dict] = []
+    total_books = 0
+    processed_books = 0
+    for sr in stage_runs:
+        mf = load_manifest(sr)
+        src = mf.get('source', {}) if isinstance(mf, dict) else {}
+        binfo = mf.get('books', {}) if isinstance(mf, dict) else {}
+        dec = mf.get('decisions', {}) if isinstance(mf, dict) else {}
+        bm = mf.get('book_meta', {}) if isinstance(mf, dict) else {}
+        picked = binfo.get('picked') if isinstance(binfo, dict) else None
+        detected = binfo.get('detected') if isinstance(binfo, dict) else None
+        processed = binfo.get('processed') if isinstance(binfo, dict) else None
+        picked_l = [str(x) for x in picked] if isinstance(picked, list) else []
+        detected_l = [str(x) for x in detected] if isinstance(detected, list) else []
+        processed_l = [str(x) for x in processed] if isinstance(processed, list) else []
+        total_books += len(picked_l)
+        processed_books += len(processed_l)
+
+        sources.append({
+            'name': str(src.get('name') or ''),
+            'stem': str(src.get('stem') or ''),
+            'path': str(src.get('path') or ''),
+            'fingerprint': str(src.get('fingerprint') or ''),
+            'detected_books': detected_l,
+            'picked_books': picked_l,
+            'processed_books': processed_l,
+        })
+
+        decisions.append({
+            'source_stem': str(src.get('stem') or ''),
+            'publish': (bool(dec.get('publish')) if isinstance(dec, dict) and ('publish' in dec) else None),
+            'wipe_id3': (bool(dec.get('wipe_id3')) if isinstance(dec, dict) and ('wipe_id3' in dec) else None),
+            'author': (str(dec.get('author') or '') if isinstance(dec, dict) else ''),
+            'clean_stage': (bool(dec.get('clean_stage')) if isinstance(dec, dict) and ('clean_stage' in dec) else None),
+        })
+
+        author = str(dec.get('author') or '') if isinstance(dec, dict) else ''
+        if isinstance(bm, dict):
+            for label, meta in sorted(bm.items(), key=lambda kv: str(kv[0])):
+                m2 = meta if isinstance(meta, dict) else {}
+                title = str(m2.get('title') or '')
+                out_title = str(m2.get('out_title') or '') or title
+                books.append({
+                    'source_stem': str(src.get('stem') or ''),
+                    'label': str(label),
+                    'author': author,
+                    'title': title,
+                    'out_title': out_title,
+                    'dest_kind': str(m2.get('dest_kind') or ''),
+                    'cover_mode': str(m2.get('cover_mode') or ''),
+                    'overwrite': bool(m2.get('overwrite') is True),
+                    'result': ('processed' if str(label) in processed_l else 'pending'),
+                })
+
+    return {
+        'sources': sources,
+        'books': books,
+        'decisions': decisions,
+        'results': {
+            'sources_total': len(sources),
+            'books_total': total_books,
+            'books_processed': processed_books,
+        },
+    }
 
 
 def _ol_offer_top(kind: str, entered: str, res) -> str:
@@ -365,6 +436,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
     ensure_dir(stage_root)
     ensure_dir(archive_root)
     ensure_dir(output_root)
+    stage_runs_for_json: list[Path] = []
     picked_sources: list[Path]
     forced = False
     if src_path is not None:
@@ -405,6 +477,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             continue
 
         stage_run = stage_root / slug(src.stem)
+        stage_runs_for_json.append(stage_run)
         stage_src = stage_run / "src"
 
         fp = source_fingerprint(src)
@@ -682,4 +755,8 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
         out("[phase] FINALIZE")
 
         # FEATURE #26: clean stage at end (successful run only)
+    # ISSUE #18: machine-readable report (printed at end; human output unchanged)
+    if state.OPTS and getattr(state.OPTS, "json", False):
+        report = _build_json_report(stage_runs_for_json)
+        print(json.dumps(report, ensure_ascii=False, sort_keys=True), flush=True)
 

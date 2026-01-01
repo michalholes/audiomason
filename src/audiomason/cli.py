@@ -22,6 +22,7 @@ def _parent_parser(cfg: Dict[str, Any]) -> argparse.ArgumentParser:
     pp.add_argument("--quiet", action="store_true", help="less output")
     pp.add_argument("--verbose", action="store_true", help="more output (overrides --quiet)")
     pp.add_argument("--debug", action="store_true", help="prefix every out() line with [TRACE]")
+    pp.add_argument("--json", action="store_true", help="print machine-readable JSON report at end")
     pp.add_argument("--config", type=Path, help="explicit configuration.yaml path")
     pp.add_argument("--verify", action="store_true", help="verify library after import")
 
@@ -96,7 +97,7 @@ def _parse_args(cfg: Dict[str, Any] | None = None) -> argparse.Namespace:
 def _ns_to_opts(ns: argparse.Namespace) -> Opts:
     publish = {"yes": True, "no": False, "ask": None}[ns.publish]
     return Opts(
-yes=ns.yes,
+        yes=ns.yes,
         dry_run=ns.dry_run,
         quiet=ns.quiet,
         publish=publish,
@@ -110,6 +111,7 @@ yes=ns.yes,
         split_chapters=ns.split_chapters,
         ff_loglevel=ns.ff_loglevel,
         cpu_cores=getattr(ns, 'cpu_cores', None),
+        json=getattr(ns, "json", False),
     )
 
 

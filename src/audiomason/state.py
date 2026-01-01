@@ -25,5 +25,6 @@ class Opts:
     cpu_cores: int | None
 
 
+    json: bool
 # During refactor we keep global state for compatibility with legacy code.
 OPTS: Opts | None = None
