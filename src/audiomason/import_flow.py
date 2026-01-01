@@ -371,7 +371,7 @@ def _apply_book_steps(
         if st == "rename":
             mp3s = rename_sequential(outdir, mp3s)
         elif st == "tags":
-            write_tags(mp3s, artist=author, album=title, track_start=1)
+            write_tags(mp3s, artist=author, album=title, track_start=1, cover=None, cover_mime=None)
         elif st == "cover":
             mp3_first = mp3s[0] if mp3s else None
             out(f"[cover] request: {i}/{n}: {author} / {title}")
