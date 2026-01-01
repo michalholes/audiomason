@@ -129,6 +129,10 @@ def main() -> int:
         from audiomason.util import enable_trace
         enable_trace()
 
+    if state.DEBUG:
+        from audiomason.util import out
+        out(f"[config] loaded_from={cfg.get('loaded_from','unknown')}")
+
     state.OPTS = _ns_to_opts(ns)
     if str(state.OPTS.verify_root) == "__AUDIOMASON_VERIFY_ROOT_UNSET__":
         state.OPTS.verify_root = get_output_root(cfg)
