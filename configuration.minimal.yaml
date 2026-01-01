@@ -1,0 +1,9 @@
+# Minimal AudioMason config
+# export AUDIOMASON_DATA_ROOT="$HOME/audiomason_data"
+
+paths:
+  inbox: abooksinbox
+  stage: _am_stage
+  output: abooks_ready
+  archive: abooks
+  cache: am_cache

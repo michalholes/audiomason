@@ -1,29 +1,38 @@
-
 # Configuration
 
-AudioMason loads configuration from `configuration.yaml` in the app root by default.
+AudioMason reads configuration from configuration.yaml.
 
 ## Recommended setup
 
-Use a dedicated data directory and keep config paths relative:
-
-- `AUDIOMASON_ROOT`: points to the app/repo root (contains `pyproject.toml`)
-- `AUDIOMASON_DATA_ROOT`: points to your data root (recommended)
-
-Example:
+Use a dedicated data directory and keep paths relative:
 
     export AUDIOMASON_DATA_ROOT="$HOME/audiomason_data"
 
-Then:
+All relative paths resolve relative to this directory.
 
-- `paths.inbox: abooksinbox` resolves to `$AUDIOMASON_DATA_ROOT/abooksinbox`
-- same for stage/output/archive/cache
+## Minimal configuration
 
-## Keys
+```yaml
+paths:
+  inbox: abooksinbox
+  stage: _am_stage
+  output: abooks_ready
+  archive: abooks
+  cache: am_cache
+```
 
-- `paths.*`: main roots (inbox, stage, output, archive, cache)
-- `pipeline_steps`: optional pipeline order override
-- `split_chapters`: split chapterized M4A into multiple MP3 tracks when possible
-- `ffmpeg.*`: ffmpeg loglevel and encoding options
+Copy configuration.minimal.yaml to configuration.yaml to start.
 
-See `configuration.example.yaml` for a fully commented template.
+## Full configuration
+
+See configuration.example.yaml for:
+- all supported keys
+- accepted values
+- commented examples
+
+## Notes
+
+- pipeline_steps overrides internal defaults
+- split_chapters controls M4A chapter splitting
+- publish is a default only (CLI may override)
+- ffmpeg options control encoding behavior
