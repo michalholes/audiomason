@@ -183,14 +183,29 @@ def validate_book(author: str, title: str) -> OLResult:
     if docs:
         top = str(docs[0].get("title") or "") or None
     if hits == 0:
-        # Guarded fuzzy suggestion: secondary search constrained by author only.
+        # Guarded fuzzy suggestion: secondary search by title text (q) + author filter.
         # Deterministic + safe-by-default: require strong score and clear gap.
         if top is None:
             try:
                 time.sleep(0.2)
-                data2 = _get_json("/search.json", {"author": a, "limit": 20, "fields": "title"})
+                data2 = _get_json("/search.json", {"q": t, "limit": 50, "fields": "title,author_name"})
                 docs2 = data2.get("docs") or []
-                titles = [str(d.get("title") or "") for d in docs2 if isinstance(d, dict)]
+                a_norm = _norm_title(a)
+                titles: list[str] = []
+                for d in docs2:
+                    if not isinstance(d, dict):
+                        continue
+                    ans = d.get("author_name")
+                    if isinstance(ans, list):
+                        if a_norm and not any(_norm_title(str(x)) == a_norm for x in ans if x is not None):
+                            continue
+                    elif isinstance(ans, str):
+                        if a_norm and _norm_title(ans) != a_norm:
+                            continue
+                    elif a_norm:
+                        continue
+                    titles.append(str(d.get("title") or ""))
+
                 sug, best, second = _best_title_suggestion(t, titles)
                 if sug and best >= 0.92 and (best - second) >= 0.03:
                     top = sug
