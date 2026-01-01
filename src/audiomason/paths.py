@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import os
+from audiomason.util import AmConfigError
 
 
 def _find_repo_root() -> Path | None:
@@ -28,7 +29,7 @@ def _env_base() -> Path | None:
 def require_audiomason_root() -> Path:
     base = _env_base()
     if base is None:
-        raise RuntimeError(
+        raise AmConfigError(
             "AUDIOMASON_ROOT is not set and repo root could not be detected (pyproject.toml). "
             "Set AUDIOMASON_ROOT to the AudioMason app root (repo containing pyproject.toml). "
             "It is used to locate configuration.yaml."
@@ -63,7 +64,7 @@ ARCHIVE_EXTS = {".zip", ".rar", ".7z"}
 
 def _ensure_abs(label: str, p: Path) -> None:
     if not p.is_absolute():
-        raise RuntimeError(f"{label} must be an absolute path: {p}")
+        raise AmConfigError(f"{label} must be an absolute path: {p}")
 
 
 def _resolve_path(val: str) -> Path:
@@ -101,11 +102,11 @@ def validate_paths_contract(cfg) -> Path:
 def _get(cfg, key, default: Path) -> Path:
     cfg0 = cfg or {}
     if not isinstance(cfg0, dict):
-        raise RuntimeError(f"Invalid configuration: expected mapping at root, got {type(cfg0).__name__}")
+        raise AmConfigError(f"Invalid configuration: expected mapping at root, got {type(cfg0).__name__}")
 
     paths = cfg0.get("paths", {}) or {}
     if not isinstance(paths, dict):
-        raise RuntimeError(f"Invalid configuration: 'paths' must be a mapping, got {type(paths).__name__}")
+        raise AmConfigError(f"Invalid configuration: 'paths' must be a mapping, got {type(paths).__name__}")
 
     if isinstance(key, (list, tuple)):
         for k in key:

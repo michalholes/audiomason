@@ -10,7 +10,7 @@ from mutagen.id3 import ID3, ID3NoHeaderError, APIC
 
 from audiomason.paths import COVER_NAME, get_cache_root
 import audiomason.state as state
-from audiomason.util import out, die, ensure_dir, is_url, prompt
+from audiomason.util import run_cmd, out, die, ensure_dir, is_url, prompt
 
 
 def extract_embedded_cover_from_mp3(mp3: Path) -> Optional[Tuple[bytes, str]]:
@@ -42,7 +42,7 @@ def convert_image_to_jpg(src: Path, dst: Path) -> bytes:
     if state.OPTS and state.OPTS.dry_run:
         out("[dry-run] " + " ".join(cmd))
         return b""
-    subprocess.run(cmd, check=True)
+    run_cmd(cmd, check=True)
     return dst.read_bytes()
 
 
@@ -66,10 +66,10 @@ def download_url(url: str, outpath: Path) -> None:
         out(f"[dry-run] would download: {url} -> {outpath}")
         return
     if shutil.which("curl"):
-        subprocess.run(["curl", "-fsSL", "-o", str(outpath), url], check=True)
+        run_cmd(["curl", "-fsSL", "-o", str(outpath), url], check=True)
         return
     if shutil.which("wget"):
-        subprocess.run(["wget", "-qO", str(outpath), url], check=True)
+        run_cmd(["wget", "-qO", str(outpath), url], check=True)
         return
     die("Need curl or wget to download URL covers")
 
@@ -147,7 +147,7 @@ def extract_cover_from_m4a(m4a: Path, bookdir: Path) -> Optional[Tuple[bytes, st
         out("[dry-run] " + " ".join(cmd))
         return None
     try:
-        subprocess.run(cmd, check=True)
+        run_cmd(cmd, check=True)
         if dst.exists() and dst.stat().st_size > 0:
             out("[cover] extracted from m4a container")
             return dst.read_bytes(), "image/jpeg"

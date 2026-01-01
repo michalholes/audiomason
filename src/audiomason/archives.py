@@ -4,7 +4,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from audiomason.util import die, ensure_dir
+from audiomason.util import run_cmd, die, ensure_dir
 
 
 def _require_tool(name: str) -> None:
@@ -18,21 +18,21 @@ def unpack(archive: Path, outdir: Path) -> None:
 
     if ext == ".zip":
         _require_tool("unzip")
-        subprocess.run(["unzip", "-q", "-o", str(archive), "-d", str(outdir)], check=True)
+        run_cmd(["unzip", "-q", "-o", str(archive), "-d", str(outdir)], check=True)
         return
 
     if ext == ".rar":
         if shutil.which("unrar"):
             _require_tool("unrar")
-            subprocess.run(["unrar", "x", "-o+", "-idq", str(archive), str(outdir)], check=True)
+            run_cmd(["unrar", "x", "-o+", "-idq", str(archive), str(outdir)], check=True)
         else:
             _require_tool("7z")
-            subprocess.run(["7z", "x", "-y", f"-o{outdir}", str(archive)], check=True)
+            run_cmd(["7z", "x", "-y", f"-o{outdir}", str(archive)], check=True)
         return
 
     if ext == ".7z":
         _require_tool("7z")
-        subprocess.run(["7z", "x", "-y", f"-o{outdir}", str(archive)], check=True)
+        run_cmd(["7z", "x", "-y", f"-o{outdir}", str(archive)], check=True)
         return
 
     die(f"Unsupported archive: {archive}")

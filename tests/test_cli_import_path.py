@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import importlib
 import pytest
+from audiomason.util import AmExit
 
 
 def test_cli_import_accepts_path(monkeypatch, tmp_path):
@@ -35,5 +36,5 @@ def test_resolve_source_arg_enforces_drop_root(tmp_path):
 
     outside = tmp_path / "outside"
     outside.mkdir()
-    with pytest.raises(SystemExit):
+    with pytest.raises(AmExit):
         _resolve_source_arg(drop, outside)

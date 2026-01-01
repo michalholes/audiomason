@@ -1,6 +1,7 @@
 from __future__ import annotations
 from pathlib import Path
 import yaml
+from audiomason.util import AmConfigError
 from audiomason.paths import require_audiomason_root
 
 DEFAULTS = {
@@ -36,7 +37,7 @@ def _load_yaml(p: Path) -> dict:
         if data is None:
             return {}
         if not isinstance(data, dict):
-            raise RuntimeError(f"Invalid configuration root in {p}: expected mapping, got {type(data).__name__}")
+            raise AmConfigError(f"Invalid configuration root in {p}: expected mapping, got {type(data).__name__}")
         return data
 
 def load_config(config_path: Path | None = None) -> dict:

@@ -11,6 +11,46 @@ import shutil
 
 import os
 
+# ======================
+# Controlled exits (Issue #41)
+# ======================
+class AmExit(RuntimeError):
+    """Expected termination (no traceback)."""
+    exit_code: int = 2
+
+    def __init__(self, msg: str, exit_code: int | None = None):
+        super().__init__(msg)
+        if exit_code is not None:
+            self.exit_code = int(exit_code)
+
+
+class AmConfigError(AmExit):
+    pass
+
+
+class AmValidationError(AmExit):
+    pass
+
+
+class AmExternalToolError(AmExit):
+    pass
+
+
+class AmAbort(AmExit):
+    exit_code = 130
+
+
+def run_cmd(cmd, *, tool: str | None = None, install: str | None = None, **kwargs):
+    """subprocess.run wrapper that turns expected failures into AmExit."""
+    try:
+        return subprocess.run(cmd, check=True, **kwargs)
+    except FileNotFoundError as e:
+        name = tool or (cmd[0] if isinstance(cmd, (list, tuple)) and cmd else str(cmd))
+        raise AmExternalToolError(f"Missing external tool: {name} (install {install or name})") from e
+    except subprocess.CalledProcessError as e:
+        name = tool or (cmd[0] if isinstance(cmd, (list, tuple)) and cmd else "external tool")
+        raise AmExternalToolError(f"External tool failed: {name} (exit {e.returncode})") from e
+
 
 
 def out(msg: str) -> None:
@@ -30,8 +70,14 @@ def out(msg: str) -> None:
     except BrokenPipeError:
         return
 def die(msg: str, code: int = 2) -> None:
-    print(f"[FATAL] {msg}", flush=True)
-    raise SystemExit(code)
+    # Backward-compatible helper: raise a controlled exit instead of printing/traceback.
+    m = str(msg)
+    cls = AmExit
+    if m.startswith("Missing external tool:"):
+        cls = AmExternalToolError
+    elif m.startswith("Invalid configuration"):
+        cls = AmConfigError
+    raise cls(m, exit_code=code)
 
 
 def strip_diacritics(s: str) -> str:
@@ -100,9 +146,8 @@ def prompt_yes_no(msg: str, default_no: bool = True) -> bool:
     d = "y/N" if default_no else "Y/n"
     try:
         ans = input(f"{msg} [{d}] ").strip().lower()
-    except KeyboardInterrupt:
-        out("\n[skip]")
-        return False if default_no else True
+    except KeyboardInterrupt as e:
+        raise AmAbort("cancelled by user") from e
     if not ans:
         return False if default_no else True
     return ans in {"y", "yes"}

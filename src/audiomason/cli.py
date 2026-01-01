@@ -12,6 +12,7 @@ from audiomason.state import Opts
 from audiomason.import_flow import run_import
 from audiomason.verify import verify_library
 from audiomason.paths import validate_paths_contract, get_output_root
+from audiomason.util import out, AmExit, AmAbort
 def _parent_parser(cfg: Dict[str, Any]) -> argparse.ArgumentParser:
     ffmpeg = cfg.get("ffmpeg", {}) if isinstance(cfg.get("ffmpeg", {}), dict) else {}
     paths = cfg.get("paths", {}) if isinstance(cfg.get("paths", {}), dict) else {}
@@ -116,43 +117,42 @@ def _ns_to_opts(ns: argparse.Namespace) -> Opts:
 
 
 def main() -> int:
-    pre = _parse_args({})
-    cfg = load_config(pre.config) if pre.config else load_config()
-    validate_paths_contract(cfg)
-    ns = _parse_args(cfg)
-    if state.DEBUG:
-        from audiomason.util import out
-        out(f"[config] loaded_from={cfg.get('loaded_from','unknown')}")
-
-    # DEBUG wiring must be active before any out()/trace output
-    state.DEBUG = bool(getattr(ns, "debug", False))
-    state.VERBOSE = bool(getattr(ns, "verbose", False))
-    if state.DEBUG:
-        from audiomason.util import enable_trace
-        enable_trace()
-
-    if state.DEBUG:
-        from audiomason.util import out
-        out(f"[config] loaded_from={cfg.get('loaded_from','unknown')}")
-
-    state.OPTS = _ns_to_opts(ns)
-    if str(state.OPTS.verify_root) == "__AUDIOMASON_VERIFY_ROOT_UNSET__":
-        state.OPTS.verify_root = get_output_root(cfg)
-
-    if ns.cmd == "inspect":
-        from audiomason.inspect import inspect_source
-        inspect_source(ns.path)
-        return 0
-
-    if ns.cmd == "verify":
-        root = ns.root or state.OPTS.verify_root
-        verify_library(root)
-        return 0
-
     try:
-        run_import(cfg, getattr(ns, "path", None))
-    except KeyboardInterrupt:
-        from audiomason.util import out
-        out("[abort] cancelled by user")
-        return 130
-    return 0
+        try:
+            pre = _parse_args({})
+            cfg = load_config(pre.config) if pre.config else load_config()
+            validate_paths_contract(cfg)
+            ns = _parse_args(cfg)
+
+            # DEBUG wiring must be active before any out()/trace output
+            state.DEBUG = bool(getattr(ns, "debug", False))
+            state.VERBOSE = bool(getattr(ns, "verbose", False))
+            if state.DEBUG:
+                from audiomason.util import enable_trace
+                enable_trace()
+                out(f"[config] loaded_from={cfg.get('loaded_from','unknown')}")
+
+            state.OPTS = _ns_to_opts(ns)
+            if str(state.OPTS.verify_root) == "__AUDIOMASON_VERIFY_ROOT_UNSET__":
+                state.OPTS.verify_root = get_output_root(cfg)
+
+            if ns.cmd == "inspect":
+                from audiomason.inspect import inspect_source
+                inspect_source(ns.path)
+                return 0
+
+            if ns.cmd == "verify":
+                root = ns.root or state.OPTS.verify_root
+                verify_library(root)
+                return 0
+
+            run_import(cfg, getattr(ns, "path", None))
+            return 0
+        except KeyboardInterrupt as e:
+            raise AmAbort("cancelled by user") from e
+    except AmAbort as e:
+        out(f"[abort] {e}")
+        return e.exit_code
+    except AmExit as e:
+        out(f"[error] {e}")
+        return e.exit_code

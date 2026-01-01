@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 
 import audiomason.state as state
-from audiomason.util import out, die, ensure_dir
+from audiomason.util import run_cmd, out, die, ensure_dir
 
 
 def ffprobe_json(path: Path) -> dict:
@@ -24,7 +24,7 @@ def ffprobe_json(path: Path) -> dict:
     if state.OPTS and state.OPTS.dry_run:
         out("[dry-run] " + " ".join(cmd))
         return {}
-    p = subprocess.run(cmd, check=True, stdout=subprocess.PIPE)
+    p = run_cmd(cmd, check=True, stdout=subprocess.PIPE)
     return json.loads(p.stdout.decode("utf-8", errors="ignore") or "{}")
 
 
@@ -53,7 +53,7 @@ def m4a_to_mp3_single(src: Path, dst: Path) -> None:
     if state.OPTS.dry_run:
         out("[dry-run] " + " ".join(cmd))
         return
-    subprocess.run(cmd, check=True)
+    run_cmd(cmd, check=True)
 
 
 def m4a_split_by_chapters(src: Path, outdir: Path) -> list[Path]:
@@ -119,7 +119,7 @@ def m4a_split_by_chapters(src: Path, outdir: Path) -> list[Path]:
         out("[dry-run] " + " ".join(cmd))
         return produced
 
-    subprocess.run(cmd, check=True)
+    run_cmd(cmd, check=True)
     return [p for p in produced if p.exists() and p.stat().st_size > 0]
 
 
