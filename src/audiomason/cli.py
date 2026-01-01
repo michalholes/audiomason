@@ -103,14 +103,14 @@ yes=ns.yes,
 def main() -> int:
     cfg = load_config()
     ns = _parse_args()
-    state.OPTS = _ns_to_opts(ns)
-    from audiomason.util import out
-    out(f"[lookup] enabled={getattr(getattr(state, 'OPTS', None), 'lookup', None)}")
 
+    # DEBUG wiring must be active before any out()/trace output
     state.DEBUG = bool(getattr(ns, "debug", False))
     if state.DEBUG:
         from audiomason.util import enable_trace
         enable_trace()
+
+    state.OPTS = _ns_to_opts(ns)
 
     if ns.cmd == "inspect":
         from audiomason.inspect import inspect_source

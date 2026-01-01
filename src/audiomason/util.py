@@ -5,7 +5,6 @@ import unicodedata
 from pathlib import Path
 from typing import Optional
 
-from audiomason.state import OPTS
 import subprocess
 
 import shutil
@@ -17,7 +16,7 @@ import os
 def out(msg: str) -> None:
     try:
         import audiomason.state as state
-        if getattr(state, "OPTS", None) and getattr(state.OPTS, "debug", False):
+        if bool(getattr(state, "DEBUG", False)):
             print(f"[TRACE] {msg}", flush=True)
         else:
             print(msg, flush=True)
@@ -191,9 +190,10 @@ def enable_trace() -> None:
     _TRACE_ENABLED = True
 
     def _t(msg: str) -> None:
-        # Respect --quiet
+        # Respect --quiet (runtime state, not a stale imported name)
         try:
-            if OPTS is not None and OPTS.quiet:
+            import audiomason.state as state
+            if getattr(getattr(state, "OPTS", None), "quiet", False):
                 return
         except Exception:
             pass
