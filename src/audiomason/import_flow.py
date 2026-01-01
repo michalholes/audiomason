@@ -478,6 +478,20 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             },
         })
 
+        # ISSUE #15: resume ask-to-skip processed books (never auto-skip)
+        processed = mf.get("books", {}).get("processed") if isinstance(mf, dict) else None
+        if reuse_stage and use_manifest_answers and isinstance(processed, list) and processed:
+            done = {str(x) for x in processed}
+            before = [b.label for b in picked_books]
+            already = [x for x in before if x in done]
+            if already:
+                out(f"[books] resume: already processed: {', '.join(already)}")
+                if prompt_yes_no("Skip already processed books?", default_no=True):
+                    picked_books = [b for b in picked_books if b.label not in done]
+                    if not picked_books:
+                        out("[books] resume: nothing left to process")
+                        continue
+
         # publish/wipe (skip when allowed, otherwise prompt with defaults)
         default_publish = bool(dec.get("publish")) if isinstance(dec, dict) and "publish" in dec else False
         default_wipe = bool(dec.get("wipe_id3")) if isinstance(dec, dict) and "wipe_id3" in dec else False
@@ -533,6 +547,8 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
         if not author:
             die("Author is required")
         update_manifest(stage_run, {"decisions": {"author": author}})
+
+        out("[phase] PREPARE")
 
         # preflight per-book metadata (must happen before touching output)
         # ISSUE #12: unify decisions upfront (title + cover choice). Processing must not prompt.
@@ -650,9 +666,20 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             meta.append((b, title, cover_mode, dest_root2, out_title, overwrite))
             update_manifest(stage_run, {"book_meta": {b.label: {"title": title, "cover_mode": cover_mode, "dest_kind": dest_kind, "out_title": out_title, "overwrite": bool(overwrite)}}})
 
+        out("[phase] PROCESS")
+        # ISSUE #15: manifest progress for resume
+        processed_labels = mf.get("books", {}).get("processed") if isinstance(mf, dict) else None
+        if not isinstance(processed_labels, list):
+            processed_labels = []
+
         # processing phase (no prompts)
         for bi, (b, title, cover_mode, dest_root2, out_title, overwrite) in enumerate(meta, 1):
             _process_book(bi, len(meta), b, stage_run, dest_root2, author, title, out_title, wipe, cover_mode, overwrite, cfg)
+            processed_labels.append(b.label)
+            update_manifest(stage_run, {"books": {"processed": processed_labels}})
+
+
+        out("[phase] FINALIZE")
 
         # FEATURE #26: clean stage at end (successful run only)
 
