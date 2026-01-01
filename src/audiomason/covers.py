@@ -50,6 +50,16 @@ def _sha1(s: str) -> str:
     return hashlib.sha1(s.encode("utf-8", errors="ignore")).hexdigest()
 
 
+
+def _sniff_image_ext(data: bytes) -> tuple[str, str]:
+    # Detect image type from magic bytes (no external deps)
+    if len(data) >= 3 and data[0:3] == b"\xFF\xD8\xFF":
+        return ("jpg", "image/jpeg")
+    if len(data) >= 8 and data[0:8] == b"\x89PNG\r\n\x1a\n":
+        return ("png", "image/png")
+    if len(data) >= 12 and data[0:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return ("webp", "image/webp")
+    return ("img", "application/octet-stream")
 def download_url(url: str, outpath: Path) -> None:
     ensure_dir(outpath.parent)
     if state.OPTS and state.OPTS.dry_run:
@@ -72,13 +82,33 @@ def cover_from_input(cfg: dict, raw: str) -> Optional[Path]:
     if is_url(raw):
         cache_root = get_cache_root(cfg)
         ensure_dir(cache_root)
-        cache_file = cache_root / (_sha1(raw) + ".img")
-        if cache_file.exists():
-            out("[cover] using cached URL cover")
-            return cache_file
+        sha = _sha1(raw)
+        # Scan for existing cached variants
+        for ext in ("jpg", "png", "webp", "img"):
+            cand = cache_root / f"{sha}.{ext}"
+            if cand.exists():
+                out("[cover] using cached URL cover")
+                return cand
+
+        # Respect --dry-run (no writes)
+        if state.OPTS and getattr(state.OPTS, "dry_run", False):
+            if getattr(state.OPTS, "debug", False):
+                out("[cover][debug] dry-run: would download; mime=unknown ext=.img")
+            return cache_root / f"{sha}.img"
+
+        tmp = cache_root / f"{sha}.tmp"
         out("[cover] downloading URL cover...")
-        download_url(raw, cache_file)
-        return cache_file
+        download_url(raw, tmp)
+        data = tmp.read_bytes()
+        ext, mime = _sniff_image_ext(data)
+        if getattr(state.OPTS, "debug", False):
+            out(f"[cover][debug] mime={mime} ext=.{ext}")
+        outpath = cache_root / f"{sha}.{ext}"
+        if outpath.exists():
+            tmp.unlink(missing_ok=True)
+            return outpath
+        tmp.replace(outpath)
+        return outpath
 
     p = Path(raw).expanduser()
     if p.exists() and p.is_file():
@@ -223,7 +253,7 @@ def choose_cover(
     if not raw:
         return None
 
-    img = cover_from_input(cfg, cfg, raw)
+    img = cover_from_input(cfg, raw)
     if img is None:
         return None
 
