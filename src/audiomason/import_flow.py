@@ -437,8 +437,23 @@ def _process_book(i: int, n: int, b: BookGroup, stage_run: Path, dest_root: Path
         return
     mp3s = _copy_audio_to_out_no_rename(b.group_root, outdir)
 
+    # Preserve embedded cover across ID3 wipe (Issue #55)
+    _embedded_cover = None
+    if wipe and mp3s:
+        try:
+            _embedded_cover = extract_embedded_cover_from_mp3(mp3s[0])
+        except Exception:
+            _embedded_cover = None
+
     if wipe:
         wipe_id3(mp3s)
+        if _embedded_cover:
+            try:
+                data, mime = _embedded_cover
+                write_cover(mp3s, cover=data, cover_mime=mime)
+                out("[cover] preserved embedded cover after wipe")
+            except Exception:
+                pass
 
     mp3s = _apply_book_steps(
         steps=steps,
