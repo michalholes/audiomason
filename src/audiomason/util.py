@@ -129,8 +129,8 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
             return s if s else default
         s = input(f"{msg}: ").strip()
         return s
-    except KeyboardInterrupt:
-        out("\n[skip]")
+    except KeyboardInterrupt as e:
+        raise AmAbort("cancelled by user") from e
         raise
         return default or ""
 
