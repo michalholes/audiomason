@@ -35,9 +35,17 @@ def _load_yaml(p: Path) -> dict:
             raise RuntimeError(f"Invalid configuration root in {p}: expected mapping, got {type(data).__name__}")
         return data
 
-def load_config() -> dict:
+def load_config(config_path: Path | None = None) -> dict:
+
     cfg = DEFAULTS
+    if config_path is not None:
+        cfg = _deep_merge(cfg, _load_yaml(config_path))
+        cfg['loaded_from'] = str(config_path)
+        return cfg
+
     base = require_audiomason_root()
-    cfg = _deep_merge(cfg, _load_yaml(base / "configuration.yaml"))
+    p = base / "configuration.yaml"
+    cfg = _deep_merge(cfg, _load_yaml(p))
+    cfg['loaded_from'] = str(p)
     return cfg
 

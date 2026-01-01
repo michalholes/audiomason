@@ -22,6 +22,7 @@ def _parent_parser(cfg: Dict[str, Any]) -> argparse.ArgumentParser:
     pp.add_argument("--quiet", action="store_true", help="less output")
     pp.add_argument("--verbose", action="store_true", help="more output (overrides --quiet)")
     pp.add_argument("--debug", action="store_true", help="prefix every out() line with [TRACE]")
+    pp.add_argument("--config", type=Path, help="explicit configuration.yaml path")
     pp.add_argument("--verify", action="store_true", help="verify library after import")
 
     default_verify_root = Path(paths.get("verify_root") or "__AUDIOMASON_VERIFY_ROOT_UNSET__")
@@ -110,9 +111,13 @@ yes=ns.yes,
 
 
 def main() -> int:
-    cfg = load_config()
+    pre = _parse_args({})
+    cfg = load_config(pre.config) if pre.config else load_config()
     validate_paths_contract(cfg)
     ns = _parse_args(cfg)
+    if state.DEBUG:
+        from audiomason.util import out
+        out(f"[config] loaded_from={cfg.get('loaded_from','unknown')}")
 
     # DEBUG wiring must be active before any out()/trace output
     state.DEBUG = bool(getattr(ns, "debug", False))
