@@ -16,6 +16,13 @@ import os
 def out(msg: str) -> None:
     try:
         import audiomason.state as state
+
+        # --quiet => only errors
+        if bool(getattr(getattr(state, "OPTS", None), "quiet", False)):
+            m = str(msg)
+            if not m.lstrip().startswith(("[ERROR]", "ERROR:", "[FATAL]", "FATAL:")):
+                return
+
         if bool(getattr(state, "DEBUG", False)):
             print(f"[TRACE] {msg}", flush=True)
         else:
