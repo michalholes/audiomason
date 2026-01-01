@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 from typing import Any, Dict
 
@@ -66,6 +67,14 @@ def _parse_args() -> argparse.Namespace:
     i.add_argument("path", type=Path)
 
     ns = ap.parse_args()
+
+    # argv fallback for quiet/verbose (argparse quirk)
+    argv = set(sys.argv[1:])
+    if "--quiet" in argv:
+        ns.quiet = True
+    if "--verbose" in argv:
+        ns.verbose = True
+        ns.quiet = False
 
     if ns.version:
         print(__version__)
