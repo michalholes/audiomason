@@ -21,7 +21,10 @@ def verify_library(root: Path) -> None:
     - each book dir has cover.jpg
     - mp3 files have ID3 tags
     """
-    books = [p for p in root.iterdir() if p.is_dir()]
+    authors = [p for p in sorted(root.iterdir()) if p.is_dir()]
+    books = []
+    for a in authors:
+        books.extend([p for p in sorted(a.iterdir()) if p.is_dir()])
     out(f"[verify] scanning {len(books)} book(s) under {root}")
 
     # Name normalization report (read-only)
