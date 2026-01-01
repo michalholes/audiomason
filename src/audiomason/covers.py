@@ -178,11 +178,11 @@ def choose_cover(
 
     # interactive/default path (legacy behavior)
     if embedded and file_cover and not (state.OPTS and state.OPTS.yes):
-        print("Cover options found:")
-        print("  1) embedded cover from audio")
-        print(f"  2) {file_cover.name} (preferred)")
+        out("Cover options found:")
+        out("  1) embedded cover from audio")
+        out(f"  2) {file_cover.name} (preferred)")
         try:
-            ans = input("Choose cover [1/2] (default: 2): ").strip()
+            ans = prompt("Choose cover [1/2]", "2").strip()
         except KeyboardInterrupt:
             out("\n[cover] skipped")
             return None

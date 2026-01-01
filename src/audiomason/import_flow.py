@@ -583,10 +583,10 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     elif default_cover_mode == "skip":
                         d = "s"
                     out(f"[cover-meta] {bi}/{len(picked_books)}: {author} / {title}")
-                    print("Cover options:")
-                    print("  1) embedded cover from audio")
-                    print(f"  2) {file_cover.name} (preferred)")
-                    print("  s) skip cover")
+                    out("Cover options:")
+                    out("  1) embedded cover from audio")
+                    out(f"  2) {file_cover.name} (preferred)")
+                    out("  s) skip cover")
                     ans = prompt("Choose cover [1/2/s]", d).strip().lower()
                     if ans == "1":
                         cover_mode = "embedded"
