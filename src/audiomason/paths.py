@@ -3,14 +3,24 @@ from __future__ import annotations
 from pathlib import Path
 import os
 
+
+def _find_repo_root() -> Path | None:
+    # Deterministic bootstrap: repo root is the first parent containing pyproject.toml
+    here = Path(__file__).resolve()
+    for parent in [here.parent, *here.parents]:
+        if (parent / "pyproject.toml").is_file():
+            return parent
+    return None
+
 # Env override (used by tests + runtime)
 AUDIOMASON_ROOT = os.environ.get("AUDIOMASON_ROOT")
 
 def _env_base() -> Path | None:
     env_root = os.environ.get("AUDIOMASON_ROOT")
-    if not env_root:
-        return None
-    return Path(env_root).expanduser().resolve()
+    if env_root:
+        return Path(env_root).expanduser().resolve()
+    # Fallback: repo root (pyproject.toml) where AudioMason app lives
+    return _find_repo_root()
 
 def require_audiomason_root() -> Path:
     base = _env_base()

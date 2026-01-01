@@ -1,6 +1,7 @@
 from __future__ import annotations
 from pathlib import Path
 import yaml
+from audiomason.paths import require_audiomason_root
 
 DEFAULTS = {
     "cpu_cores": None,
@@ -12,9 +13,6 @@ DEFAULTS = {
         "q_a": "2",
     },
 }
-
-SYSTEM_CONFIG = Path("/etc/audiomason/config.yaml")
-USER_CONFIG = Path.home() / ".config/audiomason/config.yaml"
 
 def _deep_merge(a: dict, b: dict) -> dict:
     out = dict(a)
@@ -33,9 +31,7 @@ def _load_yaml(p: Path) -> dict:
 
 def load_config() -> dict:
     cfg = DEFAULTS
-    cfg = _deep_merge(cfg, _load_yaml(SYSTEM_CONFIG))
-    cfg = _deep_merge(cfg, _load_yaml(USER_CONFIG))
+    base = require_audiomason_root()
+    cfg = _deep_merge(cfg, _load_yaml(base / "configuration.yaml"))
     return cfg
 
-# CPU configuration
-cpu_cores: int | None = None  # None = autodetect
