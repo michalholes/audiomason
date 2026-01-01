@@ -61,6 +61,20 @@ def write_tags(
         id3.add(TRCK(encoding=3, text=str(i)))
         id3.add(TCON(encoding=3, text=GENRE))
 
+        id3.save(mp3)
+        out(f"[tags] {mp3.name}")
+
+def write_cover(
+    mp3s: Iterable[Path],
+    cover: Optional[bytes],
+    cover_mime: Optional[str] = None,
+) -> None:
+    for mp3 in mp3s:
+        id3 = _load_id3(mp3)
+
+        # Always reset cover art deterministically
+        id3.delall("APIC")
+
         if cover:
             id3.add(
                 APIC(
@@ -73,4 +87,4 @@ def write_tags(
             )
 
         id3.save(mp3)
-        out(f"[tags] {mp3.name}")
+        out(f"[cover] {mp3.name}")

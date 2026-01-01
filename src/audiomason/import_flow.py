@@ -396,7 +396,9 @@ def _process_book(i: int, n: int, b: BookGroup, stage_run: Path, dest_root: Path
     cover_bytes = cover[0] if cover else None
     cover_mime = cover[1] if cover else None
 
-    write_tags(mp3s, artist=author, album=title, cover=cover_bytes, cover_mime=cover_mime, track_start=1)
+    write_tags(mp3s, artist=author, album=title, track_start=1)
+
+    write_cover(mp3s, cover=cover_bytes, cover_mime=cover_mime)
 
 def _resolve_source_arg(drop_root: Path, src_path: Path) -> Path:
     p = src_path
