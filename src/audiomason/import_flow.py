@@ -478,10 +478,10 @@ def run_import(cfg: dict) -> None:
                 if prompt_yes_no("Apply suggested author name?", default_no=True):
                     author = na
 
-                    # OpenLibrary suggestion (author)
-                    if getattr(getattr(state, 'OPTS', None), 'lookup', False):
-                        ar = validate_author(author)
-                        author = _ol_offer_top('author', author, ar)
+            # OpenLibrary suggestion (author) — must run after final author decision
+            if getattr(getattr(state, 'OPTS', None), 'lookup', False):
+                ar = validate_author(author)
+                author = _ol_offer_top('author', author, ar)
         if not author:
             die("Author is required")
         update_manifest(stage_run, {"decisions": {"author": author}})
