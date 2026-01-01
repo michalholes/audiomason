@@ -8,7 +8,7 @@ from typing import Optional, Tuple
 
 from mutagen.id3 import ID3, ID3NoHeaderError, APIC
 
-from audiomason.paths import CACHE_ROOT, COVER_NAME
+from audiomason.paths import COVER_NAME, get_cache_root
 import audiomason.state as state
 from audiomason.util import out, die, ensure_dir, is_url, prompt
 
@@ -64,14 +64,15 @@ def download_url(url: str, outpath: Path) -> None:
     die("Need curl or wget to download URL covers")
 
 
-def cover_from_input(raw: str) -> Optional[Path]:
+def cover_from_input(cfg: dict, raw: str) -> Optional[Path]:
     raw = raw.strip()
     if not raw:
         return None
 
     if is_url(raw):
-        ensure_dir(CACHE_ROOT)
-        cache_file = CACHE_ROOT / (_sha1(raw) + ".img")
+        cache_root = get_cache_root(cfg)
+        ensure_dir(cache_root)
+        cache_file = cache_root / (_sha1(raw) + ".img")
         if cache_file.exists():
             out("[cover] using cached URL cover")
             return cache_file
@@ -85,7 +86,6 @@ def cover_from_input(raw: str) -> Optional[Path]:
 
     out("[cover] invalid path/url")
     return None
-
 
 def find_file_cover(stage_root: Path, group_root: Path) -> Optional[Path]:
     for ext in [".avif", ".jpg", ".jpeg", ".png", ".webp"]:
@@ -127,6 +127,7 @@ def extract_cover_from_m4a(m4a: Path, bookdir: Path) -> Optional[Tuple[bytes, st
 
 
 def choose_cover(
+    cfg: dict,
     mp3_first: Optional[Path],
     m4a_source: Optional[Path],
     bookdir: Path,
@@ -222,7 +223,7 @@ def choose_cover(
     if not raw:
         return None
 
-    img = cover_from_input(raw)
+    img = cover_from_input(cfg, cfg, raw)
     if img is None:
         return None
 

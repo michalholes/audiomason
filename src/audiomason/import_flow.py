@@ -273,7 +273,7 @@ def _write_dry_run_summary(stage_run: Path, author: str, title: str, lines: list
     ]
     path.write_text("\n".join(header + lines) + "\n", encoding="utf-8")
 
-def _process_book(i: int, n: int, b: BookGroup, stage_run: Path, dest_root: Path, author: str, title: str, out_title: str, wipe: bool, cover_mode: str, overwrite: bool) -> None:
+def _process_book(i: int, n: int, b: BookGroup, stage_run: Path, dest_root: Path, author: str, title: str, out_title: str, wipe: bool, cover_mode: str, overwrite: bool, cfg: dict) -> None:
     out(f"[book] {i}/{n}: {b.label}")
 
     outdir = _output_dir(dest_root, author, out_title)
@@ -313,6 +313,7 @@ def _process_book(i: int, n: int, b: BookGroup, stage_run: Path, dest_root: Path
     mp3_first = mp3s[0] if mp3s else None
     out(f"[cover] request: {i}/{n}: {author} / {title}")
     cover = choose_cover(
+        cfg=cfg,
         mp3_first=mp3_first,
         m4a_source=b.m4a_hint,
         bookdir=outdir,
