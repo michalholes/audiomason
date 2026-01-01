@@ -136,6 +136,29 @@ Command-line override:
 - skips AUDIOMASON_ROOT discovery entirely
 - intended for isolated testing and CI-style runs
 
+Example: isolated run with explicit config:
+
+```bash
+mkdir -p /tmp/amtest
+cat >/tmp/amtest/configuration.yaml <<'YAML'
+publish: no
+paths:
+  inbox: /tmp/amtest_inbox
+ffmpeg:
+  loglevel: error
+YAML
+
+mkdir -p /tmp/amtest_inbox
+cd /tmp/amtest
+am --config configuration.yaml --dry-run --debug
+```
+
+Expected debug output includes:
+
+```
+[config] loaded_from=configuration.yaml
+```
+
 Data paths:
 
 - configuration.yaml supports absolute paths anywhere (e.g. /mnt/warez/...)
