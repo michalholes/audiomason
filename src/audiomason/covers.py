@@ -42,7 +42,7 @@ def convert_image_to_jpg(src: Path, dst: Path) -> bytes:
     if state.OPTS and state.OPTS.dry_run:
         out("[dry-run] " + " ".join(cmd))
         return b""
-    run_cmd(cmd, check=True)
+    run_cmd(cmd)
     return dst.read_bytes()
 
 
@@ -147,7 +147,7 @@ def extract_cover_from_m4a(m4a: Path, bookdir: Path) -> Optional[Tuple[bytes, st
         out("[dry-run] " + " ".join(cmd))
         return None
     try:
-        run_cmd(cmd, check=True)
+        run_cmd(cmd)
         if dst.exists() and dst.stat().st_size > 0:
             out("[cover] extracted from m4a container")
             return dst.read_bytes(), "image/jpeg"
