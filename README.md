@@ -110,3 +110,4 @@ See: docs/INSTALL.md
 
 - System install: docs/INSTALL-SYSTEM.md
 - CLI reference: docs/CLI.md
+- Maintenance: docs/MAINTENANCE.md
