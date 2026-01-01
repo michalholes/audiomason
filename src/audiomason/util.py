@@ -43,6 +43,7 @@ class AmAbort(AmExit):
 def run_cmd(cmd, *, tool: str | None = None, install: str | None = None, **kwargs):
     """subprocess.run wrapper that turns expected failures into AmExit."""
     try:
+        kwargs.pop("check", None)
         return subprocess.run(cmd, check=True, **kwargs)
     except FileNotFoundError as e:
         name = tool or (cmd[0] if isinstance(cmd, (list, tuple)) and cmd else str(cmd))
