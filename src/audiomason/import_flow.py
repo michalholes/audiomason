@@ -927,6 +927,11 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
         out("[phase] FINALIZE")
 
         # FEATURE #26: clean stage at end (successful run only)
+        # FEATURE #51: mark processed source as ignored
+        if not (state.OPTS and state.OPTS.dry_run):
+            add_ignore(drop_root, src.name)
+            out(f"[ignore] added: {src.name}")
+
         # perform stage cleanup if requested and not dry-run
         dec2 = load_manifest(stage_run).get('decisions', {})
         do_clean = bool(dec2.get('clean_stage'))
