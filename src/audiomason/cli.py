@@ -72,6 +72,13 @@ def _parse_args(cfg: Dict[str, Any] | None = None) -> argparse.Namespace:
     i = sub.add_parser("inspect", help="read-only source inspection", parents=[parent])
     i.add_argument("path", type=Path)
 
+    c = sub.add_parser("cache", help="cache maintenance", parents=[parent])
+    csub = c.add_subparsers(dest="cache_cmd")
+    gc = csub.add_parser("gc", help="prune cover disk cache", parents=[parent])
+    gc.add_argument("--days", type=int, default=None, help="remove cache files older than N days")
+    gc.add_argument("--max-mb", type=int, default=None, help="keep cache size under M megabytes (prune oldest)")
+
+
     ns = ap.parse_args()
 
     # argv fallback for quiet/verbose (argparse quirk)
@@ -145,6 +152,15 @@ def main() -> int:
                 root = ns.root or state.OPTS.verify_root
                 verify_library(root)
                 return 0
+
+            if ns.cmd == "cache":
+                if getattr(ns, "cache_cmd", None) == "gc":
+                    from audiomason.cache_gc import cache_gc
+                    # command-local --dry-run can force report-only
+                    # argparse quirk: both parent and subparser define --dry-run; keep ns.dry_run
+                    return int(cache_gc(cfg, days=getattr(ns, "days", None), max_mb=getattr(ns, "max_mb", None), dry_run=bool(getattr(ns, "dry_run", False))))
+                out("[error] unknown cache subcommand")
+                return 2
 
             run_import(cfg, getattr(ns, "path", None))
             return 0
