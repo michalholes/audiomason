@@ -608,6 +608,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     "fingerprint": fp,
                 },
             })
+            out(f"[stage] copying source into stage: {src} -> {stage_src}")
             _stage_source(src, stage_src)
 
         # Always convert m4a before book detection (so mp3s exist everywhere)
