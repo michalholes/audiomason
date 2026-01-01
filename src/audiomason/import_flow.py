@@ -325,7 +325,36 @@ def _process_book(i: int, n: int, b: BookGroup, stage_run: Path, dest_root: Path
 
     write_tags(mp3s, artist=author, album=title, cover=cover_bytes, cover_mime=cover_mime, track_start=1)
 
-def run_import(cfg: dict) -> None:
+def _resolve_source_arg(drop_root: Path, src_path: Path) -> Path:
+    p = src_path
+    if not p.is_absolute():
+        p = drop_root / p
+    p = p.expanduser().resolve()
+    dr = drop_root.expanduser().resolve()
+
+    if p == dr:
+        return p
+
+    if not p.exists():
+        die(f"Source path not found: {p}")
+
+    # must be under DROP_ROOT
+    if not p.is_relative_to(dr):
+        die(f"Source path must be under DROP_ROOT: {dr}")
+
+    name = p.name
+    if name.startswith(".") or name.startswith("_") or name in {"_am_stage", "import.log.jsonl", ".DS_Store"}:
+        die(f"Invalid source path: {p}")
+
+    # allow only dirs + supported archives
+    if p.is_file() and p.suffix.lower() not in ARCHIVE_EXTS:
+        die(f"Unsupported source: {p}")
+    if not (p.is_dir() or (p.is_file() and p.suffix.lower() in ARCHIVE_EXTS)):
+        die(f"Unsupported source: {p}")
+
+    return p
+
+def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
     drop_root = get_drop_root(cfg)
     stage_root = get_stage_root(cfg)
     archive_root = get_archive_root(cfg)
@@ -335,9 +364,17 @@ def run_import(cfg: dict) -> None:
     ensure_dir(stage_root)
     ensure_dir(archive_root)
     ensure_dir(output_root)
-
-    sources = _list_sources(drop_root)
-    picked_sources = _choose_source(sources)
+    picked_sources: list[Path]
+    if src_path is not None:
+        sp = _resolve_source_arg(drop_root, src_path)
+        if sp.expanduser().resolve() == drop_root.expanduser().resolve():
+            sources = _list_sources(drop_root)
+            picked_sources = _choose_source(sources)
+        else:
+            picked_sources = [sp]
+    else:
+        sources = _list_sources(drop_root)
+        picked_sources = _choose_source(sources)
 
     for si, src in enumerate(picked_sources, 1):
         out(f"[source] {si}/{len(picked_sources)}: {src.name}")

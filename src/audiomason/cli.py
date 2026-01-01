@@ -58,7 +58,8 @@ def _parse_args() -> argparse.Namespace:
     ap.add_argument("--version", action="store_true", help="show version and exit")
 
     sub = ap.add_subparsers(dest="cmd")
-    sub.add_parser("import", help="import audiobooks from inbox", parents=[parent])
+    imp = sub.add_parser("import", help="import audiobooks from inbox", parents=[parent])
+    imp.add_argument("path", nargs="?", type=Path, default=None, help="source path under DROP_ROOT")
 
     v = sub.add_parser("verify", help="verify audiobook library", parents=[parent])
     v.add_argument("root", nargs="?", type=Path, default=None)
@@ -133,7 +134,7 @@ def main() -> int:
         return 0
 
     try:
-        run_import(cfg)
+        run_import(cfg, getattr(ns, "path", None))
     except KeyboardInterrupt:
         from audiomason.util import out
         out("[abort] cancelled by user")
