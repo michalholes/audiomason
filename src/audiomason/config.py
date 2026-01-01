@@ -4,13 +4,7 @@ import yaml
 
 DEFAULTS = {
     "cpu_cores": None,
-    "paths": {
-        "inbox": "/mnt/warez/abooksinbox",
-        "stage": "/mnt/warez/_am_stage",
-        "output": "/mnt/warez/abooks_ready",
-        "archive_ro": "/mnt/warez/abooks",
-        "archive": "/mnt/warez/abooks",
-    },
+    "paths": {},
     "publish": "ask",
     "ffmpeg": {
         "loglevel": "warning",

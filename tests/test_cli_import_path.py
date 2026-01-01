@@ -9,11 +9,11 @@ import pytest
 def test_cli_import_accepts_path(monkeypatch):
     # parse_args is internal; we only assert that argparse accepts the positional PATH.
     import audiomason.cli as cli
-    monkeypatch.setattr(sys, "argv", ["audiomason", "import", "/mnt/warez/abooksinbox/SomeBook"])
+    monkeypatch.setattr(sys, "argv", ["audiomason", "import", "/some/where/SomeBook"])
     ns = cli._parse_args()
     assert ns.cmd == "import"
     assert isinstance(ns.path, Path)
-    assert str(ns.path) == "/mnt/warez/abooksinbox/SomeBook"
+    assert str(ns.path) == "/some/where/SomeBook"
 
 
 def test_resolve_source_arg_enforces_drop_root(tmp_path):

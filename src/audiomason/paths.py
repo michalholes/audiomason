@@ -1,27 +1,29 @@
+from __future__ import annotations
+
 from pathlib import Path
 import os
 
-# Env override (used by tests + legacy)
+# Env override (used by tests + runtime)
 AUDIOMASON_ROOT = os.environ.get("AUDIOMASON_ROOT")
-BASE_ROOT = Path(AUDIOMASON_ROOT).expanduser().resolve() if AUDIOMASON_ROOT else Path.cwd().resolve()
 
-def _base_root(cfg) -> Path:
-    # ISSUE #25: never scatter outputs to CWD; derive base from AUDIOMASON_ROOT or config inbox parent.
+def _env_base() -> Path | None:
     env_root = os.environ.get("AUDIOMASON_ROOT")
-    if env_root:
-        return Path(env_root).expanduser().resolve()
-    try:
-        inbox = (cfg or {}).get("paths", {}).get("inbox")
-        if inbox:
-            p = Path(inbox).expanduser().resolve()
-            return p.parent
-    except Exception:
-        pass
-    # last-resort: keep prior behavior
-    return Path.cwd().resolve()
+    if not env_root:
+        return None
+    return Path(env_root).expanduser().resolve()
+
+def require_audiomason_root() -> Path:
+    base = _env_base()
+    if base is None:
+        raise RuntimeError(
+            "AUDIOMASON_ROOT is not set. "
+            "Export AUDIOMASON_ROOT to the parent directory that contains "
+            "abooksinbox/, _am_stage/, abooks_ready/, and abooks/."
+        )
+    return base
 
 def _defaults_for(cfg) -> dict[str, Path]:
-    base = _base_root(cfg)
+    base = require_audiomason_root()
     return {
         "inbox": (base / "abooksinbox").resolve(),
         "stage": (base / "_am_stage").resolve(),
@@ -30,84 +32,110 @@ def _defaults_for(cfg) -> dict[str, Path]:
         "cache": (base / ".cover_cache").resolve(),
     }
 
-
 # ======================
 # Archive extensions
 # ======================
 ARCHIVE_EXTS = {".zip", ".rar", ".7z"}
 
-# ======================
-# Default portable paths (STRICT CONTRACT)
-# All derived from BASE_ROOT / AUDIOMASON_ROOT
-# ======================
-_DEFAULT_INBOX = (_defaults_for({})["inbox"]).resolve()
-_DEFAULT_STAGE = (_defaults_for({})["stage"]).resolve()
-_DEFAULT_OUTPUT = (_defaults_for({})["output"]).resolve()
-_DEFAULT_ARCHIVE = (_defaults_for({})["archive"]).resolve()
-_DEFAULT_CACHE = (_defaults_for({})["cache"]).resolve()
+def _ensure_under_base(label: str, p: Path, base: Path) -> None:
+    try:
+        ok = p.is_relative_to(base)
+    except Exception:
+        ok = str(p).startswith(str(base))
+    if not ok:
+        raise RuntimeError(f"{label} must be under AUDIOMASON_ROOT ({base}): {p}")
+
+def validate_paths_contract(cfg) -> Path:
+    base = require_audiomason_root()
+    cfg = cfg or {}
+    paths = cfg.get("paths", {}) if isinstance(cfg.get("paths", {}), dict) else {}
+
+    # validate configured paths (if present)
+    for key in ("inbox", "stage", "output", "ready", "archive", "archive_ro", "cache"):
+        val = paths.get(key)
+        if val:
+            p = Path(val).expanduser().resolve()
+            _ensure_under_base(f"paths.{key}", p, base)
+
+    # validate effective roots
+    _ensure_under_base("DROP_ROOT", get_drop_root(cfg), base)
+    _ensure_under_base("STAGE_ROOT", get_stage_root(cfg), base)
+    _ensure_under_base("OUTPUT_ROOT", get_output_root(cfg), base)
+    _ensure_under_base("ARCHIVE_ROOT", get_archive_root(cfg), base)
+    _ensure_under_base("CACHE_ROOT", get_cache_root(cfg), base)
+    return base
 
 # ======================
 # Config-based resolvers
 # ======================
 def _get(cfg, key, default: Path) -> Path:
+    base = require_audiomason_root()
     try:
-        paths = cfg.get("paths", {})
+        paths = (cfg or {}).get("paths", {})
         if isinstance(key, (list, tuple)):
             for k in key:
                 val = paths.get(k)
                 if val:
-                    return Path(val).expanduser().resolve()
+                    p = Path(val).expanduser().resolve()
+                    _ensure_under_base(f"paths.{k}", p, base)
+                    return p
             val = None
         else:
             val = paths.get(key)
         if val:
-            return Path(val).expanduser().resolve()
+            p = Path(val).expanduser().resolve()
+            _ensure_under_base(f"paths.{key}", p, base)
+            return p
     except Exception:
         pass
+    _ensure_under_base("default", default, base)
     return default
-
 
 def get_drop_root(cfg) -> Path:
     return _get(cfg, "inbox", _defaults_for(cfg)["inbox"])
 
-
 def get_stage_root(cfg) -> Path:
     return _get(cfg, "stage", _defaults_for(cfg)["stage"])
-
 
 def get_output_root(cfg) -> Path:
     return _get(cfg, ("output", "ready"), _defaults_for(cfg)["output"])
 
 def get_archive_root(cfg) -> Path:
+    base = require_audiomason_root()
     try:
-        paths = cfg.get("paths", {})
+        paths = (cfg or {}).get("paths", {})
         val = paths.get("archive") or paths.get("archive_ro")
         if val:
-            return Path(val).expanduser().resolve()
+            p = Path(val).expanduser().resolve()
+            _ensure_under_base("paths.archive", p, base)
+            return p
     except Exception:
         pass
     return _defaults_for(cfg)["archive"]
 
-
 def get_cache_root(cfg) -> Path:
-    return _get(cfg, "cache", _DEFAULT_CACHE)
-
+    return _get(cfg, "cache", _defaults_for(cfg)["cache"])
 
 def get_ignore_file(cfg) -> Path:
     return get_drop_root(cfg) / ".abook_ignore"
 
-
 # ======================
 # Backward-compatible symbols
 # (DO NOT REMOVE)
+# NOTE: Strict enforcement happens via validate_paths_contract() + getters.
 # ======================
-DROP_ROOT = _DEFAULT_INBOX
-STAGE_ROOT = _DEFAULT_STAGE
-OUTPUT_ROOT = _DEFAULT_OUTPUT
-ARCHIVE_ROOT = _DEFAULT_ARCHIVE
-CACHE_ROOT = _DEFAULT_CACHE
+_base = _env_base()
+if _base is None:
+    # best-effort placeholders to keep imports working; runtime will fail fast via validator/getters
+    _base = Path("/__AUDIOMASON_ROOT_UNSET__").resolve()
 
-IGNORE_FILE = get_ignore_file({})
+DROP_ROOT = (_base / "abooksinbox").resolve()
+STAGE_ROOT = (_base / "_am_stage").resolve()
+OUTPUT_ROOT = (_base / "abooks_ready").resolve()
+ARCHIVE_ROOT = (_base / "abooks").resolve()
+CACHE_ROOT = (_base / ".cover_cache").resolve()
+
+IGNORE_FILE = (DROP_ROOT / ".abook_ignore").resolve()
 COVER_NAME = "cover.jpg"
 
 # ======================
