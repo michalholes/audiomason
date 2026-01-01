@@ -36,3 +36,7 @@ See configuration.example.yaml for:
 - split_chapters controls M4A chapter splitting
 - publish is a default only (CLI may override)
 - ffmpeg options control encoding behavior
+
+## CLI
+
+For runtime flags and subcommands see: docs/CLI.md

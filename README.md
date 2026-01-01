@@ -109,3 +109,4 @@ See: docs/INSTALL.md
 - New features are added via explicit feature requests
 
 - System install: docs/INSTALL-SYSTEM.md
+- CLI reference: docs/CLI.md
