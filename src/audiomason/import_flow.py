@@ -483,6 +483,8 @@ def run_import(cfg: dict) -> None:
                 if getattr(state, "DEBUG", False):
                     out(f"[ol] validate author: '{author}'")
                 ar = validate_author(author)
+                if getattr(state, "DEBUG", False):
+                    out(f"[ol] author result: ok={getattr(ar,'ok',None)} not_found={getattr(ar,'not_found',None)} top={getattr(ar,'top',None)!r}")
                 author = _ol_offer_top('author', author, ar)
         if not author:
             die("Author is required")
@@ -506,6 +508,8 @@ def run_import(cfg: dict) -> None:
                     if getattr(state, "DEBUG", False):
                         out(f"[ol] validate book: author='{author}' title='{title}'")
                     br = validate_book(author, title)
+                    if getattr(state, "DEBUG", False):
+                        out(f"[ol] book result: ok={getattr(br,'ok',None)} not_found={getattr(br,'not_found',None)} top={getattr(br,'top',None)!r}")
                     title = _ol_offer_top('book title', title, br)
             # cover decision (stored as mode: 'file'|'embedded'|'skip')
             default_cover_mode = str(bm.get(b.label, {}).get("cover_mode") or "").strip() if isinstance(bm, dict) else ""
