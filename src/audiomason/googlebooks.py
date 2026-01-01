@@ -92,6 +92,18 @@ def _pick_best(entered_title: str, author: str, items: list[dict[str, Any]]) -> 
     # conservative guard (same as OL): strong + clear gap
     if best_s >= 0.92 and (best_s - second_s) >= 0.03:
         return best_t
+
+    # Special-case: multiple perfect/near-perfect matches (often diacritics variants).
+    # Still safe: require extremely high score, then deterministically prefer diacritics.
+    if best_s >= 0.98:
+        top = [t for (sc, t) in cand if sc >= 0.98]
+        if len(top) >= 2:
+            def _dia_score(x: str) -> tuple[int, int, str]:
+                non_ascii = sum(1 for ch in x if ord(ch) > 127)
+                return (non_ascii, len(x), x)
+            top.sort(key=_dia_score, reverse=True)
+            return top[0]
+
     return None
 
 
