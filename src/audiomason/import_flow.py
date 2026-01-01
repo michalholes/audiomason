@@ -17,7 +17,7 @@ from audiomason.ignore import load_ignore, add_ignore
 from audiomason.archives import unpack
 from audiomason.audio import convert_m4a_in_place
 from audiomason.rename import natural_sort, rename_sequential
-from audiomason.covers import choose_cover, find_file_cover, extract_embedded_cover_from_mp3
+from audiomason.covers import choose_cover, find_file_cover, extract_embedded_cover_from_mp3, cover_from_input
 from audiomason.tags import wipe_id3, write_tags, write_cover, write_cover
 from audiomason.manifest import update_manifest, load_manifest, source_fingerprint
 _AUDIO_EXTS = {".mp3", ".m4a"}
@@ -374,7 +374,6 @@ def _apply_book_steps(
             write_tags(mp3s, artist=author, album=title, track_start=1, cover=None, cover_mime=None)
         elif st == "cover":
             mp3_first = mp3s[0] if mp3s else None
-            out(f"[cover] request: {i}/{n}: {author} / {title}")
             cover = choose_cover(
                 cfg=cfg,
                 mp3_first=mp3_first,
@@ -494,6 +493,26 @@ def _resolved_pipeline_steps(cfg: dict) -> list[str]:
 def _is_interactive() -> bool:
     # Interactive = prompts are allowed (not --yes)
     return not (state.OPTS and state.OPTS.yes)
+
+
+def _stage_cover_from_raw(cfg: dict, raw: str, group_root: Path) -> Path | None:
+    """Resolve a cover input (URL/path) and stage it as cover.<ext> inside the book folder.
+    Returns the staged cover path, or None if invalid/empty.
+    """
+    raw = (raw or "").strip()
+    if not raw:
+        return None
+    img = cover_from_input(cfg, raw)
+    if img is None:
+        return None
+    ext = img.suffix.lower() or ".jpg"
+    dst = group_root / f"cover{ext}"
+    if state.OPTS and state.OPTS.dry_run:
+        out(f"[dry-run] would stage cover: {img} -> {dst}")
+        return dst
+    ensure_dir(dst.parent)
+    shutil.copy2(img, dst)
+    return dst
 
 def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
     # validate pipeline_steps early (fail fast, before FS touch)
@@ -720,46 +739,125 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     if getattr(state, "DEBUG", False):
                         out(f"[ol] book result: ok={getattr(br,'ok',None)} status={getattr(br,'status',None)!r} hits={getattr(br,'hits',None)} top={getattr(br,'top',None)!r}")
                     title = _ol_offer_top('book title', title, br)
-            # cover decision (stored as mode: 'file'|'embedded'|'skip')
+            # cover decision (Issue #43: choose/add cover during preflight; processing must not prompt)
             default_cover_mode = (str(bm.get(b.label, {}).get("cover_mode") or "").strip() if (reuse_stage and use_manifest_answers and isinstance(bm, dict)) else "")
+            default_cover_src = (str(bm.get(b.label, {}).get("cover_src") or "").strip() if (reuse_stage and use_manifest_answers and isinstance(bm, dict)) else "")
             mp3s = _collect_audio_files(b.group_root)
             mp3_first = mp3s[0] if mp3s else None
             file_cover = find_file_cover(b.stage_root, b.group_root)
             embedded = extract_embedded_cover_from_mp3(mp3_first) if mp3_first else None
 
             cover_mode = ""
+            cover_src = ""
             if reuse_stage and use_manifest_answers and default_cover_mode:
                 cover_mode = default_cover_mode
+                cover_src = default_cover_src
             else:
-                # deterministic default (no prompt) unless both options exist and user is interactive
-                if file_cover:
-                    cover_mode = "file"
-                elif embedded:
-                    cover_mode = "embedded"
-                else:
-                    cover_mode = "" if _is_interactive() else "skip"
-
-                if file_cover and embedded and not (state.OPTS and state.OPTS.yes):
-                    # prompt with defaults from manifest if present
-                    d = "2"
-                    if default_cover_mode == "embedded":
-                        d = "1"
-                    elif default_cover_mode == "skip":
-                        d = "s"
-                    out(f"[cover-meta] {bi}/{len(picked_books)}: {author} / {title}")
-                    out("Cover options:")
-                    out("  1) embedded cover from audio")
-                    out(f"  2) {file_cover.name} (preferred)")
-                    out("  s) skip cover")
-                    ans = prompt("Choose cover [1/2/s]", d).strip().lower()
-                    if ans == "1":
-                        cover_mode = "embedded"
-                    elif ans == "s":
-                        cover_mode = "skip"
-                    else:
+                out(f"[cover-meta] {bi}/{len(picked_books)}: {author} / {title}")
+                # Non-interactive: deterministic, no prompts
+                if not _is_interactive():
+                    if file_cover:
                         cover_mode = "file"
-
-            # ISSUE #1: destination conflict handling (prompt overwrite, else fallback to abooks_ready, else offer new folder)
+                        cover_src = str(file_cover.name)
+                    elif embedded:
+                        cover_mode = "embedded"
+                        cover_src = "embedded"
+                    else:
+                        cover_mode = "skip"
+                        cover_src = "skip"
+                else:
+                    # Interactive preflight: allow keep/override/skip, or provide URL/path
+                    if file_cover or embedded:
+                        # If both exist, offer explicit choice first
+                        if file_cover and embedded:
+                            out("Cover detected:")
+                            out("  1) embedded cover from audio")
+                            out(f"  2) {file_cover.name} (preferred)")
+                            out("  s) skip")
+                            out("  u) URL/path override")
+                            d = "2"
+                            if default_cover_mode == "embedded":
+                                d = "1"
+                            elif default_cover_mode == "skip":
+                                d = "s"
+                            ans = prompt("Choose cover [1/2/s/u]", d).strip().lower()
+                            if ans == "1":
+                                cover_mode = "embedded"
+                                cover_src = "embedded"
+                            elif ans == "s":
+                                cover_mode = "skip"
+                                cover_src = "skip"
+                            elif ans == "u":
+                                raw = prompt("Cover URL or file path (Enter=skip)", "").strip()
+                                if not raw:
+                                    cover_mode = "skip"
+                                    cover_src = "skip"
+                                else:
+                                    staged = _stage_cover_from_raw(cfg, raw, b.group_root)
+                                    if staged is None:
+                                        cover_mode = "skip"
+                                        cover_src = "skip"
+                                    else:
+                                        cover_mode = "file"
+                                        cover_src = raw
+                            else:
+                                cover_mode = "file"
+                                cover_src = str(file_cover.name)
+                        else:
+                            # Only one detected => keep by default, allow override
+                            if file_cover:
+                                out(f"Cover detected: {file_cover.name}")
+                                keep = prompt_yes_no("Use detected cover?", default_no=False)
+                                if keep:
+                                    cover_mode = "file"
+                                    cover_src = str(file_cover.name)
+                                else:
+                                    raw = prompt("Cover URL or file path (Enter=skip)", "").strip()
+                                    if not raw:
+                                        cover_mode = "skip"
+                                        cover_src = "skip"
+                                    else:
+                                        staged = _stage_cover_from_raw(cfg, raw, b.group_root)
+                                        if staged is None:
+                                            cover_mode = "skip"
+                                            cover_src = "skip"
+                                        else:
+                                            cover_mode = "file"
+                                            cover_src = raw
+                            else:
+                                out("Cover detected: embedded")
+                                keep = prompt_yes_no("Use embedded cover?", default_no=False)
+                                if keep:
+                                    cover_mode = "embedded"
+                                    cover_src = "embedded"
+                                else:
+                                    raw = prompt("Cover URL or file path (Enter=skip)", "").strip()
+                                    if not raw:
+                                        cover_mode = "skip"
+                                        cover_src = "skip"
+                                    else:
+                                        staged = _stage_cover_from_raw(cfg, raw, b.group_root)
+                                        if staged is None:
+                                            cover_mode = "skip"
+                                            cover_src = "skip"
+                                        else:
+                                            cover_mode = "file"
+                                            cover_src = raw
+                    else:
+                        # No detected cover => ask once
+                        raw = prompt("No cover found. URL or file path (Enter=skip)", "").strip()
+                        if not raw:
+                            cover_mode = "skip"
+                            cover_src = "skip"
+                        else:
+                            staged = _stage_cover_from_raw(cfg, raw, b.group_root)
+                            if staged is None:
+                                cover_mode = "skip"
+                                cover_src = "skip"
+                            else:
+                                cover_mode = "file"
+                                cover_src = raw
+# ISSUE #1: destination conflict handling (prompt overwrite, else fallback to abooks_ready, else offer new folder)
             bm_entry = (bm.get(b.label, {}) if isinstance(bm, dict) else {})
             if reuse_stage and use_manifest_answers:
                 m_overwrite = bool(bm_entry.get("overwrite") is True)
@@ -811,7 +909,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             # persist
             dest_kind = "archive" if dest_root2 == archive_root else "output"
             meta.append((b, title, cover_mode, dest_root2, out_title, overwrite))
-            update_manifest(stage_run, {"book_meta": {b.label: {"title": title, "cover_mode": cover_mode, "dest_kind": dest_kind, "out_title": out_title, "overwrite": bool(overwrite)}}})
+            update_manifest(stage_run, {"book_meta": {b.label: {"title": title, "cover_mode": cover_mode, "cover_src": cover_src, "dest_kind": dest_kind, "out_title": out_title, "overwrite": bool(overwrite)}}})
 
         out("[phase] PROCESS")
         # ISSUE #15: manifest progress for resume
