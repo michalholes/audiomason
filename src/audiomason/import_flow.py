@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 import audiomason.state as state
+from audiomason.pipeline_steps import resolve_pipeline_steps
 from audiomason.paths import get_drop_root, get_stage_root, get_output_root, get_archive_root, ARCHIVE_EXTS
 from audiomason.util import out, die, ensure_dir, slug, prompt, prompt_yes_no
 from audiomason.ignore import load_ignore, add_ignore
@@ -427,6 +428,11 @@ def _resolve_source_arg(drop_root: Path, src_path: Path) -> Path:
     return p
 
 def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
+    # validate pipeline_steps early (fail fast, before FS touch)
+    steps = resolve_pipeline_steps(cfg)
+    if state.OPTS.debug:
+        out(f"[debug] pipeline order: {' -> '.join(steps)}")
+
     drop_root = get_drop_root(cfg)
     stage_root = get_stage_root(cfg)
     archive_root = get_archive_root(cfg)
