@@ -927,6 +927,16 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
         out("[phase] FINALIZE")
 
         # FEATURE #26: clean stage at end (successful run only)
+        # perform stage cleanup if requested and not dry-run
+        dec2 = load_manifest(stage_run).get('decisions', {})
+        do_clean = bool(dec2.get('clean_stage'))
+        if do_clean:
+            if state.OPTS and state.OPTS.dry_run:
+                out(f"[stage] would clean: {stage_run}")
+            else:
+                shutil.rmtree(stage_run, ignore_errors=True)
+                out(f"[stage] cleaned: {stage_run}")
+
     # ISSUE #18: machine-readable report (printed at end; human output unchanged)
     if state.OPTS and getattr(state.OPTS, "json", False):
         report = _build_json_report(stage_runs_for_json)
