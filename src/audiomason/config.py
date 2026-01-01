@@ -8,6 +8,10 @@ DEFAULTS = {
     "split_chapters": True,
     "paths": {},
     "publish": "ask",
+    "cover": {
+        "cache": "memory",
+        "cache_dir": None,
+    },
     "ffmpeg": {
         "loglevel": "warning",
         "loudnorm": False,
