@@ -3,6 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 import json
 import time
+import difflib
+import re
+import unicodedata
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlencode
@@ -117,6 +120,36 @@ def validate_author(name: str) -> OLResult:
     return OLResult(True, "author:ok", hits, top)
 
 
+def _norm_title(s: str) -> str:
+    s = (s or "").strip()
+    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
+    s = s.lower()
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+def _best_title_suggestion(entered: str, titles: list[str]) -> tuple[str | None, float, float]:
+    n0 = _norm_title(entered)
+    if not n0:
+        return (None, 0.0, 0.0)
+    scored: list[tuple[float, str]] = []
+    seen = set()
+    for t in titles:
+        tt = (t or "").strip()
+        if not tt:
+            continue
+        nt = _norm_title(tt)
+        if not nt or nt in seen:
+            continue
+        seen.add(nt)
+        scored.append((difflib.SequenceMatcher(None, n0, nt).ratio(), tt))
+    if not scored:
+        return (None, 0.0, 0.0)
+    scored.sort(key=lambda x: (-x[0], x[1]))
+    best_score, best_title = scored[0]
+    second_score = scored[1][0] if len(scored) > 1 else 0.0
+    return (best_title, float(best_score), float(second_score))
+
+
 def validate_book(author: str, title: str) -> OLResult:
     a = (author or "").strip()
     t = (title or "").strip()
@@ -149,8 +182,21 @@ def validate_book(author: str, title: str) -> OLResult:
     top = None
     if docs:
         top = str(docs[0].get("title") or "") or None
-
     if hits == 0:
+        # Guarded fuzzy suggestion: secondary search constrained by author only.
+        # Deterministic + safe-by-default: require strong score and clear gap.
+        if top is None:
+            try:
+                time.sleep(0.2)
+                data2 = _get_json("/search.json", {"author": a, "limit": 20, "fields": "title"})
+                docs2 = data2.get("docs") or []
+                titles = [str(d.get("title") or "") for d in docs2 if isinstance(d, dict)]
+                sug, best, second = _best_title_suggestion(t, titles)
+                if sug and best >= 0.92 and (best - second) >= 0.03:
+                    top = sug
+            except Exception:
+                pass
+
         _cache_put(ck, {"ok": False, "status": "book:not_found", "hits": 0, "top": top})
         return OLResult(False, "book:not_found", 0, top)
 
