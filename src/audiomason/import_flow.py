@@ -427,9 +427,15 @@ def _resolve_source_arg(drop_root: Path, src_path: Path) -> Path:
 
     return p
 
+
+def _resolved_pipeline_steps(cfg: dict) -> list[str]:
+    # single source of truth for pipeline order
+    from audiomason.pipeline_steps import resolve_pipeline_steps
+    return resolve_pipeline_steps(cfg)
+
 def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
     # validate pipeline_steps early (fail fast, before FS touch)
-    steps = resolve_pipeline_steps(cfg)
+    steps = _resolved_pipeline_steps(cfg)
     if state.OPTS.debug:
         out(f"[debug] pipeline order: {' -> '.join(steps)}")
 
