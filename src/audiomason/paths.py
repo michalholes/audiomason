@@ -99,23 +99,27 @@ def validate_paths_contract(cfg) -> Path:
 # Config-based resolvers
 # ======================
 def _get(cfg, key, default: Path) -> Path:
-    try:
-        paths = (cfg or {}).get("paths", {})
-        if isinstance(key, (list, tuple)):
-            for k in key:
-                val = paths.get(k)
-                if val:
-                    p = _resolve_path(val)
-                    _ensure_abs(f"paths.{k}", p)
-                    return p
-        else:
-            val = paths.get(key)
+    cfg0 = cfg or {}
+    if not isinstance(cfg0, dict):
+        raise RuntimeError(f"Invalid configuration: expected mapping at root, got {type(cfg0).__name__}")
+
+    paths = cfg0.get("paths", {}) or {}
+    if not isinstance(paths, dict):
+        raise RuntimeError(f"Invalid configuration: 'paths' must be a mapping, got {type(paths).__name__}")
+
+    if isinstance(key, (list, tuple)):
+        for k in key:
+            val = paths.get(k)
             if val:
                 p = _resolve_path(val)
-                _ensure_abs(f"paths.{key}", p)
+                _ensure_abs(f"paths.{k}", p)
                 return p
-    except Exception:
-        pass
+    else:
+        val = paths.get(key)
+        if val:
+            p = _resolve_path(val)
+            _ensure_abs(f"paths.{key}", p)
+            return p
 
     d = default if default.is_absolute() else (_data_base() / default).resolve()
     _ensure_abs("default", d)
