@@ -37,7 +37,7 @@ def _parent_parser(cfg: Dict[str, Any]) -> argparse.ArgumentParser:
     g.add_argument("--no-wipe-id3", dest="wipe_id3", action="store_false", help="do not wipe ID3 tags (default)")
     pp.add_argument("--loudnorm", action="store_true", default=bool(ffmpeg.get("loudnorm", False)))
     pp.add_argument("--q-a", default=str(ffmpeg.get("q_a", "2")), help="lame VBR quality (2=high)")
-    pp.add_argument("--split-chapters", dest="split_chapters", action="store_true", default=bool(audio.get("split_chapters", True)))
+    pp.add_argument("--split-chapters", dest="split_chapters", action="store_true", default=bool(cfg.get("split_chapters", True)))
     pp.add_argument("--no-split-chapters", dest="split_chapters", action="store_false")
     pp.add_argument("--cpu-cores", type=int, default=cfg.get("cpu_cores", None), help="override CPU core count for perf tuning")
     pp.add_argument("--ff-loglevel", choices=["info", "warning", "error"], default=str(ffmpeg.get("loglevel", "warning")))

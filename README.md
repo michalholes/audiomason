@@ -135,6 +135,7 @@ Data paths:
 Recommended layout:
 
 publish: ask
+split_chapters: true
 
 paths:
   inbox:   /mnt/warez/abooksinbox

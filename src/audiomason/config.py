@@ -5,6 +5,7 @@ from audiomason.paths import require_audiomason_root
 
 DEFAULTS = {
     "cpu_cores": None,
+    "split_chapters": True,
     "paths": {},
     "publish": "ask",
     "ffmpeg": {
