@@ -652,7 +652,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
 
         # processing phase (no prompts)
         for bi, (b, title, cover_mode, dest_root2, out_title, overwrite) in enumerate(meta, 1):
-            _process_book(bi, len(meta), b, stage_run, dest_root2, author, title, out_title, wipe, cover_mode, overwrite)
+            _process_book(bi, len(meta), b, stage_run, dest_root2, author, title, out_title, wipe, cover_mode, overwrite, cfg)
 
         # FEATURE #26: clean stage at end (successful run only)
 
