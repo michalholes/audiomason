@@ -13,7 +13,7 @@ from audiomason.import_flow import run_import
 from audiomason.verify import verify_library
 from audiomason.paths import validate_paths_contract, get_output_root
 def _parent_parser(cfg: Dict[str, Any]) -> argparse.ArgumentParser:
-    audio = cfg.get("audio", {}) if isinstance(cfg.get("audio", {}), dict) else {}
+    ffmpeg = cfg.get("ffmpeg", {}) if isinstance(cfg.get("ffmpeg", {}), dict) else {}
     paths = cfg.get("paths", {}) if isinstance(cfg.get("paths", {}), dict) else {}
 
     pp = argparse.ArgumentParser(add_help=False)
@@ -31,16 +31,16 @@ def _parent_parser(cfg: Dict[str, Any]) -> argparse.ArgumentParser:
     g2.add_argument("--lookup", dest="lookup", action="store_true", default=True, help="enable OpenLibrary validation")
     g2.add_argument("--no-lookup", dest="lookup", action="store_false", help="disable OpenLibrary validation")
 
-    pp.add_argument("--publish", choices=["yes", "no", "ask"], default=str(paths.get("publish", "ask")))
+    pp.add_argument("--publish", choices=["yes", "no", "ask"], default=str(cfg.get("publish", "ask")))
     g = pp.add_mutually_exclusive_group()
     g.add_argument("--wipe-id3", dest="wipe_id3", action="store_true", default=None, help="full wipe ID3 tags before writing new tags")
     g.add_argument("--no-wipe-id3", dest="wipe_id3", action="store_false", help="do not wipe ID3 tags (default)")
-    pp.add_argument("--loudnorm", action="store_true", default=bool(audio.get("loudnorm", False)))
-    pp.add_argument("--q-a", default=str(audio.get("q_a", "2")), help="lame VBR quality (2=high)")
+    pp.add_argument("--loudnorm", action="store_true", default=bool(ffmpeg.get("loudnorm", False)))
+    pp.add_argument("--q-a", default=str(ffmpeg.get("q_a", "2")), help="lame VBR quality (2=high)")
     pp.add_argument("--split-chapters", dest="split_chapters", action="store_true", default=bool(audio.get("split_chapters", True)))
     pp.add_argument("--no-split-chapters", dest="split_chapters", action="store_false")
     pp.add_argument("--cpu-cores", type=int, default=cfg.get("cpu_cores", None), help="override CPU core count for perf tuning")
-    pp.add_argument("--ff-loglevel", choices=["info", "warning", "error"], default=str(audio.get("ff_loglevel", "warning")))
+    pp.add_argument("--ff-loglevel", choices=["info", "warning", "error"], default=str(ffmpeg.get("loglevel", "warning")))
     return pp
 
 

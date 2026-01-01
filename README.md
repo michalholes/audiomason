@@ -134,11 +134,14 @@ Data paths:
 
 Recommended layout:
 
+publish: ask
+
 paths:
   inbox:   /mnt/warez/abooksinbox
   stage:   /mnt/warez/_am_stage
   output:  /mnt/warez/abooks_ready
   archive: /mnt/warez/abooks
+  cache:   /mnt/warez/.cover_cache
 
 ffmpeg:
   loglevel: warning
