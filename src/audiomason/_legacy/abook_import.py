@@ -512,7 +512,7 @@ def parse_args() -> Opts:
     ap.add_argument("--yes", action="store_true", help="non-interactive (take defaults, skip prompts)")
     ap.add_argument("--dry-run", action="store_true", help="show what would happen, do nothing")
     ap.add_argument("--quiet", action="store_true", help="less output")
-    ap.add_argument("--publish", choices=["yes", "no", "ask"], default="ask", help="publish to /mnt/warez/abooks")
+    ap.add_argument("--publish", choices=["yes", "no", "ask"], default="ask", help="publish to ARCHIVE_ROOT")
     ap.add_argument("--loudnorm", action="store_true", help="normalize loudness during m4a->mp3")
     ap.add_argument("--q-a", default="2", help="lame VBR quality (2=high, 4=faster ok for audiobooks)")
     ap.add_argument("--verify", action="store_true", help="verify library (covers+tags)")
