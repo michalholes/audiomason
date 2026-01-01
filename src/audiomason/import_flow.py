@@ -18,7 +18,7 @@ from audiomason.archives import unpack
 from audiomason.audio import convert_m4a_in_place
 from audiomason.rename import natural_sort, rename_sequential
 from audiomason.covers import choose_cover, find_file_cover, extract_embedded_cover_from_mp3
-from audiomason.tags import wipe_id3, write_tags, write_cover
+from audiomason.tags import wipe_id3, write_tags, write_cover, write_cover
 from audiomason.manifest import update_manifest, load_manifest, source_fingerprint
 _AUDIO_EXTS = {".mp3", ".m4a"}
 
@@ -335,8 +335,21 @@ def _copy_audio_to_out_no_rename(group_root: Path, outdir: Path) -> list[Path]:
     return natural_sort(copied)
 
 
+def _copy_audio_to_out_raw(group_root: Path, outdir: Path) -> list[Path]:
+    ensure_dir(outdir)
+    src_mp3s = _collect_audio_files(group_root)
+    if not src_mp3s:
+        die("No mp3 files to import (convert step did not produce mp3)")
+    copied: list[Path] = []
+    for p in src_mp3s:
+        dst = outdir / p.name
+        shutil.copy2(p, dst)
+        copied.append(dst)
+    return natural_sort(copied)
+
+
 def _copy_audio_to_out(group_root: Path, outdir: Path) -> list[Path]:
-    copied = _copy_audio_to_out_no_rename(group_root, outdir)
+    copied = _copy_audio_to_out_raw(group_root, outdir)
     return rename_sequential(outdir, copied)
 def _apply_book_steps(
     *,
