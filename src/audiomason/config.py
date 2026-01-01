@@ -31,7 +31,7 @@ def _load_yaml(p: Path) -> dict:
         if data is None:
             return {}
         if not isinstance(data, dict):
-            raise RuntimeError(f"Invalid configuration root in {path}: expected mapping, got {type(data).__name__}")
+            raise RuntimeError(f"Invalid configuration root in {p}: expected mapping, got {type(data).__name__}")
         return data
 
 def load_config() -> dict:
