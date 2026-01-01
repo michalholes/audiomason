@@ -365,16 +365,20 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
     ensure_dir(archive_root)
     ensure_dir(output_root)
     picked_sources: list[Path]
+    forced = False
     if src_path is not None:
         sp = _resolve_source_arg(drop_root, src_path)
         if sp.expanduser().resolve() == drop_root.expanduser().resolve():
             sources = _list_sources(drop_root)
             picked_sources = _choose_source(sources)
+            forced = False
         else:
             picked_sources = [sp]
+            forced = True
     else:
         sources = _list_sources(drop_root)
         picked_sources = _choose_source(sources)
+        forced = False
 
     for si, src in enumerate(picked_sources, 1):
         out(f"[source] {si}/{len(picked_sources)}: {src.name}")
@@ -395,7 +399,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             _norm(slug(src.stem)),
         }
 
-        if candidates & ignore_norm:
+        if (not forced) and (candidates & ignore_norm):
             out("[source] skipped (ignored)")
             continue
 
