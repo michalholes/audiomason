@@ -493,7 +493,7 @@ def _resolved_pipeline_steps(cfg: dict) -> list[str]:
 def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
     # validate pipeline_steps early (fail fast, before FS touch)
     steps = _resolved_pipeline_steps(cfg)
-    if state.OPTS.debug:
+    if getattr(state, 'DEBUG', False):
         out(f"[debug] pipeline order: {' -> '.join(steps)}")
 
     drop_root = get_drop_root(cfg)
