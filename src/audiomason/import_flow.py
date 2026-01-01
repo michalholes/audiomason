@@ -404,7 +404,7 @@ def _write_dry_run_summary(stage_run: Path, author: str, title: str, lines: list
     ]
     path.write_text("\n".join(header + lines) + "\n", encoding="utf-8")
 
-def _process_book(i: int, n: int, b: BookGroup, stage_run: Path, dest_root: Path, author: str, title: str, out_title: str, wipe: bool, cover_mode: str, overwrite: bool, cfg: dict) -> None:
+def _process_book(i: int, n: int, b: BookGroup, stage_run: Path, dest_root: Path, author: str, title: str, out_title: str, wipe: bool, cover_mode: str, overwrite: bool, cfg: dict, steps: list[str]) -> None:
     out(f"[book] {i}/{n}: {b.label}")
 
     outdir = _output_dir(dest_root, author, out_title)
@@ -816,7 +816,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
 
         # processing phase (no prompts)
         for bi, (b, title, cover_mode, dest_root2, out_title, overwrite) in enumerate(meta, 1):
-            _process_book(bi, len(meta), b, stage_run, dest_root2, author, title, out_title, wipe, cover_mode, overwrite, cfg)
+            _process_book(bi, len(meta), b, stage_run, dest_root2, author, title, out_title, wipe, cover_mode, overwrite, cfg, steps)
             processed_labels.append(b.label)
             update_manifest(stage_run, {"books": {"processed": processed_labels}})
 
