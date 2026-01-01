@@ -115,12 +115,12 @@ def validate_author(name: str) -> OLResult:
         top = str(docs[0].get("name") or "") or None
 
     if hits == 0:
-        top = _sanitize_title_suggestion(t, top)
+        top = _sanitize_title_suggestion(q, top)
 
         _cache_put(ck, {"ok": False, "status": "author:not_found", "hits": 0, "top": top})
         return OLResult(False, "author:not_found", 0, top)
 
-    top = _sanitize_title_suggestion(t, top)
+    top = _sanitize_title_suggestion(q, top)
 
     _cache_put(ck, {"ok": True, "status": "author:ok", "hits": hits, "top": top})
     return OLResult(True, "author:ok", hits, top)
