@@ -483,6 +483,8 @@ def run_import(cfg: dict) -> None:
                 if getattr(state, "DEBUG", False):
                     out(f"[ol] validate author: '{author}'")
                 ar = validate_author(author)
+                if (not getattr(ar, 'ok', False)) and (not getattr(ar, 'top', None)):
+                    out(f"[ol] author not found: '{author}'")
                 if getattr(state, "DEBUG", False):
                     out(f"[ol] author result: ok={getattr(ar,'ok',None)} status={getattr(ar,'status',None)!r} hits={getattr(ar,'hits',None)} top={getattr(ar,'top',None)!r}")
                 author = _ol_offer_top('author', author, ar)
@@ -508,6 +510,8 @@ def run_import(cfg: dict) -> None:
                     if getattr(state, "DEBUG", False):
                         out(f"[ol] validate book: author='{author}' title='{title}'")
                     br = validate_book(author, title)
+                    if (not getattr(br, 'ok', False)) and (not getattr(br, 'top', None)):
+                        out(f"[ol] book not found: author='{author}' title='{title}'")
                     if getattr(state, "DEBUG", False):
                         out(f"[ol] book result: ok={getattr(br,'ok',None)} status={getattr(br,'status',None)!r} hits={getattr(br,'hits',None)} top={getattr(br,'top',None)!r}")
                     title = _ol_offer_top('book title', title, br)
