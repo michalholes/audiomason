@@ -114,23 +114,31 @@ Verify is read-only and has no side effects.
 
 CONFIGURATION
 
-Configuration load order:
+App root discovery (AUDIOMASON_ROOT):
 
-1. Built-in defaults
-2. /etc/audiomason/config.yaml
-3. ~/.config/audiomason/config.yaml
+1. env AUDIOMASON_ROOT
+2. repo root (directory containing pyproject.toml)
 
-Later sources override earlier ones.
+Configuration file:
 
-Example configuration:
+- $AUDIOMASON_ROOT/configuration.yaml
+- no /etc, no ~/.config, no fallbacks
+
+Data paths:
+
+- configuration.yaml supports absolute paths anywhere (e.g. /mnt/warez/...)
+- relative paths resolve against:
+  - AUDIOMASON_DATA_ROOT if set
+  - otherwise AUDIOMASON_ROOT
+- final resolved paths must be absolute (fail-fast)
+
+Recommended layout:
 
 paths:
-  inbox: /mnt/warez/abooksinbox
-  stage: /mnt/warez/_am_stage
-  ready: /mnt/warez/_am_ready
-  archive_ro: /mnt/warez/abooks
-
-publish: ask
+  inbox:   /mnt/warez/abooksinbox
+  stage:   /mnt/warez/_am_stage
+  output:  /mnt/warez/abooks_ready
+  archive: /mnt/warez/abooks
 
 ffmpeg:
   loglevel: warning
