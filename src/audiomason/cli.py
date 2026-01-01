@@ -11,9 +11,7 @@ import audiomason.state as state
 from audiomason.state import Opts
 from audiomason.import_flow import run_import
 from audiomason.verify import verify_library
-from audiomason.paths import OUTPUT_ROOT
-
-
+from audiomason.paths import validate_paths_contract, get_output_root
 def _parent_parser(cfg: Dict[str, Any]) -> argparse.ArgumentParser:
     audio = cfg.get("audio", {}) if isinstance(cfg.get("audio", {}), dict) else {}
     paths = cfg.get("paths", {}) if isinstance(cfg.get("paths", {}), dict) else {}
@@ -26,7 +24,7 @@ def _parent_parser(cfg: Dict[str, Any]) -> argparse.ArgumentParser:
     pp.add_argument("--debug", action="store_true", help="prefix every out() line with [TRACE]")
     pp.add_argument("--verify", action="store_true", help="verify library after import")
 
-    default_verify_root = Path(paths.get("verify_root", OUTPUT_ROOT))
+    default_verify_root = Path(paths.get("verify_root") or "__AUDIOMASON_VERIFY_ROOT_UNSET__")
     pp.add_argument("--verify-root", type=Path, default=default_verify_root, help="root for --verify")
 
     g2 = pp.add_mutually_exclusive_group()
@@ -46,8 +44,9 @@ def _parent_parser(cfg: Dict[str, Any]) -> argparse.ArgumentParser:
     return pp
 
 
-def _parse_args() -> argparse.Namespace:
-    cfg = load_config()
+def _parse_args(cfg: Dict[str, Any] | None = None) -> argparse.Namespace:
+    if cfg is None:
+        cfg = load_config()
     parent = _parent_parser(cfg)
 
     ap = argparse.ArgumentParser(
@@ -112,7 +111,8 @@ yes=ns.yes,
 
 def main() -> int:
     cfg = load_config()
-    ns = _parse_args()
+    validate_paths_contract(cfg)
+    ns = _parse_args(cfg)
 
     # DEBUG wiring must be active before any out()/trace output
     state.DEBUG = bool(getattr(ns, "debug", False))
@@ -122,6 +122,8 @@ def main() -> int:
         enable_trace()
 
     state.OPTS = _ns_to_opts(ns)
+    if str(state.OPTS.verify_root) == "__AUDIOMASON_VERIFY_ROOT_UNSET__":
+        state.OPTS.verify_root = get_output_root(cfg)
 
     if ns.cmd == "inspect":
         from audiomason.inspect import inspect_source
