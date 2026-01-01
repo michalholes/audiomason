@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
+from audiomason.googlebooks import suggest_title
 
 
 BASE = "https://openlibrary.org"
@@ -281,6 +282,15 @@ def validate_book(author: str, title: str) -> OLResult:
                     second_s = rescored[1][0] if len(rescored) > 1 else 0.0
                     if best_t and best_s >= 0.92 and (best_s - second_s) >= 0.03:
                         top = best_t
+            except Exception:
+                pass
+
+        # Fallback (CZ/SK): Google Books suggestion when OL has no safe suggestion.
+        if top is None:
+            try:
+                g = suggest_title(a, t)
+                if g:
+                    top = g
             except Exception:
                 pass
 
