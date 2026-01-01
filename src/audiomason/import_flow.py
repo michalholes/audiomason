@@ -546,9 +546,14 @@ def run_import(cfg: dict) -> None:
 
             # ISSUE #1: destination conflict handling (prompt overwrite, else fallback to abooks_ready, else offer new folder)
             bm_entry = (bm.get(b.label, {}) if isinstance(bm, dict) else {})
-            m_overwrite = bool(bm_entry.get("overwrite") is True)
-            m_dest_kind = str(bm_entry.get("dest_kind") or "")
-            m_out_title = str(bm_entry.get("out_title") or "").strip()
+            if reuse_stage and use_manifest_answers:
+                m_overwrite = bool(bm_entry.get("overwrite") is True)
+                m_dest_kind = str(bm_entry.get("dest_kind") or "")
+                m_out_title = str(bm_entry.get("out_title") or "").strip()
+            else:
+                m_overwrite = False
+                m_dest_kind = ""
+                m_out_title = ""
 
             dest_root2 = dest_root
             if m_dest_kind == "output":
