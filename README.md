@@ -267,3 +267,18 @@ That is a feature.
 - Pipeline: docs/PIPELINE.md
 - Example config: configuration.example.yaml
 
+
+## Quick start
+
+```bash
+git clone https://github.com/michalholes/audiomason.git
+cd audiomason
+python3 -m venv .venv
+. .venv/bin/activate
+pip install -e .
+
+cp configuration.minimal.yaml configuration.yaml
+export AUDIOMASON_DATA_ROOT="$HOME/audiomason_data"
+
+audiomason
+```

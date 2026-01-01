@@ -1,4 +1,5 @@
 # Changelog
+## [1.3.0] - 2026-01-02### Added- Complete end-user documentation (workflow, covers, pipeline, configuration)- Example and minimal configuration files### Fixed- Preserve embedded MP3 cover across full ID3 wipe (#55)- Multiple OpenLibrary edge cases and crashes- Stage cleanup and resume robustness### Changed- Preflight now fully owns all interactive decisions- PROCESS phase is strictly non-interactive- Configuration paths are portable and environment-rooted
 All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog,
