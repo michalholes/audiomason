@@ -268,12 +268,19 @@ def validate_book(author: str, title: str) -> OLResult:
                     cand.append((score, tt, key))
 
                 if cand:
+                    # Prefer scoring against localized edition title (CZ/SK) when available.
                     cand.sort(key=lambda x: (-x[0], x[1], x[2]))
-                    best_s, best_t, best_k = cand[0]
-                    second_s = cand[1][0] if len(cand) > 1 else 0.0
+                    rescored: list[tuple[float, str]] = []
+                    for _, tt, kk in cand[:5]:
+                        loc = _pick_edition_title(kk, ["cze", "slo"])
+                        sugg = loc or tt
+                        score2 = difflib.SequenceMatcher(None, _norm_title(t), _norm_title(sugg)).ratio()
+                        rescored.append((score2, sugg))
+                    rescored.sort(key=lambda x: (-x[0], x[1]))
+                    best_s, best_t = rescored[0]
+                    second_s = rescored[1][0] if len(rescored) > 1 else 0.0
                     if best_t and best_s >= 0.92 and (best_s - second_s) >= 0.03:
-                        loc = _pick_edition_title(best_k, ["cze", "slo"])
-                        top = loc or best_t
+                        top = best_t
             except Exception:
                 pass
 
