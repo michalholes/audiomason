@@ -109,38 +109,6 @@ def validate_author(name: str) -> OLResult:
     if docs:
         top = str(docs[0].get("name") or "") or None
 
-    # Fallback (deterministic): if exact query finds nothing, try surname-only search
-    # and pick closest match. This enables suggestions even when ok=False.
-    if hits == 0 and not top:
-        parts = [p for p in q.split() if p.strip()]
-        if len(parts) >= 2:
-            q2 = parts[-1]
-            if q2 and q2.casefold() != q.casefold():
-                try:
-                    data2 = _get_json("/search/authors.json", {"q": q2, "limit": 5})
-                    docs2 = data2.get("docs") or []
-                    names = [str(d.get("name") or "").strip() for d in docs2 if isinstance(d, dict)]
-                    names = [n for n in names if n]
-                    if names:
-                        import difflib
-                        q_cf = q.casefold()
-                        q2_cf = q2.casefold()
-                        # keep only candidates that contain the surname token
-                        cand = [n for n in names if q2_cf in n.casefold().split()]
-                        cand = cand or names
-                        best = None
-                        best_r = -1.0
-                        for n in cand:
-                            r = difflib.SequenceMatcher(a=q_cf, b=n.casefold()).ratio()
-                            if r > best_r:
-                                best_r = r
-                                best = n
-                        # accept only strong matches to avoid wrong suggestions (deterministic threshold)
-                        if best is not None and best_r >= 0.80:
-                            top = best
-                except Exception:
-                    pass
-
     if hits == 0:
         _cache_put(ck, {"ok": False, "status": "author:not_found", "hits": 0, "top": top})
         return OLResult(False, "author:not_found", 0, top)
