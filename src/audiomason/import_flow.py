@@ -480,6 +480,8 @@ def run_import(cfg: dict) -> None:
 
             # OpenLibrary suggestion (author) — must run after final author decision
             if getattr(getattr(state, 'OPTS', None), 'lookup', False):
+                if getattr(state, "DEBUG", False):
+                    out(f"[ol] validate author: '{author}'")
                 ar = validate_author(author)
                 author = _ol_offer_top('author', author, ar)
         if not author:
@@ -499,6 +501,8 @@ def run_import(cfg: dict) -> None:
 
                 # OpenLibrary suggestion (book title)
                 if getattr(getattr(state, 'OPTS', None), 'lookup', False):
+                    if getattr(state, "DEBUG", False):
+                        out(f"[ol] validate book: author='{author}' title='{title}'")
                     br = validate_book(author, title)
                     title = _ol_offer_top('book title', title, br)
             # cover decision (stored as mode: 'file'|'embedded'|'skip')
