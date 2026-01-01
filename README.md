@@ -62,6 +62,12 @@ Global flags:
 --dry-run      show actions without modifying data
 --quiet        minimal output
 --verbose      verbose output
+--config PATH   explicit path to configuration.yaml (overrides discovery)
+
+Debugging:
+
+- --debug prints the active configuration source:
+  [config] loaded_from=/path/to/configuration.yaml
 
 
 IMPORT WORKFLOW (v1.0.0)
@@ -123,6 +129,12 @@ Configuration file:
 
 - $AUDIOMASON_ROOT/configuration.yaml
 - no /etc, no ~/.config, no fallbacks
+
+Command-line override:
+
+- --config PATH forces an explicit configuration.yaml
+- skips AUDIOMASON_ROOT discovery entirely
+- intended for isolated testing and CI-style runs
 
 Data paths:
 
