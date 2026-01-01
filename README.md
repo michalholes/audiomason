@@ -258,3 +258,12 @@ See LICENSE.
 
 AudioMason is designed to be boring, predictable, and safe.
 That is a feature.
+
+## Docs
+
+- Workflow: docs/WORKFLOW.md
+- Configuration: docs/CONFIGURATION.md
+- Covers: docs/COVERS.md
+- Pipeline: docs/PIPELINE.md
+- Example config: configuration.example.yaml
+
