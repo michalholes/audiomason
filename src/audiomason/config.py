@@ -27,7 +27,12 @@ def _load_yaml(p: Path) -> dict:
     if not p.exists():
         return {}
     with p.open("r", encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+        data = yaml.safe_load(f)
+        if data is None:
+            return {}
+        if not isinstance(data, dict):
+            raise RuntimeError(f"Invalid configuration root in {path}: expected mapping, got {type(data).__name__}")
+        return data
 
 def load_config() -> dict:
     cfg = DEFAULTS
