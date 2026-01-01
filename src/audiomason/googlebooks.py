@@ -28,6 +28,10 @@ def _norm(s: str) -> str:
     s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
     s = s.lower()
     s = re.sub(r"\s+", " ", s).strip()
+    # deterministic token normalization (helps minor CZ/SK preposition diffs)
+    stop = {"a","i","v","vo","na","do","od","po","pri","ku","k","z","zo","s","so","u"}
+    toks = [t for t in s.split(" ") if t and t not in stop]
+    s = " ".join(toks).strip()
     return s
 
 
