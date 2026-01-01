@@ -493,7 +493,9 @@ def run_import(cfg: dict) -> None:
         meta: list[tuple[BookGroup, str, str, Path, str, bool]] = []
         for bi, b in enumerate(picked_books, 1):
             # title
-            default_title = str(bm.get(b.label, {}).get("title") or "").strip() if isinstance(bm, dict) else ""
+            bm_entry2 = (bm.get(b.label, {}) if isinstance(bm, dict) else {})
+            default_title = str((bm_entry2.get("out_title") or bm_entry2.get("title") or "")).strip()
+
             if reuse_stage and use_manifest_answers and default_title:
                 title = default_title
             else:
