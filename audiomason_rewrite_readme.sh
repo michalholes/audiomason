@@ -1,3 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Rewrite README.md to reflect AudioMason 1.3.0 capabilities
+# Run from repo root
+
+if [ ! -f "pyproject.toml" ]; then
+  echo "ERROR: run from AudioMason repo root"
+  exit 1
+fi
+
+cat > README.md <<'MD'
 # AudioMason
 
 AudioMason is a **deterministic audiobook import and tagging tool** with a fully staged, resumable workflow.
@@ -107,5 +119,6 @@ See: docs/INSTALL.md
 - Status: **stable**
 - Behavior is documented and treated as a contract
 - New features are added via explicit feature requests
+MD
 
-- System install: docs/INSTALL-SYSTEM.md
+. .venv/bin/activate && python -m pytest -q && git add README.md && git commit -m "Docs: rewrite README to reflect AudioMason 1.3.0 features" && git push && deactivate

@@ -1,16 +1,31 @@
 # Roadmap
 
-## v1.1
-- Promote selected _legacy helpers to public API
-- Batch non-interactive mode
-- Cover cache
-- JSON output mode
+This roadmap reflects the project state as of **v1.3.0** (2026-01-02).
 
-## v2.0
-- Config-driven pipeline steps
-- Pluggable processors
-- Optional metadata providers
+## Current status (v1.3.0)
 
-## v1.2
+- Core import workflow is stable and documented.
+- Phase contract is established: STAGE → PREPARE → PROCESS → FINALIZE.
+- Processing is deterministic and resumable (manifest-backed decisions).
+- Covers are robust (file/embedded/URL) and embedded MP3 covers are preserved across full ID3 wipe.
 
-- Remove `_legacy/abook_import.py` after new pipeline fully replaces reference behavior
+## Near-term goals
+
+### Packaging
+- Finish Debian packaging (buildable .deb, versioned release artifacts).
+- Install defaults:
+  - /etc/audiomason/config.yaml
+  - /var/lib/audiomason as a reasonable default data root (override via AUDIOMASON_DATA_ROOT).
+
+### Documentation polish
+- Keep README/INSTALL in sync with releases.
+- Add a short troubleshooting section (common ffmpeg / permissions issues).
+- Optional: add a man page (audiomason(1)).
+
+### UX improvements (optional)
+- Shell completion (bash/zsh) for the CLI.
+- Clearer error messages for missing ffmpeg / invalid sources.
+
+## Future ideas (not committed)
+- Optional automated cover fetching from external services (opt-in).
+- Optional library validation tools (verify outputs, detect duplicates).
