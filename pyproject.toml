@@ -17,8 +17,6 @@ test = ["pytest>=7.0"]
 
 [project.scripts]
 audiomason = "audiomason.cli:main"
-am = "audiomason.cli:main"
-
 [project.urls]
 Homepage = "https://github.com/michalholes/audiomason"
 
