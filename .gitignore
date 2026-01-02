@@ -22,3 +22,8 @@ debian/*.substvars
 debian/debhelper-build-stamp
 debian/files
 *.zip
+*.buildinfo
+*.changes
+*.dsc
+*.tar.*
+logs_*.zip
