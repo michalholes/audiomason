@@ -2,7 +2,7 @@
 
 This document covers operational and maintenance notes for AudioMason on Debian/Ubuntu.
 
-Installation steps are documented in:
+Installation steps:
 - README.md
 - docs/INSTALL.md
 
@@ -38,7 +38,7 @@ Configuration reference:
 
 ## Filesystem hygiene
 
-AudioMason works with three main areas:
+AudioMason works with:
 - drop_root: incoming sources
 - stage_root: temporary working area
 - output_root: final library (published)
@@ -47,19 +47,19 @@ AudioMason works with three main areas:
 Recommended practices:
 - keep stage_root on fast storage
 - monitor free space (stage can temporarily grow during processing)
-- use stable mount points (avoid changing roots between runs)
+- use stable mount points
 
 ---
 
 ## Logs and debugging
 
-Prefer running with explicit logging controls as documented in:
+Prefer running with explicit logging controls:
 - docs/CLI.md
 
 If a run fails:
 - keep the source input intact
-- capture the full terminal output
-- provide the directory structure and a minimal reproduction if possible
+- capture full terminal output
+- provide a minimal reproduction when possible
 
 ---
 
