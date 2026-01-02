@@ -1,3 +1,11 @@
+Origin: AudioMason
+Label: AudioMason
+Suite: stable
+Codename: stable
+Architectures: all arm64 armhf
+Components: main
+Description: AudioMason APT repository
+
 Date: Fri, 02 Jan 2026 10:27:05 +0000
 MD5Sum:
  8afc081f3b2641c901c4d21b32499899               38 Release
