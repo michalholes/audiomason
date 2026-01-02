@@ -14,7 +14,7 @@ Package: audiomason
 Architecture: all
 Depends:
  ${misc:Depends},
- ${python3:Depends},
+ python3:any,
  ffmpeg
 Description: AudioMason - deterministic audiobook import and tagging CLI
  AudioMason imports audiobook sources into a deterministic staged workflow,
