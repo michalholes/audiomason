@@ -6,8 +6,8 @@ export PYBUILD_SYSTEM=pyproject
 	dh $@ --with python3 --buildsystem=pybuild
 
 override_dh_installman:
-	VER=$$(dpkg-parsechangelog -SVersion | cut -d- -f1); \\
-	sed -e "s/@VERSION@/$${VER}/g" docs/man/audiomason.1 > debian/audiomason.1; \\
+	VER=$$(dpkg-parsechangelog -SVersion | cut -d- -f1); \
+	sed -e "s/@VERSION@/$${VER}/g" docs/man/audiomason.1 > debian/audiomason.1; \
 	dh_installman debian/audiomason.1
 
 override_dh_clean:
