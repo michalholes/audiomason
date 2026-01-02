@@ -29,6 +29,8 @@ AudioMason is designed for people who:
 
 Download the `.deb` from **GitHub Releases** and install:
 
+https://github.com/michalholes/audiomason/releases
+
 ```bash
 sudo dpkg -i audiomason_1.3.0_all.deb
 ```
