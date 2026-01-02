@@ -42,8 +42,8 @@ Fully wipe ID3 tags before writing new tags.
 .BR --split-chapters
 Split chapterized M4A files into multiple MP3 tracks.
 .SH CONFIGURATION
-AudioMason reads configuration from configuration.yaml.
-The file configuration.example.yaml documents all supported keys and values.
+AudioMason reads configuration from config.yaml.
+The file config.yaml installed by the package is fully commented and safe by default.
 .SH WORKFLOW
 AudioMason runs in four phases:
 .IP \(bu 2
@@ -56,10 +56,10 @@ PROCESS \- non-interactive output generation
 FINALIZE \- bookkeeping and optional cleanup
 .SH FILES
 .TP
-.I configuration.yaml
+.I /etc/audiomason/config.yaml
 Main configuration file.
 .TP
-.I configuration.example.yaml
+.I /etc/audiomason/config.yaml
 Authoritative configuration reference.
 .SH ENVIRONMENT
 .TP
