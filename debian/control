@@ -1,0 +1,21 @@
+Source: audiomason
+Section: utils
+Priority: optional
+Maintainer: AudioMason Maintainers <maintainers@example.invalid>
+Build-Depends:
+ debhelper-compat (= 13),
+ dh-python,
+ python3-all,
+ python3-setuptools
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+
+Package: audiomason
+Architecture: all
+Depends:
+ ${misc:Depends},
+ ${python3:Depends},
+ ffmpeg
+Description: AudioMason - deterministic audiobook import and tagging CLI
+ AudioMason imports audiobook sources into a deterministic staged workflow,
+ applies tagging/covers, and supports resumable runs.

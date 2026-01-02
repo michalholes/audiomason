@@ -1,0 +1,20 @@
+#!/bin/sh
+set -e
+
+# Create default config if missing
+if [ ! -f /etc/audiomason/config.yaml ]; then
+  mkdir -p /etc/audiomason
+  cat > /etc/audiomason/config.yaml <<'YAML'
+paths:
+  inbox: abooksinbox
+  stage: _am_stage
+  output: abooks_ready
+  archive: abooks
+  cache: am_cache
+YAML
+fi
+
+# Default data root (optional; users may override via AUDIOMASON_DATA_ROOT)
+mkdir -p /var/lib/audiomason
+
+exit 0

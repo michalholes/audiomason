@@ -1,0 +1,5 @@
+audiomason (1.3.0-1) unstable; urgency=medium
+
+  * Debian packaging skeleton.
+
+ -- AudioMason Maintainers <maintainers@example.invalid>  Thu, 02 Jan 2026 00:00:00 +0000
