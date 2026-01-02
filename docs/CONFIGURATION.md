@@ -1,42 +1,59 @@
 # Configuration
 
-AudioMason reads configuration from configuration.yaml.
+AudioMason uses a single system configuration file:
 
-## Recommended setup
+- /etc/audiomason/config.yaml
 
-Use a dedicated data directory and keep paths relative:
+This file is installed by the package and is safe by default, but you must set real paths before first use.
 
-    export AUDIOMASON_DATA_ROOT="$HOME/audiomason_data"
+Installation:
+- README.md
+- docs/INSTALL.md
 
-All relative paths resolve relative to this directory.
+System notes:
+- docs/INSTALL-SYSTEM.md
 
-## Minimal configuration
+---
+
+## Core concept: roots
+
+AudioMason operates on configured filesystem roots. Typical keys:
+
+- drop_root: incoming sources (files, folders, archives)
+- stage_root: temporary working directory for processing
+- output_root: final published library
+- archive_root: long-term archive (optional but recommended)
+
+All configured roots must exist and be writable by the user running AudioMason.
+
+---
+
+## Minimal example
 
 ```yaml
 paths:
-  inbox: abooksinbox
-  stage: _am_stage
-  output: abooks_ready
-  archive: abooks
-  cache: am_cache
+  drop_root: /srv/audiobooks/inbox
+  stage_root: /srv/audiobooks/_stage
+  output_root: /srv/audiobooks/ready
+  archive_root: /srv/audiobooks/archive
+
+import:
+  publish: ask
 ```
 
-Copy configuration.minimal.yaml to configuration.yaml to start.
+---
 
-## Full configuration
+## Guidance
 
-See configuration.example.yaml for:
-- all supported keys
-- accepted values
-- commented examples
+Recommended practices:
+- keep stage_root on reliable, fast storage
+- keep output_root and archive_root on stable mount points
+- avoid changing configured roots between runs unless you know exactly why
 
-## Notes
+---
 
-- pipeline_steps overrides internal defaults
-- split_chapters controls M4A chapter splitting
-- publish is a default only (CLI may override)
-- ffmpeg options control encoding behavior
+## Related docs
 
-## CLI
-
-For runtime flags and subcommands see: docs/CLI.md
+- docs/WORKFLOW.md
+- docs/PIPELINE.md
+- docs/MAINTENANCE.md
