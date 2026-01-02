@@ -1,71 +1,104 @@
-# System installation
+# System installation notes (Debian / Ubuntu)
 
-This document describes installing AudioMason as a system tool (no manual venv management).
+This document covers system-level prerequisites and operational notes.
+End-user installation steps (APT key/repo install) are documented in:
+- README.md
+- docs/INSTALL.md
 
-Preferred approaches:
-- pipx (isolated, user-level)
-- Debian package (system-level)
-
-If you are packaging for Debian, use the `debian/` skeleton in this repo as a starting point.
+---
 
 ## Requirements
 
+- Debian/Ubuntu system with APT
 - Python 3.11+
 - ffmpeg
 
-Debian/Ubuntu:
+AudioMason is packaged as a .deb and installs system-wide.
 
-```bash
-sudo apt-get update
-sudo apt-get install -y python3 ffmpeg
-```
+---
 
-## Option A: pipx (recommended)
+## Paths and permissions
 
-pipx gives you an isolated environment without you managing a venv:
-
-```bash
-sudo apt-get install -y pipx
-pipx ensurepath
-pipx install "git+https://github.com/michalholes/audiomason.git"
-```
-
-Run:
-
-```bash
-audiomason
-```
-
-Upgrade:
-
-```bash
-pipx upgrade audiomason
-```
-
-## Option B: Debian package (target layout)
-
-A Debian package should install:
-
-- CLI: /usr/bin/audiomason
-- Config: /etc/audiomason/config.yaml (conffile)
-- Default data root: /var/lib/audiomason (users may override via AUDIOMASON_DATA_ROOT)
-
-After install, create or adjust your configuration at:
+AudioMason reads its configuration from:
 
 - /etc/audiomason/config.yaml
 
-Then run:
+You must configure filesystem paths before first use. Typical layout:
 
-```bash
-audiomason
-```
+- drop_root: incoming sources (files, folders, archives)
+- stage_root: temporary working directory
+- output_root: final published library
+- archive_root: long-term archive (optional but recommended)
 
-## Configuration roots
+All configured roots must be writable by the user running AudioMason.
 
-Recommended portable approach:
+---
 
-```bash
-export AUDIOMASON_DATA_ROOT="$HOME/audiomason_data"
-```
+## Recommended filesystem layout
 
-All relative paths in configuration resolve relative to AUDIOMASON_DATA_ROOT.
+Example (adjust to your environment):
+
+- /srv/audiobooks/inbox
+- /srv/audiobooks/_stage
+- /srv/audiobooks/ready
+- /srv/audiobooks/archive
+
+Make sure you:
+- create the directories
+- set correct ownership and permissions
+- keep stage on fast storage if possible
+
+---
+
+## First run checklist
+
+1) Confirm installation:
+
+    audiomason --help
+
+2) Confirm config exists:
+
+    sudo ls -la /etc/audiomason/
+
+3) Edit config:
+
+    sudoedit /etc/audiomason/config.yaml
+
+4) Create and permission your configured roots.
+
+5) Run AudioMason from a non-root user.
+
+---
+
+## Troubleshooting
+
+### APT signature warnings
+
+If APT reports signature verification issues:
+- stop
+- verify the key import and repository URL
+- ensure you are using the signed repository instructions in README/docs/INSTALL.md
+
+Maintainer repository details:
+- docs/apt/README.md
+
+### Missing ffmpeg
+
+If ffmpeg is missing, install it via APT:
+
+    sudo apt update
+    sudo apt install ffmpeg
+
+### Permission denied on configured paths
+
+Fix ownership/permissions for your configured roots.
+Do not run AudioMason as root to "make it work".
+
+---
+
+## Related docs
+
+- docs/INSTALL.md
+- docs/CONFIGURATION.md
+- docs/MAINTENANCE.md
+- docs/WORKFLOW.md
