@@ -14,3 +14,11 @@ htmlcov/
 .venv/
 __pycache__/
 *.egg-info/
+.pybuild/
+debian/.debhelper/
+debian/audiomason/
+debian/*.debhelper
+debian/*.substvars
+debian/debhelper-build-stamp
+debian/files
+*.zip
