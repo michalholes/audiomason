@@ -1,128 +1,90 @@
 # Installation
 
-This document describes **supported installation methods for AudioMason 1.3.0**.
+This document describes supported installation methods for AudioMason on Debian/Ubuntu systems.
 
-AudioMason can run without a virtual environment, but **isolated installs are strongly recommended**
-to avoid conflicts with system Python packages.
-
----
-
-## Requirements
-
-- Python **3.11+**
-- `ffmpeg` (required for conversion, splitting, and some cover operations)
-
-### Debian / Ubuntu
-
-```bash
-sudo apt-get update
-sudo apt-get install -y python3 python3-pip ffmpeg
-```
+If you want the simplest and most reliable path, use the signed APT repository.
+If you want a direct install from GitHub Releases, use the GitHub method below (no hardcoded versions).
 
 ---
 
-## Installation options
+## Method 1: Signed APT repository (recommended)
 
-### Option A: pipx (recommended)
+AudioMason is published via a signed APT repository.
 
-`pipx` installs AudioMason into an isolated environment and exposes a global CLI,
-without requiring you to manage a virtual environment manually.
+### 1) Import repository signing key
 
-```bash
-sudo apt-get install -y pipx
-pipx ensurepath
-pipx install "git+https://github.com/michalholes/audiomason.git"
-```
+    curl -fsSL https://michalholes.github.io/audiomason/docs/apt/audiomason.gpg.asc | sudo tee /etc/apt/trusted.gpg.d/audiomason.asc > /dev/null
 
-Run:
+### 2) Add APT repository
 
-```bash
-audiomason
-```
+    echo "deb https://michalholes.github.io/audiomason stable main" | sudo tee /etc/apt/sources.list.d/audiomason.list
 
-Upgrade later:
+### 3) Install
 
-```bash
-pipx upgrade audiomason
-```
+    sudo apt update
+    sudo apt install audiomason
 
----
+### Upgrade
 
-### Option B: per-user install with pip
+    sudo apt update
+    sudo apt upgrade audiomason
 
-Installs under `~/.local` (no system-wide changes).
+### Remove
 
-```bash
-python3 -m pip install --user -U "git+https://github.com/michalholes/audiomason.git"
-```
+    sudo apt remove audiomason
 
-Ensure `~/.local/bin` is on your PATH, then run:
-
-```bash
-audiomason
-```
+Notes:
+- Configuration is stored in: /etc/audiomason/config.yaml
+- Maintainer details (repo layout, publishing, GPG): docs/apt/README.md
 
 ---
 
-### Option C: system-wide pip install (not recommended)
+## Method 2: Install from GitHub Releases (.deb)
 
-System installs may conflict with OS-managed Python packages.
+This method installs AudioMason from the latest GitHub Release asset.
+It avoids hardcoded versions by downloading the latest matching .deb.
 
-On newer Debian-based systems you may need:
+### Option A: Using GitHub CLI (gh) (recommended for this method)
 
-```bash
-sudo python3 -m pip install --break-system-packages -U "git+https://github.com/michalholes/audiomason.git"
-```
+Requirements:
+- gh installed and available in PATH
 
-Then run:
+Download the latest release .deb (matches audiomason_*_all.deb):
 
-```bash
-audiomason
-```
+    gh release download -R michalholes/audiomason --pattern 'audiomason_*_all.deb' --clobber
 
----
+Install the downloaded package:
 
-## Configuration
+    sudo apt install ./audiomason_*_all.deb
 
-AudioMason requires a `configuration.yaml`.
+(Optional) Clean up the downloaded file afterwards:
 
-You can start from one of the provided templates:
+    rm -f ./audiomason_*_all.deb
 
-- `configuration.minimal.yaml`
-- `configuration.example.yaml`
+### Option B: If you do not want gh
 
-### Recommended setup (portable)
-
-Use an explicit data root:
-
-```bash
-export AUDIOMASON_DATA_ROOT="$HOME/audiomason_data"
-```
-
-All relative paths in `configuration.yaml` resolve relative to this directory.
+Use the signed APT method above.
+It is the supported no-surprises path and keeps upgrades simple.
 
 ---
 
-## First run
+## Post-install checklist
 
-1. Create the inbox directory (or let AudioMason create it automatically).
-2. Drop a source (directory or supported archive) into the inbox.
-3. Run:
+1) Verify the command exists:
 
-```bash
-audiomason
-```
+    audiomason --help
 
-AudioMason will:
-- stage the source
-- collect decisions in **PREPARE**
-- execute a fully non-interactive **PROCESS**
-- finalize and optionally clean stage data
+2) Confirm config path exists (or create it):
 
----
+    sudo ls -la /etc/audiomason/
 
-## Notes
+3) Edit configuration:
 
-- AudioMason behavior is documented and treated as a **contract**
-- Processing is deterministic and resumable
-- New features are added via explicit feature requests
+    sudoedit /etc/audiomason/config.yaml
+
+Configuration reference:
+- docs/CONFIGURATION.md
+
+System-level notes and maintenance:
+- docs/INSTALL-SYSTEM.md
+- docs/MAINTENANCE.md
