@@ -172,3 +172,7 @@ def main() -> int:
     except AmExit as e:
         out(f"[error] {e}")
         return e.exit_code
+
+    except AmConfigError as e:
+        out(f"[error] {e}")
+        return 2
