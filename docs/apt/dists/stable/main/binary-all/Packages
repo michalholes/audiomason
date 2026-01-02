@@ -15,3 +15,20 @@ Description: AudioMason - deterministic audiobook import and tagging CLI
  AudioMason imports audiobook sources into a deterministic staged workflow,
  applies tagging/covers, and supports resumable runs.
 
+Package: audiomason
+Version: 1.3.1
+Architecture: all
+Maintainer: Michal Holeš <michal@holes.sk>
+Installed-Size: 157
+Depends: python3-mutagen, python3-yaml, python3:any, ffmpeg
+Filename: pool/main/a/audiomason/audiomason_1.3.1_all.deb
+Size: 31608
+MD5sum: 558390681fbc5fff7f56d96c67604034
+SHA1: 2a2479a0587ff2e3889785dda65b57e546bd6c65
+SHA256: 8fdbe1d2a4e111dbc799afd8d4fc0eb80920b09cb56d60f9094749f3d81d95cd
+Section: utils
+Priority: optional
+Description: AudioMason - deterministic audiobook import and tagging CLI
+ AudioMason imports audiobook sources into a deterministic staged workflow,
+ applies tagging/covers, and supports resumable runs.
+
