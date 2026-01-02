@@ -1,0 +1,12 @@
+# AudioMason system config (template)
+# Copy/adjust as needed.
+paths:
+  drop_root: /mnt/warez/abooksinbox
+  stage_root: /mnt/warez/abooksinbox/_am_stage
+  output_root: /mnt/warez/abooks_ready
+  archive_root: /mnt/warez/abooks_archive
+
+import:
+  publish: ask
+  wipe_id3: false
+  loudnorm: false
