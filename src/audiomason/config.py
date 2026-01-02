@@ -41,6 +41,8 @@ def _load_yaml(p: Path) -> dict:
             raise AmConfigError(f"Invalid configuration root in {p}: expected mapping, got {type(data).__name__}")
         return data
 
+CONFIG_PATH = Path("/etc/audiomason/configuration.yaml")
+
 def load_config(config_path: Path | None = None) -> dict:
 
     cfg = DEFAULTS
