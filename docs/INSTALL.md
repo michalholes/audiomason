@@ -34,7 +34,8 @@ AudioMason is published via a signed APT repository.
     sudo apt remove audiomason
 
 Notes:
-- Configuration is stored in: /etc/audiomason/config.yaml
+- Configuration path: /etc/audiomason/config.yaml
+- Configuration reference: docs/CONFIGURATION.md
 - Maintainer details (repo layout, publishing, GPG): docs/apt/README.md
 
 ---
@@ -74,16 +75,13 @@ It is the supported no-surprises path and keeps upgrades simple.
 
     audiomason --help
 
-2) Confirm config path exists (or create it):
+2) Confirm config directory exists:
 
     sudo ls -la /etc/audiomason/
 
 3) Edit configuration:
 
     sudoedit /etc/audiomason/config.yaml
-
-Configuration reference:
-- docs/CONFIGURATION.md
 
 System-level notes and maintenance:
 - docs/INSTALL-SYSTEM.md
