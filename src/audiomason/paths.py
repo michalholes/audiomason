@@ -27,10 +27,22 @@ def _env_base() -> Path | None:
 
 
 def require_audiomason_root() -> Path:
-    base = _env_base()
-    if base is None:
-        raise AmConfigError(
-            "AUDIOMASON_ROOT is not set and repo root could not be detected (pyproject.toml). "
+    env = os.environ.get("AUDIOMASON_ROOT")
+    if env:
+        return Path(env)
+
+    etc_root = Path("/etc/audiomason")
+    if etc_root.exists():
+        return etc_root
+
+    repo = _find_repo_root()
+    if repo:
+        return repo
+
+    raise AmConfigError(
+        "AUDIOMASON_ROOT is not set and repo root could not be detected (pyproject.toml). "
+        "Set AUDIOMASON_ROOT or use /etc/audiomason."
+    ). "
             "Set AUDIOMASON_ROOT to the AudioMason app root (repo containing pyproject.toml). "
             "It is used to locate configuration.yaml."
         )
