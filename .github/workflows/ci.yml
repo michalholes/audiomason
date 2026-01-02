@@ -24,6 +24,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .[test]
 
+      - name: Ensure /etc/audiomason/config.yaml exists
+        run: |
+          sudo mkdir -p /etc/audiomason
+          sudo cp debian/config.yaml /etc/audiomason/config.yaml
+
       - name: Run unit tests
         run: |
           python -m pytest -q
