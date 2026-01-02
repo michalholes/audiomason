@@ -1,13 +1,14 @@
+Acquire-By-Hash: yes
 Architectures: all arm64 armhf
 Codename: stable
 Components: main
-Date: Fri, 02 Jan 2026 18:31:56 +0000
+Date: Fri, 02 Jan 2026 20:26:23 +0000
 Description: AudioMason APT repo
 Label: AudioMason
 Origin: AudioMason
 Suite: stable
 MD5Sum:
- 00f158167a0de148264ca1a7cc1b307e              187 Release
+ 75c77a4e384a847b9c973ff3a581f800              208 Release
  91b1d4db4e86d9a83fe3d5632a7c0f5f             3876 main/binary-all/Packages
  73ebf5f1f5990ab7a76c4d811cdb1ddc              996 main/binary-all/Packages.gz
  d41d8cd98f00b204e9800998ecf8427e                0 main/binary-arm64/Packages
@@ -15,7 +16,7 @@ MD5Sum:
  d41d8cd98f00b204e9800998ecf8427e                0 main/binary-armhf/Packages
  414a8e8cbda19a4cfcf570b2dbad02e8               29 main/binary-armhf/Packages.gz
 SHA1:
- 842a8b86670488954f9e84179b5cb1b6acc4f94a              187 Release
+ 2cd0608d665455dec7a0a4e3b0fd065e2c6df27a              208 Release
  50ce40dd7746fb767cc83d2eeb4348084c6c07c8             3876 main/binary-all/Packages
  213a3b4e8e603ea2b12828d88f45d33a0cb51b84              996 main/binary-all/Packages.gz
  da39a3ee5e6b4b0d3255bfef95601890afd80709                0 main/binary-arm64/Packages
@@ -23,7 +24,7 @@ SHA1:
  da39a3ee5e6b4b0d3255bfef95601890afd80709                0 main/binary-armhf/Packages
  a66e7498d41fa213b2e3b598139b901b214480f3               29 main/binary-armhf/Packages.gz
 SHA256:
- 8aea759fd6245c0a558b2a5818fb5798ec5ed1b2a693bfd79ae627e6cf4b6fba              187 Release
+ 32cc6850fddbd8894de3a3aa37b4d14cee9db09edde2a5e866f1cacb8d76aa8b              208 Release
  502eefd55ced96eb9eb1704062040404b05a28215bf1a9bb0728449089d0bd36             3876 main/binary-all/Packages
  97a085134c9657469b6d13d59601d5340e90aeab1f8c49ad81fcc72541aea89c              996 main/binary-all/Packages.gz
  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855                0 main/binary-arm64/Packages
@@ -31,7 +32,7 @@ SHA256:
  e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855                0 main/binary-armhf/Packages
  31bd8febc4e1e89d89068399eddebf5bbaf9b2f6fb95fba472aa536be3b4bd6d               29 main/binary-armhf/Packages.gz
 SHA512:
- f208cc731113eda78af99791bbf5c933ce06f4ff9d1f4c79403ea40315cdd387630ef4404ae0824eb319ac180fcc7b85586ded1043edb75df1c645618ca87476              187 Release
+ b3a09f15e86f13a99b79e658b0ba84d5ed336be24d157b9f3b30d9c1d7ce635f8510bf554d82083737031f1abda0f6cda7a71a08db62b40ee6e7c2b761df0ba6              208 Release
  a408b8b92ebe7dc2e2cbbfa0cdd70fe1e39dc8a10207b332999795d4e07f1014028d47f7e869b20b99576485d3fe5add388bf775b89632ab756a615cea1a3be2             3876 main/binary-all/Packages
  553ad5ce63da5847044256eebd492e7a2749f8086e2d0f7e35d203ddaecc77ef2c3c7f1a0b6831e3d4192c872239c77d9b5280121abf07ffe3f029e7ab980e31              996 main/binary-all/Packages.gz
  cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e                0 main/binary-arm64/Packages
