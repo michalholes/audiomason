@@ -1,7 +1,7 @@
 Source: audiomason
 Section: utils
 Priority: optional
-Maintainer: AudioMason Maintainers <maintainers@example.invalid>
+Maintainer: Michal Holeš <https://github.com/michalholes>
 Build-Depends:
  debhelper-compat (= 13),
  dh-python,

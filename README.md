@@ -117,3 +117,8 @@ See: docs/INSTALL.md
 A POSIX manual page is provided:
 
     man audiomason
+
+---
+
+Maintained by **Michal Holeš**  
+https://github.com/michalholes
