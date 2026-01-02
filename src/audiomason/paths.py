@@ -58,11 +58,12 @@ def _data_base() -> Path:
     global _base
     if _base is not None:
         return _base
-    # Base for resolving relative paths in configuration.yaml
+    # Base for resolving relative paths in configuration (data roots), safe for unprivileged users.
     env = os.environ.get("AUDIOMASON_DATA_ROOT")
     if env:
-        return Path(env).expanduser().resolve()
-    _base = require_audiomason_root()
+        _base = Path(env).expanduser().resolve()
+        return _base
+    _base = _default_user_base()
     return _base
 
 

@@ -12,7 +12,7 @@ from audiomason.state import Opts
 from audiomason.import_flow import run_import
 from audiomason.verify import verify_library
 from audiomason.paths import validate_paths_contract, get_output_root
-from audiomason.util import out, AmExit, AmAbort
+from audiomason.util import out, AmExit, AmAbort, AmConfigError
 def _parent_parser(cfg: Dict[str, Any]) -> argparse.ArgumentParser:
     ffmpeg = cfg.get("ffmpeg", {}) if isinstance(cfg.get("ffmpeg", {}), dict) else {}
     paths = cfg.get("paths", {}) if isinstance(cfg.get("paths", {}), dict) else {}
