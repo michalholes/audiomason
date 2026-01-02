@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-authors = [{ name = "Michal Holeš", url = "https://github.com/michalholes" }]
+authors = [{ name = "Michal Holeš" }]
 maintainers = [{ name = "Michal Holeš", url = "https://github.com/michalholes" }]
 name = "audiomason"
 version = "1.3.0"
