@@ -25,28 +25,6 @@ AudioMason is designed for people who:
 
 ---
 
-## Installation (Debian / Ubuntu)
-
-Download the `.deb` from **GitHub Releases** and install:
-
-- Releases: https://github.com/michalholes/audiomason/releases
-
-```bash
-sudo dpkg -i audiomason_1.3.0_all.deb
-```
-
-Dependencies (installed automatically):
-- Python 3.11+
-- ffmpeg
-
-After installation:
-
-```bash
-audiomason --help
-```
-
----
-
 ## Configuration
 
 AudioMason uses a single system config file:
@@ -150,4 +128,26 @@ MIT
 Michal Holeš
 
 https://github.com/michalholes
+
+## Installation (Debian / Ubuntu)
+
+### Add AudioMason APT repository
+
+
+
+### Install
+
+
+
+### Upgrade
+
+
+
+### Remove
+
+
+
+### Verify installation
+
+
 
