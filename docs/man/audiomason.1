@@ -1,0 +1,76 @@
+.TH AUDIOMASON 1 "January 2026" "AudioMason 1.3.0" "User Commands"
+.SH NAME
+audiomason \- deterministic audiobook import and tagging tool
+.SH SYNOPSIS
+.B audiomason
+[\fIoptions\fR] \fIcommand\fR [\fIargs\fR]
+.SH DESCRIPTION
+AudioMason is a deterministic audiobook import tool with a staged, resumable workflow.
+It separates interactive decision making from non-interactive processing to ensure
+safe re-runs and automation.
+.SH COMMANDS
+.TP
+.B import
+Import audiobooks from the configured inbox.
+.TP
+.B verify
+Verify an existing audiobook library.
+.TP
+.B inspect
+Read-only inspection of a source without staging or writing output.
+.TP
+.B cache
+Cache maintenance operations.
+.SH OPTIONS
+Global options include:
+.TP
+.BR --yes
+Run non-interactively using saved or default decisions.
+.TP
+.BR --dry-run
+Do not modify filesystem state.
+.TP
+.BR --json
+Print a machine-readable JSON report at the end of the run.
+.TP
+.BR --publish " {yes,no,ask}"
+Control publish behavior for the current run.
+.TP
+.BR --wipe-id3
+Fully wipe ID3 tags before writing new tags.
+.TP
+.BR --split-chapters
+Split chapterized M4A files into multiple MP3 tracks.
+.SH CONFIGURATION
+AudioMason reads configuration from configuration.yaml.
+The file configuration.example.yaml documents all supported keys and values.
+.SH WORKFLOW
+AudioMason runs in four phases:
+.IP \(bu 2
+STAGE \- materialize source into a working area
+.IP \(bu 2
+PREPARE \- collect and persist all decisions
+.IP \(bu 2
+PROCESS \- non-interactive output generation
+.IP \(bu 2
+FINALIZE \- bookkeeping and optional cleanup
+.SH FILES
+.TP
+.I configuration.yaml
+Main configuration file.
+.TP
+.I configuration.example.yaml
+Authoritative configuration reference.
+.SH ENVIRONMENT
+.TP
+.B AUDIOMASON_DATA_ROOT
+Base directory for resolving relative paths.
+.SH EXIT STATUS
+.TP
+.B 0
+Successful execution.
+.TP
+.B 1
+Error during processing.
+.SH SEE ALSO
+.BR ffmpeg (1)
