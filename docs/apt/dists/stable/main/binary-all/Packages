@@ -4,7 +4,7 @@ Architecture: all
 Maintainer: Michal Holeš <michal@holes.sk>
 Installed-Size: 175
 Depends: python3-mutagen, python3-yaml, python3:any, ffmpeg
-Filename: docs/apt/pool/main/a/audiomason/audiomason_1.3.0_all.deb
+Filename: pool/main/a/audiomason/audiomason_1.3.0_all.deb
 Size: 35296
 MD5sum: 47f218cb83c9f74c3370c5b15aa0cf92
 SHA1: bec49c736d346f30e7699617cb9fd35c25e66fd8
