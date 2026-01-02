@@ -1,91 +1,165 @@
 # AudioMason
 
-AudioMason is a deterministic audiobook processing pipeline.
-Same input. Same output. Every time.
-If that ever changes, it is a bug — not a feature, not magic.
+Deterministic, ASCII-only CLI tool for **importing, normalizing, tagging, and publishing audiobooks** from messy real-world sources.
 
-## Philosophy
+AudioMason is designed for people who:
+- have large audiobook libraries
+- receive files in inconsistent formats (RARs, folders, bad tags, mixed encodings)
+- want **repeatable, predictable results** instead of GUI guessing
 
-AudioMason is built around strict determinism:
-- no hidden state
-- no random decisions
-- no "best effort" guessing
+If the same input ever produces a different result, something is wrong - and that is taken seriously.
 
-Failures should be boring.
-Debugging should be possible.
-Surprises are reserved for audiobooks, not tooling.
+---
 
-## Installation (APT)
+## What AudioMason does
+
+- Imports audiobooks from directories or archives
+- Normalizes structure and filenames
+- Applies clean, deterministic tagging
+- Optionally fetches metadata (OpenLibrary, Google Books)
+- Publishes finished audiobooks to a final library
+
+**Core principles:**
+- Deterministic output (same input -> same result)
+- ASCII-safe paths
+- Fail-fast (no silent guessing)
+- CLI-first, scriptable
+
+---
+
+## Installation (Debian / Ubuntu)
 
 AudioMason is distributed via a **signed APT repository**.
 
 ### 1. Import repository signing key
 
-Download and install the public GPG key:
-
-    curl -fsSL https://michalholes.github.io/audiomason/docs/apt/audiomason.gpg.asc | sudo tee /etc/apt/trusted.gpg.d/audiomason.asc > /dev/null
+```
+curl -fsSL https://michalholes.github.io/audiomason/docs/apt/audiomason.gpg.asc | sudo tee /etc/apt/trusted.gpg.d/audiomason.asc > /dev/null
+```
 
 ### 2. Add APT repository
 
-Create repository source entry:
+```
+echo "deb https://michalholes.github.io/audiomason stable main" | sudo tee /etc/apt/sources.list.d/audiomason.list
+```
 
-    echo "deb https://michalholes.github.io/audiomason stable main" | sudo tee /etc/apt/sources.list.d/audiomason.list
+### 3. Install
 
-### 3. Install AudioMason
+```
+sudo apt update
+sudo apt install audiomason
+```
 
-    sudo apt update
-    sudo apt install audiomason
+APT will verify signatures automatically.
+If it does not, stop - do not continue and do not guess.
 
-APT will verify signatures automatically.  
-If it does not, something is wrong — stop and investigate.
-
-Detailed system-level notes:
+Other installation methods (including GitHub Releases) are documented in:
 - docs/INSTALL.md
-- docs/INSTALL-SYSTEM.md
 
-## Upgrade
-
-Standard APT upgrade applies:
-
-    sudo apt update
-    sudo apt upgrade audiomason
-
-## Removal
-
-    sudo apt remove audiomason
-
-Configuration files are not removed automatically.
+---
 
 ## Configuration
 
-Main configuration file:
+AudioMason uses a single system configuration file:
 
-    /etc/audiomason/config.yaml
+```
+/etc/audiomason/config.yaml
+```
 
-Configuration reference:
+The file installed by the package is **fully commented** and safe by default.
+You must uncomment and set paths before first use.
+
+Minimal example:
+
+```yaml
+paths:
+  drop_root: /srv/audiobooks/inbox
+  stage_root: /srv/audiobooks/_stage
+  output_root: /srv/audiobooks/ready
+  archive_root: /srv/audiobooks/archive
+
+import:
+  publish: ask
+```
+
+Full reference:
 - docs/CONFIGURATION.md
 
-Example configurations:
-- configuration.example.yaml
-- configuration.minimal.yaml
+---
 
-## Command Line Interface
+## Basic usage
 
-CLI usage, flags, and modes:
-- docs/CLI.md
+```
+audiomason
+```
 
-## Processing Pipeline
+AudioMason will:
+1. Scan the drop directory
+2. Ask which sources to import
+3. Normalize and tag audio
+4. Publish to the output directory
 
-How AudioMason processes audio deterministically:
-- docs/PIPELINE.md
-- docs/WORKFLOW.md
+Non-interactive mode:
 
-## Covers
+```
+audiomason --yes
+```
 
-Cover download and embedding rules:
-- docs/COVERS.md
+Dry-run (no filesystem changes):
 
-## APT Repository (Maintainers)
+```
+audiomason --dry-run
+```
 
-Repository layout, publishing flow, and GPG handling:
-- docs/apt/README.md
+---
+
+## Why not another audiobook tool?
+
+AudioMason intentionally avoids:
+- GUI workflows
+- fuzzy auto-guessing
+- hidden state
+
+Instead, it provides:
+- explicit prompts
+- reproducible pipelines
+- transparent logs
+
+It is built for **long-term library maintenance**, not one-off imports.
+
+---
+
+## Status
+
+AudioMason is actively developed and used in real libraries.
+
+Expect:
+- breaking changes before 2.0
+- conservative defaults
+- preference for correctness over convenience
+
+---
+
+## Bugs & feature requests
+
+Please report bugs and request features via GitHub Issues:
+
+https://github.com/michalholes/audiomason/issues
+
+Include:
+- command used
+- relevant logs
+- sample directory structure (if possible)
+
+---
+
+## License
+
+MIT
+
+---
+
+## Author
+
+Michal Holeš  
+https://github.com/michalholes
