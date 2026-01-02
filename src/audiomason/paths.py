@@ -26,28 +26,27 @@ def _env_base() -> Path | None:
     return _find_repo_root()
 
 
+from pathlib import Path
+import os
+
+DEBIAN_DEFAULT_ROOT = Path("/etc/audiomason")
+
 def require_audiomason_root() -> Path:
     env = os.environ.get("AUDIOMASON_ROOT")
     if env:
         return Path(env)
 
-    etc_root = Path("/etc/audiomason")
-    if etc_root.exists():
-        return etc_root
+    if DEBIAN_DEFAULT_ROOT.exists():
+        return DEBIAN_DEFAULT_ROOT
 
     repo = _find_repo_root()
     if repo:
         return repo
 
     raise AmConfigError(
-        "AUDIOMASON_ROOT is not set and repo root could not be detected (pyproject.toml). "
-        "Set AUDIOMASON_ROOT or use /etc/audiomason."
-    ). "
-            "Set AUDIOMASON_ROOT to the AudioMason app root (repo containing pyproject.toml). "
-            "It is used to locate configuration.yaml."
-        )
-    return base
-
+        "AUDIOMASON_ROOT is not set and no default config found. "
+        "Expected /etc/audiomason/configuration.yaml."
+    )
 
 def _data_base() -> Path:
     # Base for resolving relative paths in configuration.yaml
