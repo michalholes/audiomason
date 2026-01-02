@@ -1,69 +1,86 @@
-# CLI reference
+# CLI
 
-This document is the CLI contract for AudioMason.
+This document describes the AudioMason command-line interface.
 
-## Summary
+Installation steps:
+- README.md
+- docs/INSTALL.md
 
-AudioMason provides these subcommands:
+Configuration:
+- /etc/audiomason/config.yaml
+- docs/CONFIGURATION.md
 
-- import: import audiobooks from inbox
-- verify: verify audiobook library
-- inspect: read-only source inspection
-- cache: cache maintenance
+---
 
-Configuration keys live in configuration.yaml (see docs/CONFIGURATION.md).
-Runtime behavior is controlled by CLI flags and subcommand options.
+## Basic run
 
-## Config vs CLI
+Run AudioMason in interactive mode:
 
-- Configuration defines defaults and filesystem roots.
-- CLI flags override defaults for the current run.
-- Processing is designed to be deterministic and resumable.
+    audiomason
 
-## Full `--help` output
+AudioMason will scan the configured drop_root and guide you through source selection and processing.
 
-```text
-usage: audiomason [-h] [--yes] [--dry-run] [--quiet] [--verbose] [--debug]
-                  [--json] [--config CONFIG] [--verify]
-                  [--verify-root VERIFY_ROOT] [--lookup | --no-lookup]
-                  [--publish {yes,no,ask}] [--wipe-id3 | --no-wipe-id3]
-                  [--loudnorm] [--q-a Q_A] [--split-chapters]
-                  [--no-split-chapters] [--cpu-cores CPU_CORES]
-                  [--ff-loglevel {info,warning,error}] [--version]
-                  {import,verify,inspect,cache} ...
+---
 
-AudioMason – audiobook import & maintenance tool
+## Non-interactive mode
 
-positional arguments:
-  {import,verify,inspect,cache}
-    import              import audiobooks from inbox
-    verify              verify audiobook library
-    inspect             read-only source inspection
-    cache               cache maintenance
+Automatically accept prompts (use with care):
 
-options:
-  -h, --help            show this help message and exit
-  --yes                 non-interactive
-  --dry-run             do not modify anything
-  --quiet               less output
-  --verbose             more output (overrides --quiet)
-  --debug               prefix every out() line with [TRACE]
-  --json                print machine-readable JSON report at end
-  --config CONFIG       explicit configuration.yaml path
-  --verify              verify library after import
-  --verify-root VERIFY_ROOT
-                        root for --verify
-  --lookup              enable OpenLibrary validation
-  --no-lookup           disable OpenLibrary validation
-  --publish {yes,no,ask}
-  --wipe-id3            full wipe ID3 tags before writing new tags
-  --no-wipe-id3         do not wipe ID3 tags (default)
-  --loudnorm
-  --q-a Q_A             lame VBR quality (2=high)
-  --split-chapters
-  --no-split-chapters
-  --cpu-cores CPU_CORES
-                        override CPU core count for perf tuning
-  --ff-loglevel {info,warning,error}
-  --version             show version and exit
-```
+    audiomason --yes
+
+This is intended for scripted workflows where input structure is already known and stable.
+
+---
+
+## Dry-run
+
+Show what would happen without modifying the filesystem:
+
+    audiomason --dry-run
+
+Dry-run is recommended when validating a new configuration or new source structure.
+
+---
+
+## Quiet vs debug
+
+Use quiet mode to reduce output:
+
+    audiomason --quiet
+
+Use debug logging for deep troubleshooting:
+
+    audiomason --debug
+
+When reporting bugs, include relevant debug output when possible.
+
+---
+
+## Publish control
+
+Publishing behavior is controlled by configuration and can typically be overridden via CLI options (if available in your build).
+
+Reference:
+- docs/CONFIGURATION.md
+- docs/WORKFLOW.md
+
+---
+
+## Exit behavior
+
+AudioMason is designed to fail-fast:
+- errors are surfaced early
+- it avoids silent guessing
+
+If a run fails:
+- keep input intact
+- capture full output
+- include your config paths and a minimal directory listing when filing an issue
+
+---
+
+## Related docs
+
+- docs/WORKFLOW.md
+- docs/PIPELINE.md
+- docs/COVERS.md
