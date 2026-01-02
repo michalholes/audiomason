@@ -3,7 +3,7 @@ Section: utils
 Priority: optional
 Maintainer: Michal Holeš <https://github.com/michalholes>
 Build-Depends:
- debhelper-compat (= 13), dh-sequence-python3,
+ debhelper-compat (= 13), pybuild-plugin-pyproject, python3-build, python3-installer, python3-wheel, dh-sequence-python3,
  dh-python,
  python3-all,
  python3-setuptools
