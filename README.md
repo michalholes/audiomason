@@ -1,89 +1,63 @@
 # AudioMason
 
-Deterministic, CLI-first tool for importing, normalizing, tagging, and publishing audiobooks from messy real-world sources.
+AudioMason is a deterministic audiobook processing pipeline.
+Same input. Same output. Every time.
+If that ever changes, it is a bug — not a feature, not magic.
 
-## What it does
+## Philosophy
 
-- Imports audiobooks from directories or archives
-- Normalizes structure and filenames
-- Applies clean, deterministic tagging
-- Optionally fetches metadata (OpenLibrary, Google Books)
-- Publishes finished audiobooks to a final library
+AudioMason is built around strict determinism:
+- no hidden state
+- no random decisions
+- no "best effort" guessing
 
-Core principles:
-- Deterministic output (same input -> same result)
-- ASCII-safe paths
-- Fail-fast (no silent guessing)
-- Scriptable workflows
+This makes failures boring and debugging possible.
 
-## Installation (Debian / Ubuntu)
+## Installation (APT)
 
-### Recommended: install via APT (GitHub Pages)
+AudioMason is distributed via a signed APT repository.
 
-```bash
-curl -fsSL https://michalholes.github.io/audiomason/apt/audiomason.gpg.asc | sudo gpg --dearmor -o /usr/share/keyrings/audiomason-archive-keyring.gpg
-echo "deb [signed-by=/usr/share/keyrings/audiomason-archive-keyring.gpg] https://michalholes.github.io/audiomason/apt stable main" | sudo tee /etc/apt/sources.list.d/audiomason.list
-sudo apt update
-sudo apt install audiomason
-```
+See full installation details:
+- docs/INSTALL.md
+- docs/INSTALL-SYSTEM.md
 
-Upgrade:
+## Upgrade
 
-```bash
-sudo apt update
-sudo apt upgrade audiomason
-```
+Standard APT upgrade applies:
 
-Remove:
+    apt update
+    apt upgrade audiomason
 
-```bash
-sudo apt remove --purge audiomason
-```
+## Removal
 
-Verify:
-
-```bash
-audiomason --version
-man audiomason
-```
+    apt remove audiomason
 
 ## Configuration
 
-AudioMason uses a single system config file:
+Configuration file location:
 
-```
-/etc/audiomason/config.yaml
-```
+    /etc/audiomason/config.yaml
 
-The package installs a fully-commented template. Uncomment and set your filesystem paths before first use.
+Configuration reference:
+- docs/CONFIGURATION.md
 
-## Basic usage
+## Command Line Interface
 
-```bash
-audiomason
-```
+CLI usage and flags:
+- docs/CLI.md
 
-Non-interactive mode:
+## Processing Pipeline
 
-```bash
-audiomason --yes
-```
+How AudioMason processes audio:
+- docs/PIPELINE.md
+- docs/WORKFLOW.md
 
-Dry-run:
+## Covers
 
-```bash
-audiomason --dry-run
-```
+Cover handling rules:
+- docs/COVERS.md
 
-## Bugs and feature requests
+## APT Repository (Maintainers)
 
-https://github.com/michalholes/audiomason/issues
-
-## License
-
-MIT
-
-## Author
-
-Michal Holeš
-https://github.com/michalholes
+APT repository structure and publishing:
+- docs/apt/README.md
