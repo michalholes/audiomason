@@ -27,7 +27,7 @@ High-level structure:
 
 The public signing key is published alongside docs:
 
-- docs/apt/audiomason.gpg.asc
+- docs/docs/apt/audiomason.gpg.asc
 
 ---
 
@@ -54,7 +54,7 @@ APT clients validate the repository using:
 - Release + Release.gpg
 
 The signing key used for publishing must match the public key distributed as:
-- docs/apt/audiomason.gpg.asc
+- docs/docs/apt/audiomason.gpg.asc
 
 If signatures do not verify, do not publish. Fix signing first.
 
