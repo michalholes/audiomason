@@ -1,3 +1,6 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
 Codename: stable
 Suite: stable
 Label: AudioMason
@@ -36,3 +39,19 @@ SHA512:
  16bcd57c3ce34a7f4ae59e09e90fce8d56b40d5cc1f881b41a895eeeb3a21cb031b451f95b5ea77c345a2ceb4617b07c6153f70773a3d0a3cf8529c16af1c757               29 main/binary-arm64/Packages.gz
  cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e                0 main/binary-armhf/Packages
  16bcd57c3ce34a7f4ae59e09e90fce8d56b40d5cc1f881b41a895eeeb3a21cb031b451f95b5ea77c345a2ceb4617b07c6153f70773a3d0a3cf8529c16af1c757               29 main/binary-armhf/Packages.gz
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCgAdFiEEC3MPtJQE6i/k0bDgzs66m/KD7m8FAmlYBR8ACgkQzs66m/KD
+7m9fAxAAwxDFqhUMEVJkvJkoQ+1BtAx/b7s6kOZMBRmVrNQM0eEB8Do8TNFrkjb1
+ahS/qygwOCNuhStMwnOBzmglQhhX+0KVjd93xfVSENdI21rm4FFEzf2loAjivGnm
+KQ0ue1jEEyPywYbsGERXtNJNcUuexnn1aUy2M3NBKwHdz3jYGI76TyMaytfutKbX
+c3BOTsqCNooW7Dqi4/neNDVjEQruMFxja14f431gQLkgy7TurfLZ9oYnx7bqSNzM
+6IxC/oeqOUfRO5Wg800lOFrKbVGUz8AYj1gMVxDoaMHar9rUCHIm/1fMf/vApTNP
+IdO0sEbgaHDrVGIzb8MkJkk5rsqXkiL62UfYrpMNY4exdge/QKSkbN8eyA+Zkc8Y
+MpyojC0p43natCeW+JoTz4T14GcZIH0BeLFnEmQgYccwEEbL7LfTaRulR6EwLT19
+Hvi+cIvFXPePSHE+c1OD9TR9uyKaHgrQfz/Mq1upgxL/ffe6y8/uBOCKqkM8tQ2W
+RmbcnXuw+DS6rpX+ON+I4trPN0V8S95Jg5QZp3uBjye3G34p7NL4Ax1YIkkXsx4F
+OzJLzAWps7HROoHEIaetO3rD9szomPftvliL4CEZIujT0IIaaLmki71v/PyBFpHl
+1Ay3Yb2TaEwCFwP1Kws7D1Z/VHRhqXtRNCjmeJBv/PjhARilgX8=
+=ca+a
+-----END PGP SIGNATURE-----
