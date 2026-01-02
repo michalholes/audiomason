@@ -15,6 +15,6 @@ override_dh_autoreconf:
 override_dh_installdeb:
 	dh_installdeb
 	if [ -f debian/audiomason/DEBIAN/conffiles ]; then \
-	  awk '!seen[$0]++' debian/audiomason/DEBIAN/conffiles > debian/audiomason/DEBIAN/conffiles.new && \
+	  awk '!seen[$$0]++' debian/audiomason/DEBIAN/conffiles > debian/audiomason/DEBIAN/conffiles.new && \
 	  mv debian/audiomason/DEBIAN/conffiles.new debian/audiomason/DEBIAN/conffiles; \
 	fi
