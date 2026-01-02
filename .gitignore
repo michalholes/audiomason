@@ -1,3 +1,5 @@
+build/
+debian/*.log
 # pytest / coverage
 .pytest_cache/
 .coverage
