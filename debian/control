@@ -1,7 +1,7 @@
 Source: audiomason
 Section: utils
 Priority: optional
-Maintainer: Michal Holeš <https://github.com/michalholes>
+Maintainer: Michal Holeš <michal@holes.sk>
 Build-Depends:
  debhelper-compat (= 13), pybuild-plugin-pyproject, python3-build, python3-installer, python3-wheel, dh-sequence-python3,
  dh-python,
