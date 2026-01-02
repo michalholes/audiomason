@@ -4,6 +4,12 @@ from pathlib import Path
 import os
 from audiomason.util import AmConfigError
 
+def _default_user_base() -> Path:
+    # Safe runtime default (does not require AUDIOMASON_ROOT / repo).
+    # Debian package must work for unprivileged users.
+    return (Path.home() / ".local" / "share" / "audiomason").resolve()
+
+
 
 def _find_repo_root() -> Path | None:
     # Deterministic bootstrap: repo root is the first parent containing pyproject.toml
@@ -49,11 +55,15 @@ def require_audiomason_root() -> Path:
     )
 
 def _data_base() -> Path:
+    global _base
+    if _base is not None:
+        return _base
     # Base for resolving relative paths in configuration.yaml
     env = os.environ.get("AUDIOMASON_DATA_ROOT")
     if env:
         return Path(env).expanduser().resolve()
-    return require_audiomason_root()
+    _base = require_audiomason_root()
+    return _base
 
 
 def _defaults_for(cfg) -> dict[str, Path]:
@@ -139,19 +149,19 @@ def _get(cfg, key, default: Path) -> Path:
 
 
 def get_drop_root(cfg) -> Path:
-    return _get(cfg, "inbox", _defaults_for(cfg)["inbox"])
+    return _get(cfg, ("inbox", "drop_root"), _defaults_for(cfg)["inbox"])
 
 
 def get_stage_root(cfg) -> Path:
-    return _get(cfg, "stage", _defaults_for(cfg)["stage"])
+    return _get(cfg, ("stage", "stage_root"), _defaults_for(cfg)["stage"])
 
 
 def get_output_root(cfg) -> Path:
-    return _get(cfg, ("output", "ready"), _defaults_for(cfg)["output"])
+    return _get(cfg, ("output", "ready", "output_root"), _defaults_for(cfg)["output"])
 
 
 def get_archive_root(cfg) -> Path:
-    return _get(cfg, ("archive", "archive_ro"), _defaults_for(cfg)["archive"])
+    return _get(cfg, ("archive", "archive_ro", "archive_root"), _defaults_for(cfg)["archive"])
 
 
 def get_cache_root(cfg) -> Path:
@@ -167,13 +177,13 @@ def get_ignore_file(cfg) -> Path:
 # (DO NOT REMOVE)
 # NOTE: Strict enforcement happens via validate_paths_contract() + getters.
 # ======================
-_base = _data_base()
+_base = None  # lazy-initialized
 
-DROP_ROOT = (_base / "abooksinbox").resolve()
-STAGE_ROOT = (_base / "_am_stage").resolve()
-OUTPUT_ROOT = (_base / "abooks_ready").resolve()
-ARCHIVE_ROOT = (_base / "abooks").resolve()
-CACHE_ROOT = (_base / ".cover_cache").resolve()
+DROP_ROOT = (_default_user_base() / "abooksinbox").resolve()
+STAGE_ROOT = (_default_user_base() / "_am_stage").resolve()
+OUTPUT_ROOT = (_default_user_base() / "abooks_ready").resolve()
+ARCHIVE_ROOT = (_default_user_base() / "abooks").resolve()
+CACHE_ROOT = (_default_user_base() / "am_cache").resolve()
 
 IGNORE_FILE = (DROP_ROOT / ".abook_ignore").resolve()
 COVER_NAME = "cover.jpg"
