@@ -1,107 +1,77 @@
-# Maintenance and versioning
+# Maintenance
 
-This document defines the **maintenance contract** for AudioMason starting with **v1.3.0**.
-Its purpose is to keep behavior stable, predictable, and auditable over time.
+This document covers operational and maintenance notes for AudioMason on Debian/Ubuntu.
 
----
+Installation steps are documented in:
+- README.md
+- docs/INSTALL.md
 
-## Stability contract
-
-- Documented behavior is treated as a **contract**.
-- Changes that alter documented behavior require a **new feature request** and a **minor or major version bump**.
-- Undocumented behavior must not be relied upon.
+System prerequisites and first-run notes:
+- docs/INSTALL-SYSTEM.md
 
 ---
 
-## Versioning policy (SemVer)
+## Upgrade
 
-AudioMason follows semantic versioning: MAJOR.MINOR.PATCH
+If installed via the signed APT repository:
 
-### PATCH (x.y.Z)
-Used for:
-- bug fixes that do NOT change documented behavior
-- internal refactors with identical observable behavior
-- documentation fixes and clarifications
-
-Requirements:
-- reproducible bug report
-- tests updated or added when applicable
-- no new configuration keys
-- no CLI behavior changes
-
-### MINOR (x.Y.0)
-Used for:
-- new features
-- new CLI flags or subcommands
-- new configuration keys
-- changes that extend documented behavior
-
-Requirements:
-- documentation update
-- feature request or design note
-- clear migration notes (if relevant)
-
-### MAJOR (X.0.0)
-Used for:
-- breaking changes
-- removal or renaming of CLI flags
-- changes to workflow phase contracts
-- changes to default filesystem layout
-
-Requirements:
-- explicit migration guide
-- clear announcement of breaking changes
+    sudo apt update
+    sudo apt upgrade audiomason
 
 ---
 
-## Configuration changes
+## Configuration management
 
-- `configuration.example.yaml` is the **single source of truth** for supported configuration keys.
-- If a key is not present there, it is not supported.
-- Adding or changing configuration keys requires at least a MINOR version bump.
+Main config file:
 
----
+- /etc/audiomason/config.yaml
 
-## CLI changes
+Recommended workflow:
+- keep paths stable
+- keep stage_root on reliable storage
+- treat archive_root as immutable output storage where practical
 
-- The CLI reference in `docs/CLI.md` is authoritative.
-- Adding flags or subcommands requires a MINOR version bump.
-- Removing or changing flags requires a MAJOR version bump.
-
----
-
-## Bug fixes
-
-A bug fix must:
-- preserve documented behavior
-- not introduce new prompts or side effects
-- not change default outcomes
-
-If a bug fix changes observable behavior, it is considered a feature change.
+Configuration reference:
+- docs/CONFIGURATION.md
 
 ---
 
-## Documentation
+## Filesystem hygiene
 
-- Documentation must be updated in the same release as behavior changes.
-- README is an overview and index.
-- Detailed contracts live in `docs/`.
+AudioMason works with three main areas:
+- drop_root: incoming sources
+- stage_root: temporary working area
+- output_root: final library (published)
+- archive_root: long-term archive (optional)
 
----
-
-## Release checklist
-
-Before tagging a release:
-- tests are green
-- README reflects current capabilities
-- docs/ are consistent with behavior
-- CHANGELOG.md is updated
+Recommended practices:
+- keep stage_root on fast storage
+- monitor free space (stage can temporarily grow during processing)
+- use stable mount points (avoid changing roots between runs)
 
 ---
 
-## Maintenance mode
+## Logs and debugging
 
-AudioMason is in **maintenance-first mode**:
-- stability over novelty
-- changes are deliberate and documented
-- regressions are treated as release blockers
+Prefer running with explicit logging controls as documented in:
+- docs/CLI.md
+
+If a run fails:
+- keep the source input intact
+- capture the full terminal output
+- provide the directory structure and a minimal reproduction if possible
+
+---
+
+## Repository and packaging (maintainers)
+
+Maintainer APT repository details:
+- docs/apt/README.md
+
+---
+
+## Related docs
+
+- docs/WORKFLOW.md
+- docs/PIPELINE.md
+- docs/COVERS.md
