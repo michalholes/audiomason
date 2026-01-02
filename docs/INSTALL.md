@@ -13,7 +13,7 @@ AudioMason is published via a signed APT repository.
 
 ### 1) Import repository signing key
 
-    curl -fsSL https://michalholes.github.io/audiomason/docs/docs/apt/audiomason.gpg.asc | sudo tee /etc/apt/trusted.gpg.d/audiomason.asc > /dev/null
+    curl -fsSL https://michalholes.github.io/audiomason/docs/apt/audiomason.gpg.asc | sudo tee /etc/apt/trusted.gpg.d/audiomason.asc > /dev/null
 
 ### 2) Add APT repository
 
