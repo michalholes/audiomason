@@ -8,7 +8,7 @@ def test_paths_default_are_paths():
     assert isinstance(paths.OUTPUT_ROOT, Path)
 
 def test_paths_override_env(tmp_path, monkeypatch):
-    monkeypatch.setenv("AUDIOMASON_ROOT", str(tmp_path))
+    monkeypatch.setenv("AUDIOMASON_DATA_ROOT", str(tmp_path))
     import audiomason.paths as paths
     importlib.reload(paths)
     assert paths.get_drop_root({}) == tmp_path / "abooksinbox"
@@ -16,7 +16,7 @@ def test_paths_override_env(tmp_path, monkeypatch):
     paths.validate_paths_contract({})
 
 def test_paths_cfg_outside_root_allowed_absolute(tmp_path, monkeypatch):
-    monkeypatch.setenv("AUDIOMASON_ROOT", str(tmp_path))
+    monkeypatch.setenv("AUDIOMASON_DATA_ROOT", str(tmp_path))
     import audiomason.paths as paths
     import importlib
     importlib.reload(paths)
