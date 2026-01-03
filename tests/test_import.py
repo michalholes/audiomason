@@ -77,7 +77,7 @@ def test_choose_all_sources_prompts_author_per_source(monkeypatch, tmp_path: Pat
         imp.run_import(cfg={})
 
         # Assert author prompt happened once per source (2 sources)
-        author_prompts = [c for c in prompt_calls if c[0] == '[source] Author']
+        author_prompts = [c for c in prompt_calls if str(c[0]).startswith('[source] Author')]
         assert len(author_prompts) == 2
         # Deterministic order: menu order (sorted by name.lower()) => Foo.Bar then Foo.Baz
         assert author_prompts[0][1] == 'Foo.Bar'
@@ -155,7 +155,7 @@ def test_clean_inbox_yes_deletes_processed_source(monkeypatch, tmp_path: Path):
 
     # Avoid any prompts; keep deterministic.
     monkeypatch.setattr(imp, 'prompt_yes_no', lambda *a, **k: False)
-    monkeypatch.setattr(imp, '_choose_books', lambda books, default_ans='1': [])
+    monkeypatch.setattr(imp, '_choose_books', lambda books, default_ans='1': books)
 
     old_opts = getattr(state, 'OPTS', None)
     try:

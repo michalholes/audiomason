@@ -1,0 +1,3 @@
+#!/bin/sh
+DIR="/home/pi/apps/audiomason"
+exec "$DIR/.venv/bin/python" -c "from audiomason.cli import main; raise SystemExit(main())" "$@"

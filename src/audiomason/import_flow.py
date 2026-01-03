@@ -706,7 +706,15 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             clean_stage = bool(dec.get("clean_stage"))
         else:
             clean_stage = prompt_yes_no("Clean stage after successful import?", default_no=(not default_clean))
-        update_manifest(stage_run, {"decisions": {"clean_stage": bool(clean_stage)}})
+
+        # FEATURE #65: decide inbox cleanup in PREPARE (prompt in preflight; action only on success)
+        preflight_clean_inbox = False
+        if clean_inbox_mode == 'yes':
+            preflight_clean_inbox = True
+        elif clean_inbox_mode == 'ask':
+            preflight_clean_inbox = prompt_yes_no("Clean inbox after successful import?", default_no=True)
+
+        update_manifest(stage_run, {"decisions": {"clean_stage": bool(clean_stage), "clean_inbox": bool(preflight_clean_inbox)}})
         dest_root = archive_root if publish else output_root
 
         # AUTHOR is per-source (not per-book)
@@ -956,11 +964,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             out(f"[ignore] added: {src.name}")
 
         # FEATURE #65: inbox cleanup control (delete processed inbox source under DROP_ROOT)
-        do_clean_inbox = False
-        if clean_inbox_mode == 'yes':
-            do_clean_inbox = True
-        elif clean_inbox_mode == 'ask':
-            do_clean_inbox = prompt_yes_no("Clean inbox after successful import?", default_no=True)
+        do_clean_inbox = bool(load_manifest(stage_run).get('decisions', {}).get('clean_inbox'))
 
         if do_clean_inbox:
             if state.OPTS and state.OPTS.dry_run:
