@@ -56,7 +56,7 @@ def _pf_prompt_yes_no(cfg: dict, key: str, question: str, *, default_no: bool) -
     # Disabled => behave like pressing Enter (use existing defaults).
     if _pf_disabled(cfg, key):
         ret = (not default_no)
-        if state.OPTS and getattr(state.OPTS, "debug", False):
+        if state.DEBUG:
             out(f"[TRACE] [preflight] disabled: {key} -> default: {'no' if default_no else 'yes'}")
         return ret
     return prompt_yes_no(question, default_no=default_no)
@@ -64,7 +64,7 @@ def _pf_prompt_yes_no(cfg: dict, key: str, question: str, *, default_no: bool) -
 def _pf_prompt(cfg: dict, key: str, question: str, default: str) -> str:
     # Disabled => behave like pressing Enter (use default argument).
     if _pf_disabled(cfg, key):
-        if state.OPTS and getattr(state.OPTS, "debug", False):
+        if state.DEBUG:
             out(f"[TRACE] [preflight] disabled: {key} -> default: {default}")
         return default
     return prompt(question, default)
