@@ -662,7 +662,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
         use_manifest_answers = False
         if reuse_stage:
             out("[stage] reuse")
-            use_manifest_answers = prompt_yes_no("[manifest] Use saved answers (skip prompts)?", default_no=False)
+            use_manifest_answers = _pf_prompt_yes_no(cfg, "use_manifest_answers", "[manifest] Use saved answers (skip prompts)?", default_no=False)
         else:
             if reuse_possible:
                 out("[stage] delete")
@@ -744,11 +744,11 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
         else:
             # honor CLI overrides
             if state.OPTS.publish is None:
-                publish = prompt_yes_no("Publish after import?", default_no=(not default_publish))
+                publish = _pf_prompt_yes_no(cfg, "publish", "Publish after import?", default_no=(not default_publish))
             else:
                 publish = bool(state.OPTS.publish)
             if state.OPTS.wipe_id3 is None:
-                wipe = prompt_yes_no("Full wipe ID3 tags before tagging?", default_no=(not default_wipe))
+                wipe = _pf_prompt_yes_no(cfg, "wipe_id3", "Full wipe ID3 tags before tagging?", default_no=(not default_wipe))
             else:
                 wipe = bool(state.OPTS.wipe_id3)
 
@@ -758,7 +758,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
         if reuse_stage and use_manifest_answers and isinstance(dec, dict) and ("clean_stage" in dec):
             clean_stage = bool(dec.get("clean_stage"))
         else:
-            clean_stage = prompt_yes_no("Clean stage after successful import?", default_no=(not default_clean))
+            clean_stage = _pf_prompt_yes_no(cfg, "clean_stage", "Clean stage after successful import?", default_no=(not default_clean))
 
         # FEATURE #65: decide inbox cleanup in PREPARE (prompt in preflight; action only on success)
         preflight_clean_inbox = False
