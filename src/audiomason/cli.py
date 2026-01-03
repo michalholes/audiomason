@@ -143,8 +143,22 @@ def main() -> int:
                 from audiomason.util import enable_trace
                 enable_trace()
                 out(f"[config] loaded_from={cfg.get('loaded_from','unknown')}")
+                print(f"[TRACE] [config] loaded_from={cfg.get('loaded_from','unknown')}", flush=True)
 
             state.OPTS = _ns_to_opts(ns)
+
+            # FEATURE #65: config default + debug print for clean_inbox
+            argv = list(sys.argv[1:])
+            argv_has_clean_inbox = ('--clean-inbox' in argv)
+            if not argv_has_clean_inbox:
+                cfg_mode = cfg.get('clean_inbox', 'no')
+                state.OPTS.clean_inbox_mode = str(cfg_mode)
+
+            if state.DEBUG:
+                # Guaranteed visibility (don’t rely on out()/trace prefixing)
+                print(f"[TRACE] [config] loaded_from={cfg.get('loaded_from','unknown')}", flush=True)
+                print(f"[TRACE] [config] argv_has_clean_inbox={argv_has_clean_inbox}", flush=True)
+                print(f"[TRACE] [config] clean_inbox_mode={state.OPTS.clean_inbox_mode}", flush=True)
 
             # FEATURE #65: enforce config default for --clean-inbox when flag not provided
             # (CLI always overrides config if user explicitly passes --clean-inbox)
