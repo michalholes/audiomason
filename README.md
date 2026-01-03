@@ -1,3 +1,6 @@
+<p align="center">
+  <img src="docs/assets/audiomason-logo.png" alt="AudioMason logo" width="200">
+</p>
 # AudioMason
 
 Deterministic, ASCII-only CLI tool for **importing, normalizing, tagging, and publishing audiobooks** from messy real-world sources.
