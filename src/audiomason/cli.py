@@ -135,6 +135,9 @@ def main() -> int:
             cfg = load_config(pre.config) if pre.config else load_config()
             validate_paths_contract(cfg)
             ns = _parse_args(cfg)
+            # FIX: preserve --config from pre-parse into main parse (do not fall back to /etc)
+            if getattr(pre, 'config', None):
+                ns.config = pre.config
 
             # DEBUG wiring must be active before any out()/trace output
             # FEATURE: debug flag should be argv-driven (parse_args can drop ns.debug)
