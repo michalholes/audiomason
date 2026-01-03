@@ -12,7 +12,57 @@ from typing import Optional
 import audiomason.state as state
 from audiomason.pipeline_steps import resolve_pipeline_steps
 from audiomason.paths import get_drop_root, get_stage_root, get_output_root, get_archive_root, ARCHIVE_EXTS
-from audiomason.util import out, die, ensure_dir, slug, prompt, prompt_yes_no
+from audiomason.util import out, die, ensure_dir, slug, prompt, prompt_yes_no, AmConfigError
+
+
+# FEATURE #67: disable selected preflight prompts (skip prompts deterministically)
+PREFLIGHT_DISABLE_KEYS = {
+    'publish',
+    'wipe_id3',
+    'clean_stage',
+    'clean_inbox',
+    'reuse_stage',
+    'use_manifest_answers',
+    'normalize_author',
+    'normalize_book_title',
+    'cover',
+}
+
+def _resolved_preflight_disable(cfg: dict) -> set[str]:
+    # Cache the resolved set on cfg to avoid repeated parsing.
+    cached = cfg.get('_preflight_disable_set')
+    if isinstance(cached, set):
+        return cached
+    raw = cfg.get('preflight_disable', [])
+    if raw is None:
+        raw = []
+    if not isinstance(raw, list):
+        raise AmConfigError('Invalid config: preflight_disable must be a list of keys')
+    out_set: set[str] = set()
+    for x in raw:
+        k = str(x).strip()
+        if not k:
+            continue
+        if k not in PREFLIGHT_DISABLE_KEYS:
+            raise AmConfigError(f'Invalid config: unknown preflight_disable key: {k}')
+        out_set.add(k)
+    cfg['_preflight_disable_set'] = out_set
+    return out_set
+
+def _pf_disabled(cfg: dict, key: str) -> bool:
+    return key in _resolved_preflight_disable(cfg)
+
+def _pf_prompt_yes_no(cfg: dict, key: str, question: str, *, default_no: bool) -> bool:
+    # Disabled => behave like pressing Enter (use existing defaults).
+    if _pf_disabled(cfg, key):
+        return (not default_no)
+    return prompt_yes_no(question, default_no=default_no)
+
+def _pf_prompt(cfg: dict, key: str, question: str, default: str) -> str:
+    # Disabled => behave like pressing Enter (use default argument).
+    if _pf_disabled(cfg, key):
+        return default
+    return prompt(question, default)
 from audiomason.ignore import load_ignore, add_ignore
 from audiomason.archives import unpack
 from audiomason.audio import convert_m4a_in_place
@@ -270,16 +320,16 @@ def _collect_audio_files(group_root: Path) -> list[Path]:
     return natural_sort(mp3s)
 
 
-def _preflight_global() -> tuple[bool, bool]:
+def _preflight_global(cfg: dict) -> tuple[bool, bool]:
     # publish (placeholder, but must be decided before processing)
     if state.OPTS.publish is None:
-        pub = prompt_yes_no("Publish after import?", default_no=True)
+        pub = _pf_prompt_yes_no(cfg, 'publish', "Publish after import?", default_no=True)
     else:
         pub = bool(state.OPTS.publish)
 
     # wipe ID3 decision
     if state.OPTS.wipe_id3 is None:
-        wipe = prompt_yes_no("Full wipe ID3 tags before tagging?", default_no=True)
+        wipe = _pf_prompt_yes_no(cfg, 'wipe_id3', "Full wipe ID3 tags before tagging?", default_no=True)
 
     else:
         wipe = bool(state.OPTS.wipe_id3)
@@ -287,14 +337,14 @@ def _preflight_global() -> tuple[bool, bool]:
     return (pub, wipe)
 
 
-def _preflight_book(i: int, n: int, b: BookGroup, default_title: str = "") -> str:
+def _preflight_book(cfg: dict, i: int, n: int, b: BookGroup, default_title: str = "") -> str:
     out(f"[book-meta] {i}/{n}: {b.label}")
     default_title = (default_title or (b.label if b.label != "__ROOT_AUDIO__" else "Untitled"))
     title = prompt(f"[book {i}/{n}] Book title", default_title).strip()
     nt = normalize_sentence(title)
     if nt != title:
         out(f"[name] book suggestion: '{title}' -> '{nt}'")
-        if prompt_yes_no("Apply suggested book title?", default_no=True):
+        if _pf_prompt_yes_no(cfg, 'normalize_book_title', "Apply suggested book title?", default_no=True):
             title = nt
 
     if not title:
@@ -531,6 +581,9 @@ def _stage_cover_from_raw(cfg: dict, raw: str, group_root: Path) -> Path | None:
 
 def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
     # validate pipeline_steps early (fail fast, before FS touch)
+    # validate preflight_disable early (fail fast, before FS touch)
+    _resolved_preflight_disable(cfg)
+
     steps = _resolved_pipeline_steps(cfg)
     if getattr(state, 'DEBUG', False):
         out(f"[debug] pipeline order: {' -> '.join(steps)}")
@@ -604,7 +657,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
         reuse_possible = bool(stage_src.exists() and mf.get("source", {}).get("fingerprint") == fp)
         reuse_stage = False
         if reuse_possible:
-            reuse_stage = prompt_yes_no("[stage] Reuse existing staged source?", default_no=False)
+            reuse_stage = _pf_prompt_yes_no(cfg, 'reuse_stage', "[stage] Reuse existing staged source?", default_no=False)
 
         use_manifest_answers = False
         if reuse_stage:
@@ -728,7 +781,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             na = normalize_name(author)
             if na != author:
                 out(f"[name] author suggestion: '{author}' -> '{na}'")
-                if prompt_yes_no("Apply suggested author name?", default_no=True):
+                if _pf_prompt_yes_no(cfg, 'normalize_author', "Apply suggested author name?", default_no=True):
                     author = na
 
             # OpenLibrary suggestion (author) — must run after final author decision
@@ -758,7 +811,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             if reuse_stage and use_manifest_answers and default_title:
                 title = default_title
             else:
-                title = _preflight_book(bi, len(picked_books), b, default_title=default_title)
+                title = _preflight_book(cfg, bi, len(picked_books), b, default_title=default_title)
 
                 # OpenLibrary suggestion (book title)
                 if getattr(getattr(state, 'OPTS', None), 'lookup', False):
@@ -811,7 +864,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                                 d = "1"
                             elif default_cover_mode == "skip":
                                 d = "s"
-                            ans = prompt("Choose cover [1/2/s/u]", d).strip().lower()
+                            ans = _pf_prompt(cfg, 'cover', "Choose cover [1/2/s/u]", d).strip().lower()
                             if ans == "1":
                                 cover_mode = "embedded"
                                 cover_src = "embedded"
@@ -838,7 +891,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                             # Only one detected => keep by default, allow override
                             if file_cover:
                                 out(f"Cover detected: {file_cover.name}")
-                                keep = prompt_yes_no("Use detected cover?", default_no=False)
+                                keep = _pf_prompt_yes_no(cfg, 'cover', "Use detected cover?", default_no=False)
                                 if keep:
                                     cover_mode = "file"
                                     cover_src = str(file_cover.name)
@@ -857,7 +910,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                                             cover_src = raw
                             else:
                                 out("Cover detected: embedded")
-                                keep = prompt_yes_no("Use embedded cover?", default_no=False)
+                                keep = _pf_prompt_yes_no(cfg, 'cover', "Use embedded cover?", default_no=False)
                                 if keep:
                                     cover_mode = "embedded"
                                     cover_src = "embedded"
@@ -876,7 +929,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                                             cover_src = raw
                     else:
                         # No detected cover => ask once
-                        raw = prompt("No cover found. URL or file path (Enter=skip)", "").strip()
+                        raw = _pf_prompt(cfg, 'cover', "No cover found. URL or file path (Enter=skip)", "").strip()
                         if not raw:
                             cover_mode = "skip"
                             cover_src = "skip"

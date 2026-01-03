@@ -12,6 +12,7 @@ DEFAULTS = {
     "split_chapters": True,
     "paths": {},
     "publish": "ask",
+    "preflight_disable": [],
     "version-banner": True,
     # FEATURE #65: inbox cleanup control (delete processed source under DROP_ROOT)
     # Default preserves current behavior: never delete inbox sources unless explicitly configured.

@@ -74,6 +74,14 @@ def _parse_args(cfg: Dict[str, Any] | None = None) -> argparse.Namespace:
     sub = ap.add_subparsers(dest="cmd")
     imp = sub.add_parser("import", help="import audiobooks from inbox", parents=[parent])
     imp.add_argument("path", nargs="?", type=Path, default=None, help="source path under DROP_ROOT")
+    # FEATURE #67: disable selected preflight prompts (repeatable, comma-separated)
+    imp.add_argument(
+        "--preflight-disable",
+        dest="preflight_disable",
+        action="append",
+        default=None,
+        help="disable selected preflight prompts (repeatable, comma-separated keys)",
+    )
 
     v = sub.add_parser("verify", help="verify audiobook library", parents=[parent])
     v.add_argument("root", nargs="?", type=Path, default=None)
@@ -221,6 +229,19 @@ def main() -> int:
                 out("[error] unknown cache subcommand")
                 return 2
 
+            # FEATURE #67: resolve preflight_disable (CLI overrides config)
+            _pd = getattr(ns, 'preflight_disable', None)
+            if _pd:
+                _items: list[str] = []
+                for _raw in _pd:
+                    for _part in str(_raw).split(','):
+                        _k = _part.strip()
+                        if _k:
+                            _items.append(_k)
+                cfg['preflight_disable'] = _items
+            else:
+                _d = cfg.get('preflight_disable', [])
+                cfg['preflight_disable'] = list(_d) if isinstance(_d, list) else []
             run_import(cfg, getattr(ns, "path", None))
             return 0
         except KeyboardInterrupt as e:
