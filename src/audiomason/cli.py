@@ -132,7 +132,17 @@ def main() -> int:
     try:
         try:
             pre = _parse_args({})
-            cfg = load_config(pre.config) if pre.config else load_config()
+            # FIX: resolve --config path from argv before load_config (do not fall back to /etc)
+            _argv_cfg = None
+            _argv = list(sys.argv[1:])
+            for _i, _a in enumerate(_argv):
+                if _a == '--config' and _i + 1 < len(_argv):
+                    _argv_cfg = Path(_argv[_i + 1])
+                    break
+                if _a.startswith('--config='):
+                    _argv_cfg = Path(_a.split('=', 1)[1])
+                    break
+            cfg = load_config(_argv_cfg) if _argv_cfg else load_config()
             validate_paths_contract(cfg)
             ns = _parse_args(cfg)
             # FIX: preserve --config from pre-parse into main parse (do not fall back to /etc)
