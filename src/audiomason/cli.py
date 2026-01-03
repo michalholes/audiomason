@@ -145,6 +145,16 @@ def main() -> int:
                 out(f"[config] loaded_from={cfg.get('loaded_from','unknown')}")
 
             state.OPTS = _ns_to_opts(ns)
+
+            # FEATURE #65: enforce config default for --clean-inbox when flag not provided
+            # (CLI always overrides config if user explicitly passes --clean-inbox)
+            argv = set(sys.argv[1:])
+            if '--clean-inbox' not in argv:
+                cfg_mode = cfg.get('clean_inbox', 'no')
+                state.OPTS.clean_inbox_mode = str(cfg_mode)
+
+            if state.DEBUG:
+                out(f"[config] clean_inbox_mode={state.OPTS.clean_inbox_mode}")
             if str(state.OPTS.verify_root) == "__AUDIOMASON_VERIFY_ROOT_UNSET__":
                 state.OPTS.verify_root = get_output_root(cfg)
 
