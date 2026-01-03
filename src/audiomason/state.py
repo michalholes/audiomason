@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from audiomason.version import __version__ as APP_VERSION
+
 DEBUG = False
 VERBOSE = False
 from dataclasses import dataclass

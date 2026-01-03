@@ -13,6 +13,11 @@ from audiomason.import_flow import run_import
 from audiomason.verify import verify_library
 from audiomason.paths import validate_paths_contract, get_output_root
 from audiomason.util import out, AmExit, AmAbort, AmConfigError
+
+
+def _version_kv_line() -> str:
+    # Stable, machine-readable version line (Feature #72)
+    return f"audiomason_version={__version__}"
 def _parent_parser(cfg: Dict[str, Any]) -> argparse.ArgumentParser:
     ffmpeg = cfg.get("ffmpeg", {}) if isinstance(cfg.get("ffmpeg", {}), dict) else {}
     paths = cfg.get("paths", {}) if isinstance(cfg.get("paths", {}), dict) else {}
@@ -94,7 +99,7 @@ def _parse_args(cfg: Dict[str, Any] | None = None) -> argparse.Namespace:
         ns.quiet = False
 
     if ns.version:
-        print(__version__)
+        print(_version_kv_line())
         raise SystemExit(0)
 
     if not ns.cmd:
@@ -161,6 +166,11 @@ def main() -> int:
                 print(f"[TRACE] [config] loaded_from={cfg.get('loaded_from','unknown')}", flush=True)
 
             state.OPTS = _ns_to_opts(ns)
+
+            # Feature #72: version banner (configurable via config.yaml: version-banner)
+            _vb = bool(cfg.get('version-banner', True))
+            if _vb and ((not state.OPTS.quiet) or bool(getattr(state.OPTS, 'json', False))):
+                print(_version_kv_line(), flush=True)
 
             # FEATURE #65: config default + debug print for clean_inbox
             argv = list(sys.argv[1:])

@@ -4,6 +4,7 @@ import os
 import yaml
 from audiomason.util import AmConfigError
 from audiomason.paths import require_audiomason_root
+from audiomason.version import __version__ as AM_VERSION
 
 DEFAULTS = {
     "pipeline_steps": None,
@@ -11,6 +12,7 @@ DEFAULTS = {
     "split_chapters": True,
     "paths": {},
     "publish": "ask",
+    "version-banner": True,
     # FEATURE #65: inbox cleanup control (delete processed source under DROP_ROOT)
     # Default preserves current behavior: never delete inbox sources unless explicitly configured.
     "clean_inbox": "no",  # ask | yes | no
@@ -83,5 +85,12 @@ def load_config(config_path: Path | None = None) -> dict:
 
     cfg = _deep_merge(DEFAULTS, _load_yaml(p))
     cfg['loaded_from'] = str(p)
+    # Feature #72: expose runtime version (single source of truth)
+    _rt = cfg.get('runtime', {})
+    if not isinstance(_rt, dict):
+        _rt = {}
+    _rt = dict(_rt)
+    _rt['version'] = AM_VERSION
+    cfg['runtime'] = _rt
     return cfg
 
