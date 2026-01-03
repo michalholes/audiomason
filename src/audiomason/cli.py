@@ -150,6 +150,11 @@ def main() -> int:
             cfg = load_config(_argv_cfg) if _argv_cfg else load_config()
             validate_paths_contract(cfg)
             ns = _parse_args(cfg)
+
+            # Guard: argparse subparser parsing can reset store_true flags to defaults.
+            # Recompute --json from argv so Feature #72 banner logic remains correct.
+            if "--json" in sys.argv[1:]:
+                setattr(ns, "json", True)
             # FIX: preserve --config from pre-parse into main parse (do not fall back to /etc)
             if getattr(pre, 'config', None):
                 ns.config = pre.config
