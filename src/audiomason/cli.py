@@ -38,6 +38,10 @@ def _parent_parser(cfg: Dict[str, Any]) -> argparse.ArgumentParser:
     if isinstance(publish_default, bool):
         publish_default = "yes" if publish_default else "no"
     pp.add_argument("--publish", choices=["yes", "no", "ask"], default=str(publish_default))
+
+    # FEATURE #65: inbox cleanup control (delete processed source under DROP_ROOT)
+    clean_inbox_default = cfg.get("clean_inbox", "no")
+    pp.add_argument("--clean-inbox", choices=["ask", "yes", "no"], default=str(clean_inbox_default))
     g = pp.add_mutually_exclusive_group()
     g.add_argument("--wipe-id3", dest="wipe_id3", action="store_true", default=None, help="full wipe ID3 tags before writing new tags")
     g.add_argument("--no-wipe-id3", dest="wipe_id3", action="store_false", help="do not wipe ID3 tags (default)")
@@ -116,6 +120,7 @@ def _ns_to_opts(ns: argparse.Namespace) -> Opts:
         verify_root=ns.verify_root,
         lookup=getattr(ns, "lookup", True),
         cleanup_stage=True,
+        clean_inbox_mode=str(getattr(ns, 'clean_inbox', 'no')),
         split_chapters=ns.split_chapters,
         ff_loglevel=ns.ff_loglevel,
         cpu_cores=getattr(ns, 'cpu_cores', None),

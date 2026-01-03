@@ -535,6 +535,13 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
     if getattr(state, 'DEBUG', False):
         out(f"[debug] pipeline order: {' -> '.join(steps)}")
 
+    # FEATURE #65: inbox cleanup control (delete processed source under DROP_ROOT)
+    clean_inbox_mode = str(getattr(getattr(state, 'OPTS', None), 'clean_inbox_mode', cfg.get('clean_inbox', 'no')))
+    if clean_inbox_mode not in {'ask', 'yes', 'no'}:
+        die(f"Invalid configuration: clean_inbox must be one of ask|yes|no, got: {clean_inbox_mode!r}")
+    if (state.OPTS and state.OPTS.yes) and clean_inbox_mode == 'ask':
+        die("Non-interactive run requires an explicit inbox cleanup decision: set --clean-inbox yes|no (or config clean_inbox: yes|no)")
+
     drop_root = get_drop_root(cfg)
     stage_root = get_stage_root(cfg)
     archive_root = get_archive_root(cfg)
@@ -584,7 +591,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             out("[source] skipped (ignored)")
             continue
 
-        stage_run = stage_root / slug(src.stem)
+        stage_run = stage_root / slug(src.name)
         stage_runs_for_json.append(stage_run)
         stage_src = stage_run / "src"
 
@@ -947,6 +954,23 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
         if not (state.OPTS and state.OPTS.dry_run):
             add_ignore(drop_root, src.name)
             out(f"[ignore] added: {src.name}")
+
+        # FEATURE #65: inbox cleanup control (delete processed inbox source under DROP_ROOT)
+        do_clean_inbox = False
+        if clean_inbox_mode == 'yes':
+            do_clean_inbox = True
+        elif clean_inbox_mode == 'ask':
+            do_clean_inbox = prompt_yes_no("Clean inbox after successful import?", default_no=True)
+
+        if do_clean_inbox:
+            if state.OPTS and state.OPTS.dry_run:
+                out(f"[inbox] would clean: {src}")
+            else:
+                if src.is_dir():
+                    shutil.rmtree(src, ignore_errors=True)
+                else:
+                    src.unlink(missing_ok=True)
+                out(f"[inbox] cleaned: {src}")
 
         # perform stage cleanup if requested and not dry-run
         dec2 = load_manifest(stage_run).get('decisions', {})

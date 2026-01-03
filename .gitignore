@@ -29,3 +29,9 @@ debian/files
 *.dsc
 *.tar.*
 logs_*.zip
+
+# Local deterministic patch scripts (per-issue)
+tools/patches/issue_*.py
+
+# Local deterministic patch scripts (per-issue)
+tools/patches/issue_*.py

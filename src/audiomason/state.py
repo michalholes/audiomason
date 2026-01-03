@@ -20,6 +20,7 @@ class Opts:
     verify_root: Path
     lookup: bool
     cleanup_stage: bool
+    clean_inbox_mode: str            # ask | yes | no
     split_chapters: bool
     ff_loglevel: str                 # warning | error | info
     cpu_cores: int | None
