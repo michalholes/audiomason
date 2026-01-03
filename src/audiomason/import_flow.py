@@ -765,7 +765,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
         if clean_inbox_mode == 'yes':
             preflight_clean_inbox = True
         elif clean_inbox_mode == 'ask':
-            preflight_clean_inbox = prompt_yes_no("Clean inbox after successful import?", default_no=True)
+            preflight_clean_inbox = _pf_prompt_yes_no(cfg, "clean_inbox", "Clean inbox after successful import?", default_no=True)
 
         update_manifest(stage_run, {"decisions": {"clean_stage": bool(clean_stage), "clean_inbox": bool(preflight_clean_inbox)}})
         dest_root = archive_root if publish else output_root
@@ -872,7 +872,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                                 cover_mode = "skip"
                                 cover_src = "skip"
                             elif ans == "u":
-                                raw = prompt("Cover URL or file path (Enter=skip)", "").strip()
+                                raw = _pf_prompt(cfg, "cover", "Cover URL or file path (Enter=skip)", "").strip()
                                 if not raw:
                                     cover_mode = "skip"
                                     cover_src = "skip"
@@ -896,7 +896,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                                     cover_mode = "file"
                                     cover_src = str(file_cover.name)
                                 else:
-                                    raw = prompt("Cover URL or file path (Enter=skip)", "").strip()
+                                    raw = _pf_prompt(cfg, "cover", "Cover URL or file path (Enter=skip)", "").strip()
                                     if not raw:
                                         cover_mode = "skip"
                                         cover_src = "skip"
@@ -915,7 +915,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                                     cover_mode = "embedded"
                                     cover_src = "embedded"
                                 else:
-                                    raw = prompt("Cover URL or file path (Enter=skip)", "").strip()
+                                    raw = _pf_prompt(cfg, "cover", "Cover URL or file path (Enter=skip)", "").strip()
                                     if not raw:
                                         cover_mode = "skip"
                                         cover_src = "skip"
