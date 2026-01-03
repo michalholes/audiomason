@@ -1,5 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
+import os
 import yaml
 from audiomason.util import AmConfigError
 from audiomason.paths import require_audiomason_root
@@ -44,14 +45,42 @@ def _load_yaml(p: Path) -> dict:
             raise AmConfigError(f"Invalid configuration root in {p}: expected mapping, got {type(data).__name__}")
         return data
 
-CONFIG_PATH = Path("/etc/audiomason/config.yaml")
+SYSTEM_CONFIG_PATH = Path("/etc/audiomason/config.yaml")
+def user_config_path() -> Path:
+    """Deterministic user-space config path (XDG preferred)."""
+    xdg = os.environ.get("XDG_CONFIG_HOME")
+    if xdg:
+        return Path(xdg) / "audiomason" / "config.yaml"
+    return Path.home() / ".config" / "audiomason" / "config.yaml"
+
 def load_config(config_path: Path | None = None) -> dict:
-    p = config_path or CONFIG_PATH
-    if not p.exists():
-        raise AmConfigError(
-            f"Config not found: {p}. "
-            "AudioMason requires /etc/audiomason/config.yaml"
-        )
+    tried: list[Path] = []
+
+    if config_path is not None:
+        p = config_path
+        tried.append(p)
+        if not p.exists():
+            raise AmConfigError(
+                f"Config not found: {p}. "
+                "Resolution order: --config, $XDG_CONFIG_HOME/audiomason/config.yaml (or ~/.config/audiomason/config.yaml), /etc/audiomason/config.yaml."
+            )
+    else:
+        up = user_config_path()
+        tried.append(up)
+        if up.exists():
+            p = up
+        else:
+            tried.append(SYSTEM_CONFIG_PATH)
+            if SYSTEM_CONFIG_PATH.exists():
+                p = SYSTEM_CONFIG_PATH
+            else:
+                tried_s = ", ".join(str(x) for x in tried)
+                raise AmConfigError(
+                    "Config not found. Tried (in order): " + tried_s + ". "
+                    "Provide --config or create a user-space config under $XDG_CONFIG_HOME/audiomason/config.yaml (or ~/.config/audiomason/config.yaml), "
+                    "or install /etc/audiomason/config.yaml."
+                )
+
     cfg = _deep_merge(DEFAULTS, _load_yaml(p))
     cfg['loaded_from'] = str(p)
     return cfg
