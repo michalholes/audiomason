@@ -137,7 +137,9 @@ def main() -> int:
             ns = _parse_args(cfg)
 
             # DEBUG wiring must be active before any out()/trace output
-            state.DEBUG = bool(getattr(ns, "debug", False))
+            # FEATURE: debug flag should be argv-driven (parse_args can drop ns.debug)
+            argv = set(sys.argv[1:])
+            state.DEBUG = ('--debug' in argv)
             state.VERBOSE = bool(getattr(ns, "verbose", False))
             if state.DEBUG:
                 from audiomason.util import enable_trace
