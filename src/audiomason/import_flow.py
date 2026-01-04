@@ -5,7 +5,7 @@ from audiomason.openlibrary import validate_author, validate_book
 from audiomason.naming import normalize_name, normalize_sentence
 
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
@@ -77,13 +77,17 @@ from audiomason.tags import wipe_id3, write_tags, write_cover, write_cover
 from audiomason.manifest import update_manifest, load_manifest, source_fingerprint
 _AUDIO_EXTS = {".mp3", ".m4a"}
 
+# Issue #75: prefix destination with source name when importing all sources ('a')
+_SOURCE_PREFIX: Optional[str] = None
+
 
 @dataclass(frozen=True)
 class BookGroup:
-    label: str          # "__ROOT_AUDIO__" or folder name
-    group_root: Path    # where to pull audio from (stage src root OR a subdir)
-    stage_root: Path    # stage src root (for cover search)
-    m4a_hint: Optional[Path]
+    label: str
+    group_root: Path        # directory containing audio (non-recursive)
+    stage_root: Path        # stage src root
+    rel_path: Path = field(default_factory=lambda: Path("."))
+    m4a_hint: Optional[Path] = None
 
 def _build_json_report(stage_runs: list[Path]) -> dict:
     # Deterministic: derived from manifest.json only
@@ -280,23 +284,42 @@ def _find_first_m4a(p: Path) -> Optional[Path]:
 
 
 def _detect_books(stage_src: Path) -> list[BookGroup]:
+    """
+    Book-root = any directory that directly contains mp3/m4a.
+    Each book consumes ONLY audio files directly in that directory (non-recursive).
+
+    Labels are relative paths from stage_src to keep them unique and stable.
+    """
     books: list[BookGroup] = []
 
-    # root audio => "__ROOT_AUDIO__"
-    if stage_src.exists() and stage_src.is_dir() and _has_audio_files_here(stage_src):
-        books.append(BookGroup("__ROOT_AUDIO__", stage_src, stage_src, _find_first_m4a(stage_src)))
+    # include stage_src itself in scan
+    dirs = [stage_src] + [p for p in stage_src.rglob("*") if p.is_dir()]
+    dirs = sorted(dirs, key=lambda x: x.relative_to(stage_src).as_posix().casefold())
 
-    # each top-level dir that contains any audio anywhere inside => book
-    for d in sorted([x for x in stage_src.iterdir() if x.is_dir()], key=lambda x: x.name.lower()):
-        has_any = any((f.is_file() and f.suffix.lower() in _AUDIO_EXTS) for f in d.rglob("*"))
-        if has_any:
-            books.append(BookGroup(d.name, d, stage_src, _find_first_m4a(d)))
+    for d in dirs:
+        has_direct = False
+        for f in d.iterdir():
+            if f.is_file() and f.suffix.lower() in _AUDIO_EXTS:
+                has_direct = True
+                break
+        if not has_direct:
+            continue
+
+        rel = d.relative_to(stage_src)
+        label = rel.as_posix() if rel.as_posix() != "." else "__ROOT_AUDIO__"
+        books.append(
+            BookGroup(
+                label=label,
+                group_root=d,
+                stage_root=stage_src,
+                rel_path=rel,
+                m4a_hint=_find_first_m4a(d),
+            )
+        )
 
     if not books:
-        die("No books found in source (no mp3/m4a in root or top-level subdirs)")
+        die("No books found in source (no mp3/m4a in any directory)")
     return books
-
-
 def _choose_books(books: list[BookGroup], default_ans: str = "1") -> list[BookGroup]:
     if len(books) == 1:
         return books
@@ -317,8 +340,9 @@ def _choose_books(books: list[BookGroup], default_ans: str = "1") -> list[BookGr
 
 
 def _collect_audio_files(group_root: Path) -> list[Path]:
-    mp3s = [p for p in group_root.rglob("*.mp3") if p.is_file()]
-    m4as = [p for p in group_root.rglob("*.m4a") if p.is_file()]
+    # Non-recursive: a book-root only owns audio directly inside it.
+    mp3s = [p for p in group_root.iterdir() if p.is_file() and p.suffix.lower() == ".mp3"]
+    m4as = [p for p in group_root.iterdir() if p.is_file() and p.suffix.lower() == ".m4a"]
     # NOTE: m4a should have been converted already; but keep mp3-only output deterministic.
     if not mp3s and not m4as:
         die(f"No audio found in selected book group: {group_root}")
@@ -372,9 +396,17 @@ def _next_available_title(author_dir: Path, title: str) -> str:
             return cand
         n += 1
 
-def _output_dir(archive_root: Path, author: str, title: str) -> Path:
-    # NO slug() in output paths; keep as user entered
-    return archive_root / author / title
+def _output_dir(dest_root: Path, source_prefix: Optional[str], rel_path: Path) -> Path:
+    """Issue #75 destination mapping.
+
+    - Single source: dest_root / rel_path
+    - All sources ('a'): dest_root / source_prefix / rel_path
+
+    rel_path is derived from Path.relative_to(stage_src), so traversal is not possible.
+    """
+    base = dest_root / source_prefix if source_prefix else dest_root
+    rel = Path("") if rel_path.as_posix() == "." else rel_path
+    return base / rel
 
 
 def _copy_audio_to_out_no_rename(group_root: Path, outdir: Path) -> list[Path]:
@@ -461,7 +493,7 @@ def _write_dry_run_summary(stage_run: Path, author: str, title: str, lines: list
 def _process_book(i: int, n: int, b: BookGroup, stage_run: Path, dest_root: Path, author: str, title: str, out_title: str, wipe: bool, cover_mode: str, overwrite: bool, cfg: dict, steps: list[str]) -> None:
     out(f"[book] {i}/{n}: {b.label}")
 
-    outdir = _output_dir(dest_root, author, out_title)
+    outdir = _output_dir(dest_root, _SOURCE_PREFIX, b.rel_path)
     if _is_dir_nonempty(outdir):
         if overwrite:
             if state.OPTS and state.OPTS.dry_run:
@@ -628,6 +660,9 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
 
     for si, src in enumerate(picked_sources, 1):
         out(f"[source] {si}/{len(picked_sources)}: {src.name}")
+
+        global _SOURCE_PREFIX
+        _SOURCE_PREFIX = (src.name if len(picked_sources) > 1 else None)
 
         import unicodedata
 
@@ -946,7 +981,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                             else:
                                 cover_mode = "file"
                                 cover_src = raw
-# ISSUE #1: destination conflict handling (prompt overwrite, else fallback to abooks_ready, else offer new folder)
+# ISSUE #1: destination conflict handling (fixed mapping for Issue #75)
             bm_entry = (bm.get(b.label, {}) if isinstance(bm, dict) else {})
             if reuse_stage and use_manifest_answers:
                 m_overwrite = bool(bm_entry.get("overwrite") is True)
@@ -966,10 +1001,9 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             out_title = m_out_title or title
             overwrite = m_overwrite
 
-            # compute candidate outdir
-            outdir = _output_dir(dest_root2, author, out_title)
+            outdir = _output_dir(dest_root2, _SOURCE_PREFIX, b.rel_path)
             if _is_dir_nonempty(outdir) and not (reuse_stage and use_manifest_answers):
-                # conflict: 1) offer overwrite
+                # 1) offer overwrite (interactive only)
                 if not (state.OPTS and state.OPTS.yes):
                     out(f"[dest] exists: {outdir}")
                     overwrite = prompt_yes_no("Destination exists. Overwrite?", default_no=True)
@@ -980,21 +1014,13 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     # 2) fallback to abooks_ready if we are not already there
                     if dest_root2 != output_root:
                         dest_root2 = output_root
-                        outdir = _output_dir(dest_root2, author, out_title)
+                        outdir = _output_dir(dest_root2, _SOURCE_PREFIX, b.rel_path)
 
-                    # 3) if still conflict, offer new folder (interactive), else deterministic next available title
+                    # 3) if still conflict => fail (structure is fixed; no auto-new folder)
                     if _is_dir_nonempty(outdir):
-                        if not (state.OPTS and state.OPTS.yes):
-                            out(f"[dest] exists in abooks_ready: {outdir}")
-                            mk_new = prompt_yes_no("Create new destination folder?", default_no=False)
-                            if mk_new:
-                                author_dir = _output_dir(dest_root2, author, "").parent
-                                out_title = _next_available_title(author_dir, title)
-                        else:
-                            # non-interactive: deterministic new folder name
-                            author_dir = _output_dir(dest_root2, author, "").parent
-                            out_title = _next_available_title(author_dir, title)
+                        die(f"Conflict: output already exists and is not empty: {outdir}")
 
+    # persist
             # persist
             dest_kind = "archive" if dest_root2 == archive_root else "output"
             meta.append((b, title, cover_mode, dest_root2, out_title, overwrite))
