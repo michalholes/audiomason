@@ -1,4 +1,4 @@
-# 🧭 AudioMason – AUTHORITATIVE HANDOFF / AI CONTRACT (v4)
+# 🧭 AudioMason – AUTHORITATIVE HANDOFF / AI CONTRACT (v5)
 
 TENTO DOKUMENT JE AUTHORITATIVE PRE PRACU NA PROJEKTE AudioMason.
 PLATI PRE VSETKY IMPLEMENTACNE CHATY, AK ISSUE HANDOFF NEPOVIE INAK.
@@ -6,6 +6,21 @@ AK JE ROZPOR: EXPLICITNY ISSUE HANDOFF MA PREDNOST, INAK PLATI TENTO CONTRACT.
 
 Komunikacia: slovensky (ak nepovies inak).
 Kod/prikazy: vzdy v code blockoch.
+
+---
+
+## 0) Povinny zaciatok KAZDEHO handoffu (DOSLOVNE)
+
+KAZDY novy issue chat MUSI zacat tymto blokom (doslovne):
+
+```text
+AUTHORITATIVE: Tento handoff sa riadi pravidlami v HANDOFF_CONTRACT.md ulozenom v Project Files.
+V pripade konfliktu ma HANDOFF_CONTRACT.md absolutnu prednost.
+```
+
+- Ziadny handoff bez tohto bloku.
+- Ziadna parafraza.
+- Ziadne vynimky.
 
 ---
 
@@ -20,99 +35,113 @@ deactivate
 
 ---
 
-## 2) Scope a styl prace
+## 2) Scope a styl prace (STRICT)
 
 - Implementovat iba to, co je explicitne pozadovane v handoffe.
 - ❌ Ziadne refaktory mimo nutneho zasahu.
 - ❌ Ziadne "bonus" zmeny.
-- ❌ Ziadne manualne edit kroky.
+- ❌ Ziadne manualne edit pokyny.
 - ❌ Ziadne partial fixes.
+- ❌ Ziadne shell hacky (sed/awk inline prepisy, one-off piped transforms, fragile in-place edits).
+- Minimalny zasah, ktory splni acceptance criteria.
 
 ---
 
 ## 3) Authoritative files (FAIL FAST)
 
-- Vlozeny / uploadnuty subor je AUTHORITATIVE.
+- Ak pouzivatel vlozi / uploadne subor alebo snippet, je to AUTHORITATIVE pravda.
+- Repo stav / pamat / odhady su irelevantne, ak je k dispozicii AUTHORITATIVE subor.
 - Ak chyba potrebny subor → FAIL FAST a vyziadat ho.
 - Nehadat, nevymyslat kod.
 
 ---
 
-## 4) Patchovanie (NEVYJEDNAVATELNE)
+## 4) Patchovanie (KRITICKE, NEVYJEDNAVATELNE)
 
-### 4.1 Povolený format
+### 4.1 Povolený sposob zmien
 
-- ❌ NO diff patches
-- ❌ NO heredoc pre patch kod
-- ❌ NO inline manualne edit pokyny
-- ✅ IBA deterministicky Python patch skript:
+- ❌ Ziadne diff patches
+- ❌ Ziadne heredoc pre patch kod (<<EOF, <<PY)
+- ❌ Ziadne manualne edit pokyny
+- ❌ Ziadne shell hacky
+- ✅ JEDINY povoleny sposob: deterministicky Python patch skript
 
-```
-/home/pi/apps/patches/issue_<N>.py
-```
-
-### 4.2 Patch skript MUST
+### 4.2 Vlastnosti patch skriptu (MUST)
 
 - anchor checks
-- idempotency
+- idempotentny
 - fail-fast
 - post-edit assertions
 
-### 4.3 Jeden issue = jeden patch skript
+### 4.3 Umiestnenie patchov (MANDATORY)
 
-- Presne 1 skript: `/home/pi/apps/patches/issue_<N>.py`
+- Patch skripty sa ukladaju do: `/home/pi/apps/patches`
+- Patch skripty sa spustaju vzdy odtial.
+- Jeden issue = jeden skript: `/home/pi/apps/patches/issue_<N>.py`
 
-### 4.4 Miesto a spustanie patchov (MANDATORY)
-
-- Patch skripty sa **UKLADAJU** do:
-  `/home/pi/apps/patches`
-- Patch skripty sa **SPUSTAJU VZDY ODTIAL**.
-- Nevykonavat patch z inej cesty.
-
-### 4.5 Distribucia patchov
+### 4.4 Distribucia patchov
 
 - Patch skripty sa dodavaju ako DOWNLOAD.
 - Inline patch iba na vyslovnu ziadost pouzivatela.
 
-### 4.6 Po uspechu
+### 4.5 Po uspechu
 
 - Patch skript sa po uspechu MUSI zmazat:
-  `rm /home/pi/apps/patches/issue_<N>.py`
-
----
-
-## 5) Testy a git bezpecnost (INVARIANT)
-
-### 5.1 Invariant
-
-- Ziadny git add/commit/push pred uspesnymi testami.
-- Pred KAZDYM push MUSI byt `python -m pytest -q &&`.
-
-### 5.2 Kanonicka sekvencia (POVINNA)
 
 ```sh
-python /home/pi/apps/patches/issue_<N>.py rm /home/pi/apps/patches/issue_<N>.py python -m pytest -q && git add -A && git commit -m "<message>" && python -m pytest -q && git push
+rm /home/pi/apps/patches/issue_<N>.py
 ```
 
 ---
 
-## 6) GitHub issues
+## 5) Git workflow (STRICT)
 
-- Issue sa NIKDY nezatvara automaticky.
-- Zatvaranie vyhradne po schvaleni pouzivatela.
-- Closing comment MUSI obsahovat commit SHA(cka).
+### 5.1 Zakladne pravidla
 
-Helper:
+- Vsetky prikazy (patch + test + git) sa posielaju v jednom code blocku.
+- Commit message je povinna a musi byt explicitna.
+- Commit message MUSI mat prefix: `Feat:`, `Fix:` alebo `Chore:`.
+
+### 5.2 Test gate (NEPRESTRELITELNE)
+
+- Ziadny `git add`, `git commit` ani `git push` NESMIE prebehnut, pokial nepresli testy.
+- Pred KAZDYM `git push` MUSI byt `python -m pytest -q &&` (push nikdy bez testov).
+
+### 5.3 Kanonicka sekvencia (POVINNA)
 
 ```sh
-cd /home/pi/apps/audiomason && . .venv/bin/activate && git log --oneline -10 && echo && echo "Skopiruj sem SHA(cka) z hore uvedeneho logu, ktore patria k #<ISSUE>, potom spusti tento prikaz:" && echo && echo "gh issue close <ISSUE> -R michalholes/audiomason -c \"Resolved: <summary>.\n\nCommits:\n- <SHA1> <subject>\n- <SHA2> <subject>\"" && deactivate
+python /home/pi/apps/patches/issue_<N>.py rm /home/pi/apps/patches/issue_<N>.py python -m pytest -q && git add -A && git commit -m "<EXPLICIT MESSAGE>" && python -m pytest -q && git push
 ```
 
 ---
 
-## 7) Release safety
+## 6) Issue management (GH CLI ONLY)
 
-Pri zmene verzie / pyproject.toml vzdy:
+### 6.1 Otvaranie / uprava issues
+
+- Vyhradne cez `gh`.
+- Dlhe texty: vyhradne cez `-F <file>` (ziadne heredoc).
+  - Priklad: `gh issue create -R michalholes/audiomason -F /path/to/body.md`
+  - Priklad: `gh issue edit <N> -R michalholes/audiomason -F /path/to/body.md`
+
+### 6.2 UZATVARANIE ISSUES (EXTRÉMNE STRIKTNE)
+
+- ❌ ziadne auto-close
+- ❌ ziadne uzatvorenie bez schvalenia pouzivatela
+- ❌ ziadne "myslim, ze toto su commity"
+- SHA vybera VYHRADNE pouzivatel na zaklade `git log --oneline`.
+
+Povinny vzor uzatvarania:
+
+```sh
+cd /home/pi/apps/audiomason && . .venv/bin/activate && git log --oneline -10 && echo && echo "Skopiruj sem SHA(cka) z hore uvedeneho logu, ktore patria k #<ISSUE>, potom spusti tento prikaz:" && echo && echo "gh issue close <ISSUE> -R michalholes/audiomason -c \"Resolved: <short summary>.\n\nCommits:\n- <SHA1> <subject>\n- <SHA2> <subject>\"" && deactivate
+```
+
+---
+
+## 7) Verzie & pyproject.toml (POVINNE)
+
+Po KAZDOM bumpnuti verzie alebo zasahu do `pyproject.toml` je POVINNE v dev prostredi:
 
 ```sh
 . .venv/bin/activate
@@ -121,13 +150,31 @@ pip install -e .
 deactivate
 ```
 
+Dovod: `importlib.metadata.version("audiomason")` musi reflektovat realitu.
+
 ---
 
-## 8) Postup v chate
+## 8) Beta / release pravidla (STRICT)
 
-1. Potvrdit handoff.
-2. Vyziadat authoritative subory.
-3. FAIL FAST, ak nieco chyba.
-4. Dodat patch ako download.
-5. Dodat jeden code block s workflow.
-6. STOP (issue nezatvarat).
+- Beta cislo (betaX) sa NEZVYSUJE automaticky.
+- Zvysenie verzie je len po rozhodnuti pouzivatela.
+- Release workflow je striktne oddeleny od feature prace (nespajat do jedneho "nahodneho" patchu).
+
+---
+
+## 9) Komunikacia (HARD RULES)
+
+- Slovencina (ak pouzivatel vyslovne nepoziada inak).
+- Tento projekt = implementacny.
+- Ziadna teoria, ziadne eseje.
+- Kratke, chirurgicke odpovede.
+- Vsetko deterministicke.
+
+---
+
+## 10) Notices (ak sa pisu)
+
+Ak pouzivatel ziada "published notices":
+- pisat po anglicky
+- pouzivat straight apostrophes
+- davat do code blocku
