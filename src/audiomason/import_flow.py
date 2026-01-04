@@ -283,43 +283,38 @@ def _find_first_m4a(p: Path) -> Optional[Path]:
     return None
 
 
+# [issue_75] _detect_books
 def _detect_books(stage_src: Path) -> list[BookGroup]:
-    """
-    Book-root = any directory that directly contains mp3/m4a.
-    Each book consumes ONLY audio files directly in that directory (non-recursive).
-
-    Labels are relative paths from stage_src to keep them unique and stable.
-    """
     books: list[BookGroup] = []
 
-    # include stage_src itself in scan
-    dirs = [stage_src] + [p for p in stage_src.rglob("*") if p.is_dir()]
-    dirs = sorted(dirs, key=lambda x: x.relative_to(stage_src).as_posix().casefold())
+    if not (stage_src.exists() and stage_src.is_dir()):
+        die(f"Source is not a directory: {stage_src}")
 
-    for d in dirs:
-        has_direct = False
-        for f in d.iterdir():
-            if f.is_file() and f.suffix.lower() in _AUDIO_EXTS:
-                has_direct = True
-                break
-        if not has_direct:
-            continue
+    pairs: list[tuple[str, Path]] = []
 
-        rel = d.relative_to(stage_src)
-        label = rel.as_posix() if rel.as_posix() != "." else "__ROOT_AUDIO__"
-        books.append(
-            BookGroup(
-                label=label,
-                group_root=d,
-                stage_root=stage_src,
-                rel_path=rel,
-                m4a_hint=_find_first_m4a(d),
-            )
-        )
+    # Root audio => '__ROOT_AUDIO__' (and still include nested books)
+    if _has_audio_files_here(stage_src):
+        pairs.append(("__ROOT_AUDIO__", stage_src))
+
+    def visit(d: Path, rel: Path) -> None:
+        if d != stage_src and _has_audio_files_here(d):
+            pairs.append((rel.as_posix(), d))
+        subdirs = sorted([x for x in d.iterdir() if x.is_dir()], key=lambda p: p.name.casefold())
+        for sd in subdirs:
+            visit(sd, rel / sd.name)
+
+    for top in sorted([x for x in stage_src.iterdir() if x.is_dir()], key=lambda p: p.name.casefold()):
+        visit(top, Path(top.name))
+
+    for rel_s, root in sorted(pairs, key=lambda t: t[0].casefold()):
+        label = rel_s
+        rp = Path('.') if rel_s == '__ROOT_AUDIO__' else Path(rel_s)
+        books.append(BookGroup(label=label, group_root=root, stage_root=stage_src, m4a_hint=_find_first_m4a(root), rel_path=rp))
 
     if not books:
         die("No books found in source (no mp3/m4a in any directory)")
     return books
+
 def _choose_books(books: list[BookGroup], default_ans: str = "1") -> list[BookGroup]:
     if len(books) == 1:
         return books
@@ -339,15 +334,11 @@ def _choose_books(books: list[BookGroup], default_ans: str = "1") -> list[BookGr
     return []
 
 
+# [issue_75] _collect_audio_files
 def _collect_audio_files(group_root: Path) -> list[Path]:
-    # Non-recursive: a book-root only owns audio directly inside it.
-    mp3s = [p for p in group_root.iterdir() if p.is_file() and p.suffix.lower() == ".mp3"]
-    m4as = [p for p in group_root.iterdir() if p.is_file() and p.suffix.lower() == ".m4a"]
-    # NOTE: m4a should have been converted already; but keep mp3-only output deterministic.
-    if not mp3s and not m4as:
-        die(f"No audio found in selected book group: {group_root}")
-    return natural_sort(mp3s)
-
+    mp3s = sorted([p for p in group_root.iterdir() if p.is_file() and p.suffix.lower() == ".mp3"], key=lambda p: p.name.casefold())
+    m4as = sorted([p for p in group_root.iterdir() if p.is_file() and p.suffix.lower() == ".m4a"], key=lambda p: p.name.casefold())
+    return mp3s + m4as
 
 def _preflight_global(cfg: dict) -> tuple[bool, bool]:
     # publish (placeholder, but must be decided before processing)
@@ -396,18 +387,26 @@ def _next_available_title(author_dir: Path, title: str) -> str:
             return cand
         n += 1
 
-def _output_dir(dest_root: Path, source_prefix: Optional[str], rel_path: Path) -> Path:
-    """Issue #75 destination mapping.
+# [issue_75] _output_dir
+# [issue_75_v4] _output_dir
+def _output_dir(archive_root: Path, author: str, title: str) -> Path:
+    # Strict mapping: archive_root / author / title
+    if author is None or title is None:
+        die("Empty author/title (refusing to construct output path)")
 
-    - Single source: dest_root / rel_path
-    - All sources ('a'): dest_root / source_prefix / rel_path
+    author_s = str(author)
+    title_s = str(title)
 
-    rel_path is derived from Path.relative_to(stage_src), so traversal is not possible.
-    """
-    base = dest_root / source_prefix if source_prefix else dest_root
-    rel = Path("") if rel_path.as_posix() == "." else rel_path
-    return base / rel
+    if not author_s.strip() or not title_s.strip():
+        die("Empty author/title (refusing to construct output path)")
 
+    # Guard against separators / traversal.
+    if "/" in author_s or "\\" in author_s or author_s in {".", ".."}:
+        die(f"Invalid author for output path: {author_s!r}")
+    if "/" in title_s or "\\" in title_s or title_s in {".", ".."}:
+        die(f"Invalid title for output path: {title_s!r}")
+
+    return archive_root / author_s / title_s
 
 def _copy_audio_to_out_no_rename(group_root: Path, outdir: Path) -> list[Path]:
     ensure_dir(outdir)
@@ -493,7 +492,7 @@ def _write_dry_run_summary(stage_run: Path, author: str, title: str, lines: list
 def _process_book(i: int, n: int, b: BookGroup, stage_run: Path, dest_root: Path, author: str, title: str, out_title: str, wipe: bool, cover_mode: str, overwrite: bool, cfg: dict, steps: list[str]) -> None:
     out(f"[book] {i}/{n}: {b.label}")
 
-    outdir = _output_dir(dest_root, _SOURCE_PREFIX, b.rel_path)
+    outdir = _output_dir(dest_root, author, out_title)
     if _is_dir_nonempty(outdir):
         if overwrite:
             if state.OPTS and state.OPTS.dry_run:
@@ -1001,7 +1000,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             out_title = m_out_title or title
             overwrite = m_overwrite
 
-            outdir = _output_dir(dest_root2, _SOURCE_PREFIX, b.rel_path)
+            outdir = _output_dir(dest_root2, author, out_title)
             if _is_dir_nonempty(outdir) and not (reuse_stage and use_manifest_answers):
                 # 1) offer overwrite (interactive only)
                 if not (state.OPTS and state.OPTS.yes):
@@ -1014,7 +1013,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     # 2) fallback to abooks_ready if we are not already there
                     if dest_root2 != output_root:
                         dest_root2 = output_root
-                        outdir = _output_dir(dest_root2, _SOURCE_PREFIX, b.rel_path)
+                        outdir = _output_dir(dest_root2, author, out_title)
 
                     # 3) if still conflict => fail (structure is fixed; no auto-new folder)
                     if _is_dir_nonempty(outdir):
