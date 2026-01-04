@@ -1,10 +1,10 @@
-# 🧭 AudioMason – AUTHORITATIVE HANDOFF / AI CONTRACT (v3)
+# 🧭 AudioMason – AUTHORITATIVE HANDOFF / AI CONTRACT (v4)
 
-TENTO DOKUMENT JE AUTHORITATIVE PRE PRACU NA PROJEKTE AudioMason.  
-PLATI PRE VSETKY IMPLEMENTACNE CHATY, AK ISSUE HANDOFF NEPOVIE INAK.  
+TENTO DOKUMENT JE AUTHORITATIVE PRE PRACU NA PROJEKTE AudioMason.
+PLATI PRE VSETKY IMPLEMENTACNE CHATY, AK ISSUE HANDOFF NEPOVIE INAK.
 AK JE ROZPOR: EXPLICITNY ISSUE HANDOFF MA PREDNOST, INAK PLATI TENTO CONTRACT.
 
-Komunikacia: slovensky (ak nepovies inak).  
+Komunikacia: slovensky (ak nepovies inak).
 Kod/prikazy: vzdy v code blockoch.
 
 ---
@@ -25,18 +25,16 @@ deactivate
 - Implementovat iba to, co je explicitne pozadovane v handoffe.
 - ❌ Ziadne refaktory mimo nutneho zasahu.
 - ❌ Ziadne "bonus" zmeny.
-- ❌ Ziadne manualne edit kroky typu "otvor subor a zmen X".
+- ❌ Ziadne manualne edit kroky.
 - ❌ Ziadne partial fixes.
-- Minimalny zasah, ktory splni acceptance criteria.
 
 ---
 
 ## 3) Authoritative files (FAIL FAST)
 
-- Ak pouzivatel vlozi alebo uploadne subor/snippet, je AUTHORITATIVE (ma prednost pred repo stavom).
-- Ak spravne riesenie zavisi od suboru, ktory nebol poskytnuty:
-  - **FAIL FAST** a vyziadat si ho
-  - nehadat / nevymyslat kod
+- Vlozeny / uploadnuty subor je AUTHORITATIVE.
+- Ak chyba potrebny subor → FAIL FAST a vyziadat ho.
+- Nehadat, nevymyslat kod.
 
 ---
 
@@ -49,32 +47,37 @@ deactivate
 - ❌ NO inline manualne edit pokyny
 - ✅ IBA deterministicky Python patch skript:
 
-`tools/patches/issue_<N>.py`
+```
+/home/pi/apps/patches/issue_<N>.py
+```
 
 ### 4.2 Patch skript MUST
 
-- anchor checks (overit kontext pred editom)
-- idempotency (bezpecne opakovane spustenie)
-- fail-fast s jasnou chybou
-- post-edit assertions (overit, ze zmena existuje)
+- anchor checks
+- idempotency
+- fail-fast
+- post-edit assertions
 
 ### 4.3 Jeden issue = jeden patch skript
 
-- Presne 1 skript: `tools/patches/issue_<N>.py`
+- Presne 1 skript: `/home/pi/apps/patches/issue_<N>.py`
 
-### 4.4 Distribucia patchov (preferencia)
+### 4.4 Miesto a spustanie patchov (MANDATORY)
 
-- Patch skripty sa maju dodavat ako DOWNLOAD.
-- Ak download nie je dostupny v danom prostredi:
-  - patch sa poskytne v chate iba na vyslovnu ziadost pouzivatela.
+- Patch skripty sa **UKLADAJU** do:
+  `/home/pi/apps/patches`
+- Patch skripty sa **SPUSTAJU VZDY ODTIAL**.
+- Nevykonavat patch z inej cesty.
 
-### 4.5 Po uspechu
+### 4.5 Distribucia patchov
 
-- Po uspesnom patchnuti a uspesnych testoch sa patch skript MUSI zmazat:
+- Patch skripty sa dodavaju ako DOWNLOAD.
+- Inline patch iba na vyslovnu ziadost pouzivatela.
 
-```sh
-rm tools/patches/issue_<N>.py
-```
+### 4.6 Po uspechu
+
+- Patch skript sa po uspechu MUSI zmazat:
+  `rm /home/pi/apps/patches/issue_<N>.py`
 
 ---
 
@@ -82,50 +85,34 @@ rm tools/patches/issue_<N>.py
 
 ### 5.1 Invariant
 
-- Ziadny `git add`, `git commit` ani `git push` NESMIE prebehnut, pokial nepresli testy.
-- Pred KAZDYM `git push` MUSI byt `python -m pytest -q &&` v tej istej retazi.
+- Ziadny git add/commit/push pred uspesnymi testami.
+- Pred KAZDYM push MUSI byt `python -m pytest -q &&`.
 
 ### 5.2 Kanonicka sekvencia (POVINNA)
 
-Vsetko vzdy v jednom code blocku:
-
 ```sh
-python tools/patches/issue_<N>.py rm tools/patches/issue_<N>.py  python -m pytest -q && git add -A && git commit -m "<message>" && python -m pytest -q && git push
+python /home/pi/apps/patches/issue_<N>.py rm /home/pi/apps/patches/issue_<N>.py python -m pytest -q && git add -A && git commit -m "<message>" && python -m pytest -q && git push
 ```
 
 ---
 
-## 6) GitHub issues (STRICT)
+## 6) GitHub issues
 
-### 6.1 Opening issues
+- Issue sa NIKDY nezatvara automaticky.
+- Zatvaranie vyhradne po schvaleni pouzivatela.
+- Closing comment MUSI obsahovat commit SHA(cka).
 
-- Otvaranie issue vyhradne cez `gh`.
-- Pre dlhe bodies preferuj:
-  - `gh issue create/edit -F - <<'EOF' ... EOF`
-  - (Vynimka: heredoc je zakazany pre PATCH kod, nie pre `gh` body.)
-
-### 6.2 Closing issues
-
-- ❌ Nikdy nezatvarat issue automaticky.
-- ❌ Nikdy nezatvarat issue v patch skripte.
-- Po push: ZASTAVIT a cakat na explicitne schvalenie pouzivatela.
-- Closing comment MUSI obsahovat commit SHA(cka) + subject(y).
-
-### 6.3 Povinny helper na closing (template)
+Helper:
 
 ```sh
-cd /home/pi/apps/audiomason && . .venv/bin/activate && git log --oneline -10 && echo && echo "Skopiruj sem SHA(cka) z hore uvedeneho logu, ktore patria k #<ISSUE>, potom spusti tento prikaz:" && echo && echo "gh issue close <ISSUE> -R michalholes/audiomason -c "Resolved: <short summary>.
-
-Commits:
-- <SHA1> <subject>
-- <SHA2> <subject>"" && deactivate
+cd /home/pi/apps/audiomason && . .venv/bin/activate && git log --oneline -10 && echo && echo "Skopiruj sem SHA(cka) z hore uvedeneho logu, ktore patria k #<ISSUE>, potom spusti tento prikaz:" && echo && echo "gh issue close <ISSUE> -R michalholes/audiomason -c \"Resolved: <summary>.\n\nCommits:\n- <SHA1> <subject>\n- <SHA2> <subject>\"" && deactivate
 ```
 
 ---
 
-## 7) Release / version bump safety
+## 7) Release safety
 
-Ak sa meni verzia alebo `pyproject.toml`, po zmene vzdy spravit dev reinstall:
+Pri zmene verzie / pyproject.toml vzdy:
 
 ```sh
 . .venv/bin/activate
@@ -136,19 +123,11 @@ deactivate
 
 ---
 
-## 8) Notices (ak sa pisu)
+## 8) Postup v chate
 
-Ak pouzivatel ziada "published notices":
-- pisat po anglicky
-- pouzivat straight apostrophes
-- davat do code blocku
-
----
-
-## 9) Ocakavany postup v chate
-
-1. Potvrdit handoff/contract (slovensky).
-2. Zoznam potrebnych authoritative suborov; ak chybaju -> FAIL FAST.
-3. Dodat patch ako download (ak mozne).
-4. Dodat jeden code block s kanonickou sekvenciou.
-5. Po push STOP (issue nezatvarat).
+1. Potvrdit handoff.
+2. Vyziadat authoritative subory.
+3. FAIL FAST, ak nieco chyba.
+4. Dodat patch ako download.
+5. Dodat jeden code block s workflow.
+6. STOP (issue nezatvarat).
