@@ -7,10 +7,6 @@ def _mk(p: Path) -> None:
 
 def test_issue_75_nested_sources_detect_multiple_books(tmp_path: Path):
     stage = tmp_path / "src"
-    # Jano tree fragment:
-    # stage/Jano/kniha1.mp3
-    # stage/Jano/kniha/fff.mp3
-    # stage/Jano/seria/kniha1/fff.mp3
     root = stage / "Jano"
     _mk(root / "kniha1.mp3")
     _mk(root / "kniha" / "fff.mp3")
@@ -28,6 +24,5 @@ def test_issue_75_nonrecursive_collect_does_not_steal_subdir_audio(tmp_path: Pat
     _mk(root / "sub" / "02.mp3")
 
     files = imp._collect_audio_files(root)
-    # should only include root/01.mp3
     names = [p.name for p in files]
     assert names == ["01.mp3"]

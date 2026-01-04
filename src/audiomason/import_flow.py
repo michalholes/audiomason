@@ -662,7 +662,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
         out(f"[source] {si}/{len(picked_sources)}: {src.name}")
 
         global _SOURCE_PREFIX
-        _SOURCE_PREFIX = (src.name if len(picked_sources) > 1 else None)
+        _SOURCE_PREFIX = src.name
 
         import unicodedata
 
