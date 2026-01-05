@@ -79,6 +79,11 @@ deactivate
 ### 4.3 Umiestnenie patchov (MANDATORY)
 
 - Patch skripty sa ukladaju do: `/home/pi/apps/patches`
+- **Kazdy patch skript MUSI byt dodany presne pod nazvom a cestou:** `/home/pi/apps/patches/issue_<N>.py` (bez verznych suffixov ako `_v1`, `_v2`, ...).
+- Ak chat doda subor s inym nazvom alebo cestou, je to PORUSENIE contractu.
+- Jeden issue = jeden skript.
+
+- Patch skripty sa ukladaju do: `/home/pi/apps/patches`
 - Jeden issue = jeden skript: `/home/pi/apps/patches/issue_<N>.py`
 
 ### 4.4 Distribucia patchov
