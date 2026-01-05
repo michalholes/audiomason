@@ -94,6 +94,40 @@ rm /home/pi/apps/patches/issue_<N>.py
 
 ---
 
+## 4.6 Patch runner (MANDATORY)
+
+**All patches MUST be executed via the patch runner.  
+No inline shell blocks, no ad-hoc commands.**
+
+### Canonical runner command
+```sh
+/home/pi/apps/patches/am_patch.sh <ISSUE_NUMBER> "<COMMIT_MESSAGE>"
+```
+
+### Example
+```sh
+/home/pi/apps/patches/am_patch.sh 70 "Fix: Opts defaults (make all Opts fields defaulted)"
+```
+
+### Runner guarantees
+- activates `.venv`
+- runs deterministic Python patch script `issue_<N>.py`
+- **always deletes the patch script** (success or failure)
+- fails fast on patch or test errors
+- runs `python -m pytest -q` **before commit**
+- runs `python -m pytest -q` **before push**
+- commits with the **exact message provided by the chat**
+- pushes to the current branch
+- prints **commit SHA (short + full)** after successful commit
+- **does NOT use `pipefail`** (never kills the parent shell)
+
+### Hard rules
+- Patch scripts are **single-use** (never re-run).
+- Commit message is **mandatory** and is **always authored by the chat**.
+- The user executes the runner command **verbatim**, without modifications.
+
+---
+
 ## 5) Git workflow (STRICT)
 
 ### 5.1 Zakladne pravidla
