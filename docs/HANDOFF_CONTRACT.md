@@ -80,6 +80,15 @@ deactivate
 
 - Patch skripty sa ukladaju do: `/home/pi/apps/patches`
 - **Kazdy patch skript MUSI byt dodany presne pod nazvom a cestou:** `/home/pi/apps/patches/issue_<N>.py` (bez verznych suffixov ako `_v1`, `_v2`, ...).
+- Ak chat **nemoze technicky dodat subor** pod kanonickym nazvom (napr. kolizia v sandboxe), **MUSI pred RUN krokom uviest explicitny rename prikaz**, napr.:
+  ```sh
+  mv issue_60_blabla.py /home/pi/apps/patches/issue_60.py
+  ```
+- Ak chat doda subor s inym nazvom alebo cestou **bez uvedenia rename kroku**, je to PORUSENIE contractu.
+- Jeden issue = jeden skript.
+
+- Patch skripty sa ukladaju do: `/home/pi/apps/patches`
+- **Kazdy patch skript MUSI byt dodany presne pod nazvom a cestou:** `/home/pi/apps/patches/issue_<N>.py` (bez verznych suffixov ako `_v1`, `_v2`, ...).
 - Ak chat doda subor s inym nazvom alebo cestou, je to PORUSENIE contractu.
 - Jeden issue = jeden skript.
 
