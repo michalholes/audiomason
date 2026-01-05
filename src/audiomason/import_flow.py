@@ -645,7 +645,8 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
     forced = False
     picked_all = False
 
-    def _run_one_source(src: Path, si: int, total: int, *, phase: str, do_process: bool) -> None:
+
+    def _process_one_source(src: Path, si: int, total: int, *, phase: str, do_process: bool) -> None:
         out(f"[source] {si}/{len(picked_sources)}: {src.name}")
 
         global _SOURCE_PREFIX
@@ -860,6 +861,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     if getattr(state, "DEBUG", False):
                         out(f"[ol] book result: ok={getattr(br,'ok',None)} status={getattr(br,'status',None)!r} hits={getattr(br,'hits',None)} top={getattr(br,'top',None)!r}")
                     title = _ol_offer_top('book title', title, br)
+
             # cover decision (Issue #43: choose/add cover during preflight; processing must not prompt)
             default_cover_mode = (str(bm.get(b.label, {}).get("cover_mode") or "").strip() if (reuse_stage and use_manifest_answers and isinstance(bm, dict)) else "")
             default_cover_src = (str(bm.get(b.label, {}).get("cover_src") or "").strip() if (reuse_stage and use_manifest_answers and isinstance(bm, dict)) else "")
@@ -983,7 +985,8 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                                 else:
                                     cover_mode = "file"
                                     cover_src = raw
-    # ISSUE #1: destination conflict handling (fixed mapping for Issue #75)
+
+            # ISSUE #1: destination conflict handling (fixed mapping for Issue #75)
             bm_entry = (bm.get(b.label, {}) if isinstance(bm, dict) else {})
             if reuse_stage and use_manifest_answers:
                 m_overwrite = bool(bm_entry.get("overwrite") is True)
@@ -1022,7 +1025,6 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     if _is_dir_nonempty(outdir):
                         die(f"Conflict: output already exists and is not empty: {outdir}")
 
-    # persist
             # persist
             dest_kind = "archive" if dest_root2 == archive_root else "output"
             meta.append((b, title, cover_mode, dest_root2, out_title, overwrite))
@@ -1030,6 +1032,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
 
         if not do_process:
             return
+
         out("[phase] PROCESS")
         # ISSUE #15: manifest progress for resume
         processed_labels = mf.get("books", {}).get("processed") if isinstance(mf, dict) else None
@@ -1041,7 +1044,6 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             _process_book(bi, len(meta), b, stage_run, dest_root2, author, title, out_title, wipe, cover_mode, overwrite, cfg, steps)
             processed_labels.append(b.label)
             update_manifest(stage_run, {"books": {"processed": processed_labels}})
-
 
         out("[phase] FINALIZE")
 
@@ -1074,7 +1076,12 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                 shutil.rmtree(stage_run, ignore_errors=True)
                 out(f"[stage] cleaned: {stage_run}")
 
-    
+
+    def _run_one_source(src: Path, si: int, total: int, *, phase: str, do_process: bool) -> None:
+        # Explicit per-source boundary: delegate the full lifecycle to _process_one_source().
+        return _process_one_source(src, si, total, phase=phase, do_process=do_process)
+
+
 
 
     if src_path is not None:
