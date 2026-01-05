@@ -75,6 +75,23 @@ def _parse_args(cfg: Dict[str, Any] | None = None) -> argparse.Namespace:
     imp = sub.add_parser("import", help="import audiobooks from inbox", parents=[parent])
     imp.add_argument("path", nargs="?", type=Path, default=None, help="source path under DROP_ROOT")
     # FEATURE #67: disable selected preflight prompts (repeatable, comma-separated)
+    # Issue #74: optional per-source processing log (default off)
+    gpl = imp.add_mutually_exclusive_group()
+    gpl.add_argument(
+        "--processing-log",
+        dest="processing_log",
+        action="store_true",
+        default=False,
+        help="save per-source processing log (.log) to stage (default off)",
+    )
+    gpl.add_argument(
+        "--processing-log-path",
+        dest="processing_log_path",
+        type=Path,
+        default=None,
+        help="save per-source processing log (.log) to explicit file/dir (implies --processing-log)",
+    )
+
     imp.add_argument(
         "--preflight-disable",
         dest="preflight_disable",
@@ -228,6 +245,20 @@ def main() -> int:
                     return int(cache_gc(cfg, days=getattr(ns, "days", None), max_mb=getattr(ns, "max_mb", None), dry_run=bool(getattr(ns, "dry_run", False))))
                 out("[error] unknown cache subcommand")
                 return 2
+
+            # Issue #74: resolve processing_log (CLI overrides config)
+            _pl_cfg = cfg.get("processing_log", {})
+            if not isinstance(_pl_cfg, dict):
+                _pl_cfg = {}
+            _pl_enabled = bool(_pl_cfg.get("enabled", False))
+            _pl_path = _pl_cfg.get("path", None)
+            if getattr(ns, "processing_log_path", None) is not None:
+                _pl_enabled = True
+                _pl_path = str(getattr(ns, "processing_log_path"))
+            elif bool(getattr(ns, "processing_log", False)):
+                _pl_enabled = True
+                _pl_path = None
+            cfg["processing_log"] = {"enabled": bool(_pl_enabled), "path": _pl_path}
 
             # FEATURE #67: resolve preflight_disable (CLI overrides config)
             _pd = getattr(ns, 'preflight_disable', None)

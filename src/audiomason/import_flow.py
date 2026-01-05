@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import io
+import sys
 from audiomason.openlibrary import validate_author, validate_book
 from audiomason.naming import normalize_name, normalize_sentence
 
@@ -643,440 +645,517 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
     stage_runs_for_json: list[Path] = []
     picked_sources: list[Path]
     forced = False
+
+
+    # Issue #74: per-source processing log
+    def _pl_resolve_target(cfg: dict, stage_run: Path, src: Path) -> Path | None:
+        spec = cfg.get('processing_log', {})
+        if not isinstance(spec, dict):
+            spec = {}
+        if not bool(spec.get('enabled', False)):
+            return None
+        raw = spec.get('path', None)
+        # Default: stage_run/processing.log
+        if raw is None or str(raw).strip() == '':
+            return (stage_run / 'processing.log')
+
+        p = Path(str(raw)).expanduser()
+        # If directory (or endswith slash), create per-source file inside
+        if str(raw).endswith('/') or p.exists() and p.is_dir():
+            fname = f"{slug(src.name)}.log"
+            return (p / fname)
+
+        # Treat as file path; enforce .log extension
+        if p.suffix.lower() != '.log':
+            p = p.with_suffix('.log')
+        return p
+
+    class _PLTee(io.TextIOBase):
+        def __init__(self, a, b):
+            self._a = a
+            self._b = b
+        def write(self, s):
+            if s is None:
+                return 0
+            na = self._a.write(s)
+            self._b.write(s)
+            return na
+        def flush(self):
+            try:
+                self._a.flush()
+            except Exception:
+                pass
+            try:
+                self._b.flush()
+            except Exception:
+                pass
+        def isatty(self):
+            return False
     picked_all = False
 
 
     def _process_one_source(src: Path, si: int, total: int, *, phase: str, do_process: bool) -> None:
-        out(f"[source] {si}/{len(picked_sources)}: {src.name}")
+        # Issue #74: start per-source log capture
+        _pl_buf = io.StringIO()
+        _pl_tee = _PLTee(sys.stdout, _pl_buf)
+        _pl_tee_err = _PLTee(sys.stderr, _pl_buf)
+        _pl_stdout0 = sys.stdout
+        _pl_stderr0 = sys.stderr
+        sys.stdout = _pl_tee
+        sys.stderr = _pl_tee_err
+        try:
+                out(f"[source] {si}/{len(picked_sources)}: {src.name}")
 
-        global _SOURCE_PREFIX
-        _SOURCE_PREFIX = src.name
+                global _SOURCE_PREFIX
+                _SOURCE_PREFIX = src.name
 
-        import unicodedata
+                import unicodedata
 
-        def _norm(s: str) -> str:
-            return unicodedata.normalize("NFKC", s).strip().casefold()
+                def _norm(s: str) -> str:
+                    return unicodedata.normalize("NFKC", s).strip().casefold()
 
-        ignore_raw = load_ignore(drop_root)
-        ignore_norm = {_norm(k) for k in ignore_raw}
-        ignore_norm |= {_norm(slug(k)) for k in ignore_raw}
+                ignore_raw = load_ignore(drop_root)
+                ignore_norm = {_norm(k) for k in ignore_raw}
+                ignore_norm |= {_norm(slug(k)) for k in ignore_raw}
 
-        candidates = {
-            _norm(src.name),
-            _norm(src.stem),
-            _norm(slug(src.name)),
-            _norm(slug(src.stem)),
-        }
+                candidates = {
+                    _norm(src.name),
+                    _norm(src.stem),
+                    _norm(slug(src.name)),
+                    _norm(slug(src.stem)),
+                }
 
-        if (not forced) and (candidates & ignore_norm):
-            out("[source] skipped (ignored)")
-            return
+                if (not forced) and (candidates & ignore_norm):
+                    out("[source] skipped (ignored)")
+                    return
 
-        stage_run = stage_root / slug(src.name)
-        stage_runs_for_json.append(stage_run)
-        stage_src = stage_run / "src"
+                stage_run = stage_root / slug(src.name)
+                stage_runs_for_json.append(stage_run)
+                stage_src = stage_run / "src"
 
-        fp = source_fingerprint(src)
-        update_manifest(stage_run, {"source": {"fingerprint": fp}})
-        mf = load_manifest(stage_run)
-        dec = mf.get("decisions", {})
-        bm = mf.get("book_meta", {})
+                fp = source_fingerprint(src)
+                update_manifest(stage_run, {"source": {"fingerprint": fp}})
+                mf = load_manifest(stage_run)
+                dec = mf.get("decisions", {})
+                bm = mf.get("book_meta", {})
 
-        reuse_possible = bool(stage_src.exists() and mf.get("source", {}).get("fingerprint") == fp)
-        reuse_stage = False
-        use_manifest_answers = False
-        if phase == "process":
-            if not reuse_possible:
-                die("Internal error: process phase requires staged source from preflight phase")
-            reuse_stage = True
-            use_manifest_answers = True
-        else:
-            if reuse_possible:
-                reuse_stage = _pf_prompt_yes_no(cfg, 'reuse_stage', "[stage] Reuse existing staged source?", default_no=False)
-
-            if reuse_stage:
-                out("[stage] reuse")
-                use_manifest_answers = _pf_prompt_yes_no(cfg, "use_manifest_answers", "[manifest] Use saved answers (skip prompts)?", default_no=False)
-            else:
-                if reuse_possible:
-                    out("[stage] delete")
-                    shutil.rmtree(stage_run, ignore_errors=True)
-                    # reset locals; we'll recreate stage + manifest below
-                    mf = {}
-                    dec = {}
-                    bm = {}
-
-            ensure_dir(stage_run)
-            update_manifest(stage_run, {
-                "source": {
-                    "name": src.name,
-                    "stem": src.stem,
-                    "is_dir": bool(src.is_dir()),
-                    "is_file": bool(src.is_file()),
-                    "path": str(src),
-                    "fingerprint": fp,
-                },
-            })
-            out(f"[stage] copying source into stage: {src} -> {stage_src}")
-            _stage_source(src, stage_src)
-
-        # Always convert m4a before book detection (so mp3s exist everywhere)
-        convert_m4a_in_place(stage_src, recursive=True)
-
-        books = _detect_books(stage_src)
-
-        # book selection (skip when allowed, otherwise prompt with defaults)
-        picked_books: list[BookGroup] = []
-        picked = mf.get("books", {}).get("picked") if isinstance(mf, dict) else None
-        if reuse_stage and use_manifest_answers and isinstance(picked, list) and picked:
-            by_label = {b.label: b for b in books}
-            picked_books = [by_label[l] for l in picked if l in by_label]
-
-        default_ans = "1"
-        if (not picked_books) and isinstance(picked, list) and picked:
-            if len(picked) == len(books):
-                default_ans = "a"
-            else:
-                try:
-                    first = picked[0]
-                    idx = [b.label for b in books].index(first) + 1
-                    default_ans = str(idx)
-                except Exception:
-                    default_ans = "1"
-
-        if not picked_books:
-            picked_books = _choose_books(books, default_ans=default_ans)
-
-        update_manifest(stage_run, {
-            "books": {
-                "detected": [b.label for b in books],
-                "picked": [b.label for b in picked_books],
-            },
-        })
-
-        # ISSUE #15: resume ask-to-skip processed books (never auto-skip)
-        processed = mf.get("books", {}).get("processed") if isinstance(mf, dict) else None
-        if reuse_stage and use_manifest_answers and isinstance(processed, list) and processed:
-            done = {str(x) for x in processed}
-            before = [b.label for b in picked_books]
-            already = [x for x in before if x in done]
-            if already:
-                out(f"[books] resume: already processed: {', '.join(already)}")
-                if prompt_yes_no("Skip already processed books?", default_no=True):
-                    picked_books = [b for b in picked_books if b.label not in done]
-                    if not picked_books:
-                        out("[books] resume: nothing left to process")
-                        return
-
-        # publish/wipe (skip when allowed, otherwise prompt with defaults)
-        default_publish = bool(dec.get("publish")) if isinstance(dec, dict) and "publish" in dec else False
-        default_wipe = bool(dec.get("wipe_id3")) if isinstance(dec, dict) and "wipe_id3" in dec else False
-
-        if reuse_stage and use_manifest_answers and isinstance(dec, dict) and ("publish" in dec) and ("wipe_id3" in dec):
-            publish = bool(dec.get("publish"))
-            wipe = bool(dec.get("wipe_id3"))
-        else:
-            # honor CLI overrides
-            if state.OPTS.publish is None:
-                publish = _pf_prompt_yes_no(cfg, "publish", "Publish after import?", default_no=(not default_publish))
-            else:
-                publish = bool(state.OPTS.publish)
-            if state.OPTS.wipe_id3 is None:
-                wipe = _pf_prompt_yes_no(cfg, "wipe_id3", "Full wipe ID3 tags before tagging?", default_no=(not default_wipe))
-            else:
-                wipe = bool(state.OPTS.wipe_id3)
-
-        update_manifest(stage_run, {"decisions": {"publish": bool(publish), "wipe_id3": bool(wipe)}})
-        # FEATURE #26: stage cleanup decision (manifest-backed)
-        default_clean = bool(dec.get("clean_stage")) if isinstance(dec, dict) and ("clean_stage" in dec) else False
-        if reuse_stage and use_manifest_answers and isinstance(dec, dict) and ("clean_stage" in dec):
-            clean_stage = bool(dec.get("clean_stage"))
-        else:
-            clean_stage = _pf_prompt_yes_no(cfg, "clean_stage", "Clean stage after successful import?", default_no=(not default_clean))
-
-        # FEATURE #65: decide inbox cleanup in PREPARE (prompt in preflight; action only on success)
-        preflight_clean_inbox = False
-        if clean_inbox_mode == 'yes':
-            preflight_clean_inbox = True
-        elif clean_inbox_mode == 'ask':
-            preflight_clean_inbox = _pf_prompt_yes_no(cfg, "clean_inbox", "Clean inbox after successful import?", default_no=True)
-
-        update_manifest(stage_run, {"decisions": {"clean_stage": bool(clean_stage), "clean_inbox": bool(preflight_clean_inbox)}})
-        dest_root = archive_root if publish else output_root
-
-        # AUTHOR is per-source (not per-book)
-        default_author = src.name if src.is_dir() else src.stem
-        default_author2 = str(dec.get("author") or default_author) if isinstance(dec, dict) else default_author
-
-        if reuse_stage and use_manifest_answers and isinstance(dec, dict) and str(dec.get("author") or "").strip():
-            author = str(dec.get("author") or "").strip()
-        else:
-            author = prompt("[source] Author", default_author2).strip()
-            na = normalize_name(author)
-            if na != author:
-                out(f"[name] author suggestion: '{author}' -> '{na}'")
-                if _pf_prompt_yes_no(cfg, 'normalize_author', "Apply suggested author name?", default_no=True):
-                    author = na
-
-            # OpenLibrary suggestion (author) — must run after final author decision
-            if getattr(getattr(state, 'OPTS', None), 'lookup', False):
-                if getattr(state, "DEBUG", False):
-                    out(f"[ol] validate author: '{author}'")
-                ar = validate_author(author)
-                if (not getattr(ar, 'ok', False)) and (not getattr(ar, 'top', None)):
-                    out(f"[ol] author not found: '{author}'")
-                if getattr(state, "DEBUG", False):
-                    out(f"[ol] author result: ok={getattr(ar,'ok',None)} status={getattr(ar,'status',None)!r} hits={getattr(ar,'hits',None)} top={getattr(ar,'top',None)!r}")
-                author = _ol_offer_top('author', author, ar)
-        if not author:
-            die("Author is required")
-        update_manifest(stage_run, {"decisions": {"author": author}})
-
-        out("[phase] PREPARE")
-
-        # preflight per-book metadata (must happen before touching output)
-        # ISSUE #12: unify decisions upfront (title + cover choice). Processing must not prompt.
-        meta: list[tuple[BookGroup, str, str, Path, str, bool]] = []
-        for bi, b in enumerate(picked_books, 1):
-            # title
-            bm_entry2 = (bm.get(b.label, {}) if isinstance(bm, dict) else {})
-            default_title = str((bm_entry2.get("out_title") or bm_entry2.get("title") or "")).strip()
-
-            if reuse_stage and use_manifest_answers and default_title:
-                title = default_title
-            else:
-                # NOTE: during --dry-run, keep deterministic and do not prompt for title.
-                if state.OPTS and state.OPTS.dry_run:
-                    title = default_title or b.label
+                reuse_possible = bool(stage_src.exists() and mf.get("source", {}).get("fingerprint") == fp)
+                reuse_stage = False
+                use_manifest_answers = False
+                if phase == "process":
+                    if not reuse_possible:
+                        die("Internal error: process phase requires staged source from preflight phase")
+                    reuse_stage = True
+                    use_manifest_answers = True
                 else:
-                    title = _preflight_book(cfg, bi, len(picked_books), b, default_title=default_title)
+                    if reuse_possible:
+                        reuse_stage = _pf_prompt_yes_no(cfg, 'reuse_stage', "[stage] Reuse existing staged source?", default_no=False)
 
-                # OpenLibrary suggestion (book title)
-                if getattr(getattr(state, 'OPTS', None), 'lookup', False):
-                    if getattr(state, "DEBUG", False):
-                        out(f"[ol] validate book: author='{author}' title='{title}'")
-                    br = validate_book(author, title)
-                    if (not getattr(br, 'ok', False)) and (not getattr(br, 'top', None)):
-                        out(f"[ol] book not found: author='{author}' title='{title}'")
-                    if getattr(state, "DEBUG", False):
-                        out(f"[ol] book result: ok={getattr(br,'ok',None)} status={getattr(br,'status',None)!r} hits={getattr(br,'hits',None)} top={getattr(br,'top',None)!r}")
-                    title = _ol_offer_top('book title', title, br)
-
-            # cover decision (Issue #43: choose/add cover during preflight; processing must not prompt)
-            default_cover_mode = (str(bm.get(b.label, {}).get("cover_mode") or "").strip() if (reuse_stage and use_manifest_answers and isinstance(bm, dict)) else "")
-            default_cover_src = (str(bm.get(b.label, {}).get("cover_src") or "").strip() if (reuse_stage and use_manifest_answers and isinstance(bm, dict)) else "")
-            mp3s = _collect_audio_files(b.group_root)
-            mp3_first = mp3s[0] if mp3s else None
-            file_cover = find_file_cover(b.stage_root, b.group_root)
-            embedded = extract_embedded_cover_from_mp3(mp3_first) if mp3_first else None
-
-            cover_mode = ""
-            cover_src = ""
-            if reuse_stage and use_manifest_answers and default_cover_mode:
-                cover_mode = default_cover_mode
-                cover_src = default_cover_src
-            else:
-                out(f"[cover-meta] {bi}/{len(picked_books)}: {author} / {title}")
-                # Non-interactive: deterministic, no prompts
-                if not _is_interactive():
-                    if file_cover:
-                        cover_mode = "file"
-                        cover_src = str(file_cover.name)
-                    elif embedded:
-                        cover_mode = "embedded"
-                        cover_src = "embedded"
+                    if reuse_stage:
+                        out("[stage] reuse")
+                        use_manifest_answers = _pf_prompt_yes_no(cfg, "use_manifest_answers", "[manifest] Use saved answers (skip prompts)?", default_no=False)
                     else:
-                        cover_mode = "skip"
-                        cover_src = "skip"
+                        if reuse_possible:
+                            out("[stage] delete")
+                            shutil.rmtree(stage_run, ignore_errors=True)
+                            # reset locals; we'll recreate stage + manifest below
+                            mf = {}
+                            dec = {}
+                            bm = {}
+
+                    ensure_dir(stage_run)
+                    update_manifest(stage_run, {
+                        "source": {
+                            "name": src.name,
+                            "stem": src.stem,
+                            "is_dir": bool(src.is_dir()),
+                            "is_file": bool(src.is_file()),
+                            "path": str(src),
+                            "fingerprint": fp,
+                        },
+                    })
+                    out(f"[stage] copying source into stage: {src} -> {stage_src}")
+                    _stage_source(src, stage_src)
+
+                # Always convert m4a before book detection (so mp3s exist everywhere)
+                convert_m4a_in_place(stage_src, recursive=True)
+
+                books = _detect_books(stage_src)
+
+                # book selection (skip when allowed, otherwise prompt with defaults)
+                picked_books: list[BookGroup] = []
+                picked = mf.get("books", {}).get("picked") if isinstance(mf, dict) else None
+                if reuse_stage and use_manifest_answers and isinstance(picked, list) and picked:
+                    by_label = {b.label: b for b in books}
+                    picked_books = [by_label[l] for l in picked if l in by_label]
+
+                default_ans = "1"
+                if (not picked_books) and isinstance(picked, list) and picked:
+                    if len(picked) == len(books):
+                        default_ans = "a"
+                    else:
+                        try:
+                            first = picked[0]
+                            idx = [b.label for b in books].index(first) + 1
+                            default_ans = str(idx)
+                        except Exception:
+                            default_ans = "1"
+
+                if not picked_books:
+                    picked_books = _choose_books(books, default_ans=default_ans)
+
+                update_manifest(stage_run, {
+                    "books": {
+                        "detected": [b.label for b in books],
+                        "picked": [b.label for b in picked_books],
+                    },
+                })
+
+                # ISSUE #15: resume ask-to-skip processed books (never auto-skip)
+                processed = mf.get("books", {}).get("processed") if isinstance(mf, dict) else None
+                if reuse_stage and use_manifest_answers and isinstance(processed, list) and processed:
+                    done = {str(x) for x in processed}
+                    before = [b.label for b in picked_books]
+                    already = [x for x in before if x in done]
+                    if already:
+                        out(f"[books] resume: already processed: {', '.join(already)}")
+                        if prompt_yes_no("Skip already processed books?", default_no=True):
+                            picked_books = [b for b in picked_books if b.label not in done]
+                            if not picked_books:
+                                out("[books] resume: nothing left to process")
+                                return
+
+                # publish/wipe (skip when allowed, otherwise prompt with defaults)
+                default_publish = bool(dec.get("publish")) if isinstance(dec, dict) and "publish" in dec else False
+                default_wipe = bool(dec.get("wipe_id3")) if isinstance(dec, dict) and "wipe_id3" in dec else False
+
+                if reuse_stage and use_manifest_answers and isinstance(dec, dict) and ("publish" in dec) and ("wipe_id3" in dec):
+                    publish = bool(dec.get("publish"))
+                    wipe = bool(dec.get("wipe_id3"))
                 else:
-                    # Interactive preflight: allow keep/override/skip, or provide URL/path
-                    if file_cover or embedded:
-                        # If both exist, offer explicit choice first
-                        if file_cover and embedded:
-                            out("Cover detected:")
-                            out("  1) embedded cover from audio")
-                            out(f"  2) {file_cover.name} (preferred)")
-                            out("  s) skip")
-                            out("  u) URL/path override")
-                            d = "2"
-                            if default_cover_mode == "embedded":
-                                d = "1"
-                            elif default_cover_mode == "skip":
-                                d = "s"
-                            ans = _pf_prompt(cfg, 'cover', "Choose cover [1/2/s/u]", d).strip().lower()
-                            if ans == "1":
-                                cover_mode = "embedded"
-                                cover_src = "embedded"
-                            elif ans == "s":
-                                cover_mode = "skip"
-                                cover_src = "skip"
-                            elif ans == "u":
-                                raw = _pf_prompt(cfg, "cover", "Cover URL or file path (Enter=skip)", "").strip()
-                                if not raw:
-                                    cover_mode = "skip"
-                                    cover_src = "skip"
-                                else:
-                                    staged = _stage_cover_from_raw(cfg, raw, b.group_root)
-                                    if staged is None:
-                                        cover_mode = "skip"
-                                        cover_src = "skip"
-                                    else:
-                                        cover_mode = "file"
-                                        cover_src = raw
-                            else:
+                    # honor CLI overrides
+                    if state.OPTS.publish is None:
+                        publish = _pf_prompt_yes_no(cfg, "publish", "Publish after import?", default_no=(not default_publish))
+                    else:
+                        publish = bool(state.OPTS.publish)
+                    if state.OPTS.wipe_id3 is None:
+                        wipe = _pf_prompt_yes_no(cfg, "wipe_id3", "Full wipe ID3 tags before tagging?", default_no=(not default_wipe))
+                    else:
+                        wipe = bool(state.OPTS.wipe_id3)
+
+                update_manifest(stage_run, {"decisions": {"publish": bool(publish), "wipe_id3": bool(wipe)}})
+                # FEATURE #26: stage cleanup decision (manifest-backed)
+                default_clean = bool(dec.get("clean_stage")) if isinstance(dec, dict) and ("clean_stage" in dec) else False
+                if reuse_stage and use_manifest_answers and isinstance(dec, dict) and ("clean_stage" in dec):
+                    clean_stage = bool(dec.get("clean_stage"))
+                else:
+                    clean_stage = _pf_prompt_yes_no(cfg, "clean_stage", "Clean stage after successful import?", default_no=(not default_clean))
+
+                # FEATURE #65: decide inbox cleanup in PREPARE (prompt in preflight; action only on success)
+                preflight_clean_inbox = False
+                if clean_inbox_mode == 'yes':
+                    preflight_clean_inbox = True
+                elif clean_inbox_mode == 'ask':
+                    preflight_clean_inbox = _pf_prompt_yes_no(cfg, "clean_inbox", "Clean inbox after successful import?", default_no=True)
+
+                update_manifest(stage_run, {"decisions": {"clean_stage": bool(clean_stage), "clean_inbox": bool(preflight_clean_inbox)}})
+                dest_root = archive_root if publish else output_root
+
+                # AUTHOR is per-source (not per-book)
+                default_author = src.name if src.is_dir() else src.stem
+                default_author2 = str(dec.get("author") or default_author) if isinstance(dec, dict) else default_author
+
+                if reuse_stage and use_manifest_answers and isinstance(dec, dict) and str(dec.get("author") or "").strip():
+                    author = str(dec.get("author") or "").strip()
+                else:
+                    author = prompt("[source] Author", default_author2).strip()
+                    na = normalize_name(author)
+                    if na != author:
+                        out(f"[name] author suggestion: '{author}' -> '{na}'")
+                        if _pf_prompt_yes_no(cfg, 'normalize_author', "Apply suggested author name?", default_no=True):
+                            author = na
+
+                    # OpenLibrary suggestion (author) — must run after final author decision
+                    if getattr(getattr(state, 'OPTS', None), 'lookup', False):
+                        if getattr(state, "DEBUG", False):
+                            out(f"[ol] validate author: '{author}'")
+                        ar = validate_author(author)
+                        if (not getattr(ar, 'ok', False)) and (not getattr(ar, 'top', None)):
+                            out(f"[ol] author not found: '{author}'")
+                        if getattr(state, "DEBUG", False):
+                            out(f"[ol] author result: ok={getattr(ar,'ok',None)} status={getattr(ar,'status',None)!r} hits={getattr(ar,'hits',None)} top={getattr(ar,'top',None)!r}")
+                        author = _ol_offer_top('author', author, ar)
+                if not author:
+                    die("Author is required")
+                update_manifest(stage_run, {"decisions": {"author": author}})
+
+                out("[phase] PREPARE")
+
+                # preflight per-book metadata (must happen before touching output)
+                # ISSUE #12: unify decisions upfront (title + cover choice). Processing must not prompt.
+                meta: list[tuple[BookGroup, str, str, Path, str, bool]] = []
+                for bi, b in enumerate(picked_books, 1):
+                    # title
+                    bm_entry2 = (bm.get(b.label, {}) if isinstance(bm, dict) else {})
+                    default_title = str((bm_entry2.get("out_title") or bm_entry2.get("title") or "")).strip()
+
+                    if reuse_stage and use_manifest_answers and default_title:
+                        title = default_title
+                    else:
+                        # NOTE: during --dry-run, keep deterministic and do not prompt for title.
+                        if state.OPTS and state.OPTS.dry_run:
+                            title = default_title or b.label
+                        else:
+                            title = _preflight_book(cfg, bi, len(picked_books), b, default_title=default_title)
+
+                        # OpenLibrary suggestion (book title)
+                        if getattr(getattr(state, 'OPTS', None), 'lookup', False):
+                            if getattr(state, "DEBUG", False):
+                                out(f"[ol] validate book: author='{author}' title='{title}'")
+                            br = validate_book(author, title)
+                            if (not getattr(br, 'ok', False)) and (not getattr(br, 'top', None)):
+                                out(f"[ol] book not found: author='{author}' title='{title}'")
+                            if getattr(state, "DEBUG", False):
+                                out(f"[ol] book result: ok={getattr(br,'ok',None)} status={getattr(br,'status',None)!r} hits={getattr(br,'hits',None)} top={getattr(br,'top',None)!r}")
+                            title = _ol_offer_top('book title', title, br)
+
+                    # cover decision (Issue #43: choose/add cover during preflight; processing must not prompt)
+                    default_cover_mode = (str(bm.get(b.label, {}).get("cover_mode") or "").strip() if (reuse_stage and use_manifest_answers and isinstance(bm, dict)) else "")
+                    default_cover_src = (str(bm.get(b.label, {}).get("cover_src") or "").strip() if (reuse_stage and use_manifest_answers and isinstance(bm, dict)) else "")
+                    mp3s = _collect_audio_files(b.group_root)
+                    mp3_first = mp3s[0] if mp3s else None
+                    file_cover = find_file_cover(b.stage_root, b.group_root)
+                    embedded = extract_embedded_cover_from_mp3(mp3_first) if mp3_first else None
+
+                    cover_mode = ""
+                    cover_src = ""
+                    if reuse_stage and use_manifest_answers and default_cover_mode:
+                        cover_mode = default_cover_mode
+                        cover_src = default_cover_src
+                    else:
+                        out(f"[cover-meta] {bi}/{len(picked_books)}: {author} / {title}")
+                        # Non-interactive: deterministic, no prompts
+                        if not _is_interactive():
+                            if file_cover:
                                 cover_mode = "file"
                                 cover_src = str(file_cover.name)
-                        else:
-                            # Only one detected => keep by default, allow override
-                            if file_cover:
-                                out(f"Cover detected: {file_cover.name}")
-                                keep = _pf_prompt_yes_no(cfg, 'cover', "Use detected cover?", default_no=False)
-                                if keep:
-                                    cover_mode = "file"
-                                    cover_src = str(file_cover.name)
-                                else:
-                                    raw = _pf_prompt(cfg, "cover", "Cover URL or file path (Enter=skip)", "").strip()
-                                    if not raw:
-                                        cover_mode = "skip"
-                                        cover_src = "skip"
-                                    else:
-                                        staged = _stage_cover_from_raw(cfg, raw, b.group_root)
-                                        if staged is None:
-                                            cover_mode = "skip"
-                                            cover_src = "skip"
-                                        else:
-                                            cover_mode = "file"
-                                            cover_src = raw
+                            elif embedded:
+                                cover_mode = "embedded"
+                                cover_src = "embedded"
                             else:
-                                out("Cover detected: embedded")
-                                keep = _pf_prompt_yes_no(cfg, 'cover', "Use embedded cover?", default_no=False)
-                                if keep:
-                                    cover_mode = "embedded"
-                                    cover_src = "embedded"
-                                else:
-                                    raw = _pf_prompt(cfg, "cover", "Cover URL or file path (Enter=skip)", "").strip()
-                                    if not raw:
-                                        cover_mode = "skip"
-                                        cover_src = "skip"
-                                    else:
-                                        staged = _stage_cover_from_raw(cfg, raw, b.group_root)
-                                        if staged is None:
-                                            cover_mode = "skip"
-                                            cover_src = "skip"
-                                        else:
-                                            cover_mode = "file"
-                                            cover_src = raw
-                    else:
-                        # No detected cover => ask once
-                        # NOTE: during --dry-run, keep deterministic and do not prompt for cover.
-                        if state.OPTS and state.OPTS.dry_run:
-                            cover_mode = "skip"
-                            cover_src = "skip"
-                        else:
-                            raw = _pf_prompt(cfg, 'cover', "No cover found. URL or file path (Enter=skip)", "").strip()
-                            if not raw:
                                 cover_mode = "skip"
                                 cover_src = "skip"
+                        else:
+                            # Interactive preflight: allow keep/override/skip, or provide URL/path
+                            if file_cover or embedded:
+                                # If both exist, offer explicit choice first
+                                if file_cover and embedded:
+                                    out("Cover detected:")
+                                    out("  1) embedded cover from audio")
+                                    out(f"  2) {file_cover.name} (preferred)")
+                                    out("  s) skip")
+                                    out("  u) URL/path override")
+                                    d = "2"
+                                    if default_cover_mode == "embedded":
+                                        d = "1"
+                                    elif default_cover_mode == "skip":
+                                        d = "s"
+                                    ans = _pf_prompt(cfg, 'cover', "Choose cover [1/2/s/u]", d).strip().lower()
+                                    if ans == "1":
+                                        cover_mode = "embedded"
+                                        cover_src = "embedded"
+                                    elif ans == "s":
+                                        cover_mode = "skip"
+                                        cover_src = "skip"
+                                    elif ans == "u":
+                                        raw = _pf_prompt(cfg, "cover", "Cover URL or file path (Enter=skip)", "").strip()
+                                        if not raw:
+                                            cover_mode = "skip"
+                                            cover_src = "skip"
+                                        else:
+                                            staged = _stage_cover_from_raw(cfg, raw, b.group_root)
+                                            if staged is None:
+                                                cover_mode = "skip"
+                                                cover_src = "skip"
+                                            else:
+                                                cover_mode = "file"
+                                                cover_src = raw
+                                    else:
+                                        cover_mode = "file"
+                                        cover_src = str(file_cover.name)
+                                else:
+                                    # Only one detected => keep by default, allow override
+                                    if file_cover:
+                                        out(f"Cover detected: {file_cover.name}")
+                                        keep = _pf_prompt_yes_no(cfg, 'cover', "Use detected cover?", default_no=False)
+                                        if keep:
+                                            cover_mode = "file"
+                                            cover_src = str(file_cover.name)
+                                        else:
+                                            raw = _pf_prompt(cfg, "cover", "Cover URL or file path (Enter=skip)", "").strip()
+                                            if not raw:
+                                                cover_mode = "skip"
+                                                cover_src = "skip"
+                                            else:
+                                                staged = _stage_cover_from_raw(cfg, raw, b.group_root)
+                                                if staged is None:
+                                                    cover_mode = "skip"
+                                                    cover_src = "skip"
+                                                else:
+                                                    cover_mode = "file"
+                                                    cover_src = raw
+                                    else:
+                                        out("Cover detected: embedded")
+                                        keep = _pf_prompt_yes_no(cfg, 'cover', "Use embedded cover?", default_no=False)
+                                        if keep:
+                                            cover_mode = "embedded"
+                                            cover_src = "embedded"
+                                        else:
+                                            raw = _pf_prompt(cfg, "cover", "Cover URL or file path (Enter=skip)", "").strip()
+                                            if not raw:
+                                                cover_mode = "skip"
+                                                cover_src = "skip"
+                                            else:
+                                                staged = _stage_cover_from_raw(cfg, raw, b.group_root)
+                                                if staged is None:
+                                                    cover_mode = "skip"
+                                                    cover_src = "skip"
+                                                else:
+                                                    cover_mode = "file"
+                                                    cover_src = raw
                             else:
-                                staged = _stage_cover_from_raw(cfg, raw, b.group_root)
-                                if staged is None:
+                                # No detected cover => ask once
+                                # NOTE: during --dry-run, keep deterministic and do not prompt for cover.
+                                if state.OPTS and state.OPTS.dry_run:
                                     cover_mode = "skip"
                                     cover_src = "skip"
                                 else:
-                                    cover_mode = "file"
-                                    cover_src = raw
+                                    raw = _pf_prompt(cfg, 'cover', "No cover found. URL or file path (Enter=skip)", "").strip()
+                                    if not raw:
+                                        cover_mode = "skip"
+                                        cover_src = "skip"
+                                    else:
+                                        staged = _stage_cover_from_raw(cfg, raw, b.group_root)
+                                        if staged is None:
+                                            cover_mode = "skip"
+                                            cover_src = "skip"
+                                        else:
+                                            cover_mode = "file"
+                                            cover_src = raw
 
-            # ISSUE #1: destination conflict handling (fixed mapping for Issue #75)
-            bm_entry = (bm.get(b.label, {}) if isinstance(bm, dict) else {})
-            if reuse_stage and use_manifest_answers:
-                m_overwrite = bool(bm_entry.get("overwrite") is True)
-                m_dest_kind = str(bm_entry.get("dest_kind") or "")
-                m_out_title = str(bm_entry.get("out_title") or "").strip()
-            else:
-                m_overwrite = False
-                m_dest_kind = ""
-                m_out_title = ""
+                    # ISSUE #1: destination conflict handling (fixed mapping for Issue #75)
+                    bm_entry = (bm.get(b.label, {}) if isinstance(bm, dict) else {})
+                    if reuse_stage and use_manifest_answers:
+                        m_overwrite = bool(bm_entry.get("overwrite") is True)
+                        m_dest_kind = str(bm_entry.get("dest_kind") or "")
+                        m_out_title = str(bm_entry.get("out_title") or "").strip()
+                    else:
+                        m_overwrite = False
+                        m_dest_kind = ""
+                        m_out_title = ""
 
-            dest_root2 = dest_root
-            if m_dest_kind == "output":
-                dest_root2 = output_root
-            elif m_dest_kind == "archive":
-                dest_root2 = archive_root
-
-            out_title = m_out_title or title
-            overwrite = m_overwrite
-
-            outdir = _output_dir(dest_root2, author, out_title)
-            if _is_dir_nonempty(outdir) and not (reuse_stage and use_manifest_answers):
-                # 1) offer overwrite (interactive only)
-                if not (state.OPTS and state.OPTS.yes):
-                    out(f"[dest] exists: {outdir}")
-                    overwrite = prompt_yes_no("Destination exists. Overwrite?", default_no=True)
-                else:
-                    overwrite = False
-
-                if not overwrite:
-                    # 2) fallback to abooks_ready if we are not already there
-                    if dest_root2 != output_root:
+                    dest_root2 = dest_root
+                    if m_dest_kind == "output":
                         dest_root2 = output_root
-                        outdir = _output_dir(dest_root2, author, out_title)
+                    elif m_dest_kind == "archive":
+                        dest_root2 = archive_root
 
-                    # 3) if still conflict => fail (structure is fixed; no auto-new folder)
-                    if _is_dir_nonempty(outdir):
-                        die(f"Conflict: output already exists and is not empty: {outdir}")
+                    out_title = m_out_title or title
+                    overwrite = m_overwrite
 
-            # persist
-            dest_kind = "archive" if dest_root2 == archive_root else "output"
-            meta.append((b, title, cover_mode, dest_root2, out_title, overwrite))
-            update_manifest(stage_run, {"book_meta": {b.label: {"title": title, "cover_mode": cover_mode, "cover_src": cover_src, "dest_kind": dest_kind, "out_title": out_title, "overwrite": bool(overwrite)}}})
+                    outdir = _output_dir(dest_root2, author, out_title)
+                    if _is_dir_nonempty(outdir) and not (reuse_stage and use_manifest_answers):
+                        # 1) offer overwrite (interactive only)
+                        if not (state.OPTS and state.OPTS.yes):
+                            out(f"[dest] exists: {outdir}")
+                            overwrite = prompt_yes_no("Destination exists. Overwrite?", default_no=True)
+                        else:
+                            overwrite = False
 
-        if not do_process:
-            return
+                        if not overwrite:
+                            # 2) fallback to abooks_ready if we are not already there
+                            if dest_root2 != output_root:
+                                dest_root2 = output_root
+                                outdir = _output_dir(dest_root2, author, out_title)
 
-        out("[phase] PROCESS")
-        # ISSUE #15: manifest progress for resume
-        processed_labels = mf.get("books", {}).get("processed") if isinstance(mf, dict) else None
-        if not isinstance(processed_labels, list):
-            processed_labels = []
+                            # 3) if still conflict => fail (structure is fixed; no auto-new folder)
+                            if _is_dir_nonempty(outdir):
+                                die(f"Conflict: output already exists and is not empty: {outdir}")
 
-        # processing phase (no prompts)
-        for bi, (b, title, cover_mode, dest_root2, out_title, overwrite) in enumerate(meta, 1):
-            _process_book(bi, len(meta), b, stage_run, dest_root2, author, title, out_title, wipe, cover_mode, overwrite, cfg, steps)
-            processed_labels.append(b.label)
-            update_manifest(stage_run, {"books": {"processed": processed_labels}})
+                    # persist
+                    dest_kind = "archive" if dest_root2 == archive_root else "output"
+                    meta.append((b, title, cover_mode, dest_root2, out_title, overwrite))
+                    update_manifest(stage_run, {"book_meta": {b.label: {"title": title, "cover_mode": cover_mode, "cover_src": cover_src, "dest_kind": dest_kind, "out_title": out_title, "overwrite": bool(overwrite)}}})
 
-        out("[phase] FINALIZE")
+                if not do_process:
+                    return
 
-        # FEATURE #26: clean stage at end (successful run only)
-        # FEATURE #51: mark processed source as ignored
-        if not (state.OPTS and state.OPTS.dry_run):
-            add_ignore(drop_root, src.name)
-            out(f"[ignore] added: {src.name}")
+                out("[phase] PROCESS")
+                # ISSUE #15: manifest progress for resume
+                processed_labels = mf.get("books", {}).get("processed") if isinstance(mf, dict) else None
+                if not isinstance(processed_labels, list):
+                    processed_labels = []
 
-        # FEATURE #65: inbox cleanup control (delete processed inbox source under DROP_ROOT)
-        do_clean_inbox = bool(load_manifest(stage_run).get('decisions', {}).get('clean_inbox'))
+                # processing phase (no prompts)
+                for bi, (b, title, cover_mode, dest_root2, out_title, overwrite) in enumerate(meta, 1):
+                    _process_book(bi, len(meta), b, stage_run, dest_root2, author, title, out_title, wipe, cover_mode, overwrite, cfg, steps)
+                    processed_labels.append(b.label)
+                    update_manifest(stage_run, {"books": {"processed": processed_labels}})
 
-        if do_clean_inbox:
-            if state.OPTS and state.OPTS.dry_run:
-                out(f"[inbox] would clean: {src}")
-            else:
-                if src.is_dir():
-                    shutil.rmtree(src, ignore_errors=True)
-                else:
-                    src.unlink(missing_ok=True)
-                out(f"[inbox] cleaned: {src}")
+                out("[phase] FINALIZE")
 
-        # perform stage cleanup if requested and not dry-run
-        dec2 = load_manifest(stage_run).get('decisions', {})
-        do_clean = bool(dec2.get('clean_stage'))
-        if do_clean:
-            if state.OPTS and state.OPTS.dry_run:
-                out(f"[stage] would clean: {stage_run}")
-            else:
-                shutil.rmtree(stage_run, ignore_errors=True)
-                out(f"[stage] cleaned: {stage_run}")
+                # FEATURE #26: clean stage at end (successful run only)
+                # FEATURE #51: mark processed source as ignored
+                if not (state.OPTS and state.OPTS.dry_run):
+                    add_ignore(drop_root, src.name)
+                    out(f"[ignore] added: {src.name}")
+
+                # FEATURE #65: inbox cleanup control (delete processed inbox source under DROP_ROOT)
+                do_clean_inbox = bool(load_manifest(stage_run).get('decisions', {}).get('clean_inbox'))
+
+                if do_clean_inbox:
+                    if state.OPTS and state.OPTS.dry_run:
+                        out(f"[inbox] would clean: {src}")
+                    else:
+                        if src.is_dir():
+                            shutil.rmtree(src, ignore_errors=True)
+                        else:
+                            src.unlink(missing_ok=True)
+                        out(f"[inbox] cleaned: {src}")
+
+                # perform stage cleanup if requested and not dry-run
+                dec2 = load_manifest(stage_run).get('decisions', {})
+                do_clean = bool(dec2.get('clean_stage'))
+                if do_clean:
+                    if state.OPTS and state.OPTS.dry_run:
+                        out(f"[stage] would clean: {stage_run}")
+                    else:
+                        shutil.rmtree(stage_run, ignore_errors=True)
+                        out(f"[stage] cleaned: {stage_run}")
 
 
+        finally:
+            # Issue #74: finalize per-source log
+            sys.stdout = _pl_stdout0
+            sys.stderr = _pl_stderr0
+            try:
+                _pl_tee.flush()
+                _pl_tee_err.flush()
+            except Exception:
+                pass
+            _target = None
+            try:
+                # stage_root is in outer scope; stage_run name is derived from slug(src.name)
+                _target = _pl_resolve_target(cfg, (stage_root / slug(src.name)), src)
+            except Exception:
+                _target = None
+            if _target is not None and not (state.OPTS and state.OPTS.dry_run):
+                try:
+                    ensure_dir(_target.parent)
+                    _target.write_text(_pl_buf.getvalue(), encoding='utf-8')
+                except Exception:
+                    # Logging must never break processing
+                    pass
     def _run_one_source(src: Path, si: int, total: int, *, phase: str, do_process: bool) -> None:
         # Explicit per-source boundary: delegate the full lifecycle to _process_one_source().
         return _process_one_source(src, si, total, phase=phase, do_process=do_process)
