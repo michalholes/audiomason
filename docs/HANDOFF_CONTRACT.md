@@ -1,4 +1,4 @@
-# 🧭 AudioMason – AUTHORITATIVE HANDOFF / AI CONTRACT (v16)
+# 🧭 AudioMason – AUTHORITATIVE HANDOFF / AI CONTRACT (v17)
 TENTO DOKUMENT JE AUTHORITATIVE PRE PRACU NA PROJEKTE AudioMason.
 PLATI PRE VSETKY IMPLEMENTACNE CHATY, AK ISSUE HANDOFF NEPOVIE INAK.
 AK JE ROZPOR: EXPLICITNY ISSUE HANDOFF MA PREDNOST, INAK PLATI TENTO CONTRACT.
@@ -118,6 +118,13 @@ deactivate
 ---
 
 ## 4.5 Patch runner (MANDATORY)
+
+- Ak je potrebny rename krok (napr. kvoli sandbox kolizii nazvu), chat MUSI dodat rename + spustenie runnera **v jednom code blocku**, aby pouzivatel mohol vykonat jeden copy-paste.
+- Canonicky tvar v takom pripade je:
+  ```sh
+  mv /home/pi/apps/patches/<DOWNLOADED_FILENAME>.py /home/pi/apps/patches/issue_<N>.py && \
+  /home/pi/apps/patches/am_patch.sh <N> "<COMMIT_MESSAGE>"
+  ```
 
 - Runner MUSI fail-fast, ak patch nevyprodukuje ziadne zmeny na commit ("nothing to commit" / working tree clean). V takom pripade MUSI vypisat jasnu hlasku "patch produced no changes" a skoncit s nenulovym rc.
 - Pri zlyhani patchu alebo testov MUSI byt dovod zlyhania viditelny okamzite (error/traceback alebo jasna chybova hlaska). Chat MUSI po zlyhani hned poziadat o konkretny diagnosticky vystup (napr. relevantny traceback, sed -n rozsah, git diff, pytest output).
