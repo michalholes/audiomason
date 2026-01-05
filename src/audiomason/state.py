@@ -11,23 +11,27 @@ from typing import Optional
 
 @dataclass
 class Opts:
-    yes: bool
-    dry_run: bool
-    quiet: bool
-    publish: Optional[bool]          # None => ask unless --yes, else True/False
-    wipe_id3: Optional[bool]         # None => ask unless --yes, else True/False
-    loudnorm: bool
-    q_a: str
-    verify: bool
-    verify_root: Path
-    lookup: bool
-    cleanup_stage: bool
-    clean_inbox_mode: str            # ask | yes | no
-    split_chapters: bool
-    ff_loglevel: str                 # warning | error | info
-    cpu_cores: int | None
+    yes: bool = False
+    dry_run: bool = False
+    config: object | None = None
+    quiet: bool = False
+    publish: Optional[bool] = None  # None => ask unless --yes, else True/False
+    wipe_id3: Optional[bool] = None  # None => ask unless --yes, else True/False
+    source_prefix: object | None = None
+    loudnorm: bool = False
+    q_a: str = '2'
+    verify: bool = False
+    verify_root: Path = Path(".")
+    lookup: bool = False
+    cleanup_stage: bool = False
+    clean_inbox_mode: str = 'ask'  # ask | yes | no
+    split_chapters: bool = True
+    ff_loglevel: str = 'warning'  # warning | error | info
+    cpu_cores: int | None = None
+
+    debug: bool = False
 
 
-    json: bool
+    json: bool = False
 # During refactor we keep global state for compatibility with legacy code.
 OPTS: Opts | None = None

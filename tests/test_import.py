@@ -181,3 +181,80 @@ def test_clean_inbox_yes_deletes_processed_source(monkeypatch, tmp_path: Path):
         assert not src.exists()
     finally:
         state.OPTS = old_opts
+def test_choose_all_sources_runs_all_preflights_before_any_processing(monkeypatch, tmp_path: Path):
+    # BUG #70: selecting 'a' must run preflight for ALL sources first, then processing for ALL sources.
+    drop_root = tmp_path / "abooksinbox"
+    stage_root = tmp_path / "_am_stage"
+    archive_root = tmp_path / "abooks"
+    output_root = tmp_path / "abooks_ready"
+    for d in (drop_root, stage_root, archive_root, output_root):
+        d.mkdir(parents=True, exist_ok=True)
+
+    # Two sources
+    s1 = drop_root / "Src.One"
+    s2 = drop_root / "Src.Two"
+    s1.mkdir()
+    s2.mkdir()
+    (s1 / "01.mp3").write_bytes(b"x")
+    (s2 / "01.mp3").write_bytes(b"x")
+
+    import audiomason.import_flow as imp
+
+    events: list[tuple[str, str]] = []
+
+    # prompt sequence:
+    # - choose source => 'a'
+    # - author for src1
+    # - author for src2
+    answers = iter(["a", "Src.One", "Src.Two"])
+
+    def fake_prompt(msg: str, default: str = "") -> str:
+        if str(msg).startswith("[source] Author"):
+            # record "preflight" at the author prompt boundary
+            events.append(("preflight", str(default)))
+        return next(answers)
+
+    def fake_process(*args, **kwargs):
+        # _SOURCE_PREFIX is set to src.name at top of per-source loop
+        events.append(("process", str(getattr(imp, "_SOURCE_PREFIX", ""))))
+        return None
+
+    monkeypatch.setattr(imp, "get_drop_root", lambda cfg: drop_root)
+    monkeypatch.setattr(imp, "get_stage_root", lambda cfg: stage_root)
+    monkeypatch.setattr(imp, "get_archive_root", lambda cfg: archive_root)
+    monkeypatch.setattr(imp, "get_output_root", lambda cfg: output_root)
+
+    # Avoid external tooling in tests
+    monkeypatch.setattr(imp, "convert_m4a_in_place", lambda *a, **k: None)
+    monkeypatch.setattr(imp, "_process_book", fake_process)
+    monkeypatch.setattr(imp, "prompt", fake_prompt)
+    monkeypatch.setattr(imp, "prompt_yes_no", lambda *a, **k: False)
+
+    old_opts = getattr(state, "OPTS", None)
+    try:
+        state.OPTS = Opts(
+            debug=False,
+            yes=False,
+            quiet=False,
+            dry_run=True,
+            config=None,
+            publish=None,
+            wipe_id3=None,
+            source_prefix=None,
+            verify=False,
+            verify_root=output_root,
+            lookup=False,
+            cleanup_stage=False,
+            clean_inbox_mode="no",
+            split_chapters=True,
+            ff_loglevel="warning",
+            cpu_cores=None,
+            json=False,
+        )
+        imp.run_import(cfg={})
+
+        # Expect: preflight Src.One, preflight Src.Two, then process Src.One, process Src.Two (deterministic order)
+        assert events[:2] == [("preflight", "Src.One"), ("preflight", "Src.Two")]
+        assert events[2:] == [("process", "Src.One"), ("process", "Src.Two")]
+    finally:
+        state.OPTS = old_opts

@@ -643,21 +643,9 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
     stage_runs_for_json: list[Path] = []
     picked_sources: list[Path]
     forced = False
-    if src_path is not None:
-        sp = _resolve_source_arg(drop_root, src_path)
-        if sp.expanduser().resolve() == drop_root.expanduser().resolve():
-            sources = _list_sources(drop_root)
-            picked_sources = _choose_source(sources)
-            forced = False
-        else:
-            picked_sources = [sp]
-            forced = True
-    else:
-        sources = _list_sources(drop_root)
-        picked_sources = _choose_source(sources)
-        forced = False
+    picked_all = False
 
-    for si, src in enumerate(picked_sources, 1):
+    def _run_one_source(src: Path, si: int, total: int, *, phase: str, do_process: bool) -> None:
         out(f"[source] {si}/{len(picked_sources)}: {src.name}")
 
         global _SOURCE_PREFIX
@@ -681,7 +669,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
 
         if (not forced) and (candidates & ignore_norm):
             out("[source] skipped (ignored)")
-            continue
+            return
 
         stage_run = stage_root / slug(src.name)
         stage_runs_for_json.append(stage_run)
@@ -695,21 +683,27 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
 
         reuse_possible = bool(stage_src.exists() and mf.get("source", {}).get("fingerprint") == fp)
         reuse_stage = False
-        if reuse_possible:
-            reuse_stage = _pf_prompt_yes_no(cfg, 'reuse_stage', "[stage] Reuse existing staged source?", default_no=False)
-
         use_manifest_answers = False
-        if reuse_stage:
-            out("[stage] reuse")
-            use_manifest_answers = _pf_prompt_yes_no(cfg, "use_manifest_answers", "[manifest] Use saved answers (skip prompts)?", default_no=False)
+        if phase == "process":
+            if not reuse_possible:
+                die("Internal error: process phase requires staged source from preflight phase")
+            reuse_stage = True
+            use_manifest_answers = True
         else:
             if reuse_possible:
-                out("[stage] delete")
-                shutil.rmtree(stage_run, ignore_errors=True)
-                # reset locals; we'll recreate stage + manifest below
-                mf = {}
-                dec = {}
-                bm = {}
+                reuse_stage = _pf_prompt_yes_no(cfg, 'reuse_stage', "[stage] Reuse existing staged source?", default_no=False)
+
+            if reuse_stage:
+                out("[stage] reuse")
+                use_manifest_answers = _pf_prompt_yes_no(cfg, "use_manifest_answers", "[manifest] Use saved answers (skip prompts)?", default_no=False)
+            else:
+                if reuse_possible:
+                    out("[stage] delete")
+                    shutil.rmtree(stage_run, ignore_errors=True)
+                    # reset locals; we'll recreate stage + manifest below
+                    mf = {}
+                    dec = {}
+                    bm = {}
 
             ensure_dir(stage_run)
             update_manifest(stage_run, {
@@ -771,7 +765,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     picked_books = [b for b in picked_books if b.label not in done]
                     if not picked_books:
                         out("[books] resume: nothing left to process")
-                        continue
+                        return
 
         # publish/wipe (skip when allowed, otherwise prompt with defaults)
         default_publish = bool(dec.get("publish")) if isinstance(dec, dict) and "publish" in dec else False
@@ -850,7 +844,11 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             if reuse_stage and use_manifest_answers and default_title:
                 title = default_title
             else:
-                title = _preflight_book(cfg, bi, len(picked_books), b, default_title=default_title)
+                # NOTE: during --dry-run, keep deterministic and do not prompt for title.
+                if state.OPTS and state.OPTS.dry_run:
+                    title = default_title or b.label
+                else:
+                    title = _preflight_book(cfg, bi, len(picked_books), b, default_title=default_title)
 
                 # OpenLibrary suggestion (book title)
                 if getattr(getattr(state, 'OPTS', None), 'lookup', False):
@@ -968,19 +966,24 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                                             cover_src = raw
                     else:
                         # No detected cover => ask once
-                        raw = _pf_prompt(cfg, 'cover', "No cover found. URL or file path (Enter=skip)", "").strip()
-                        if not raw:
+                        # NOTE: during --dry-run, keep deterministic and do not prompt for cover.
+                        if state.OPTS and state.OPTS.dry_run:
                             cover_mode = "skip"
                             cover_src = "skip"
                         else:
-                            staged = _stage_cover_from_raw(cfg, raw, b.group_root)
-                            if staged is None:
+                            raw = _pf_prompt(cfg, 'cover', "No cover found. URL or file path (Enter=skip)", "").strip()
+                            if not raw:
                                 cover_mode = "skip"
                                 cover_src = "skip"
                             else:
-                                cover_mode = "file"
-                                cover_src = raw
-# ISSUE #1: destination conflict handling (fixed mapping for Issue #75)
+                                staged = _stage_cover_from_raw(cfg, raw, b.group_root)
+                                if staged is None:
+                                    cover_mode = "skip"
+                                    cover_src = "skip"
+                                else:
+                                    cover_mode = "file"
+                                    cover_src = raw
+    # ISSUE #1: destination conflict handling (fixed mapping for Issue #75)
             bm_entry = (bm.get(b.label, {}) if isinstance(bm, dict) else {})
             if reuse_stage and use_manifest_answers:
                 m_overwrite = bool(bm_entry.get("overwrite") is True)
@@ -1025,6 +1028,8 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             meta.append((b, title, cover_mode, dest_root2, out_title, overwrite))
             update_manifest(stage_run, {"book_meta": {b.label: {"title": title, "cover_mode": cover_mode, "cover_src": cover_src, "dest_kind": dest_kind, "out_title": out_title, "overwrite": bool(overwrite)}}})
 
+        if not do_process:
+            return
         out("[phase] PROCESS")
         # ISSUE #15: manifest progress for resume
         processed_labels = mf.get("books", {}).get("processed") if isinstance(mf, dict) else None
@@ -1069,7 +1074,33 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                 shutil.rmtree(stage_run, ignore_errors=True)
                 out(f"[stage] cleaned: {stage_run}")
 
-    # ISSUE #18: machine-readable report (printed at end; human output unchanged)
+    
+
+
+    if src_path is not None:
+        sp = _resolve_source_arg(drop_root, src_path)
+        if sp.expanduser().resolve() == drop_root.expanduser().resolve():
+            sources = _list_sources(drop_root)
+            picked_sources = _choose_source(sources)
+            forced = False
+            picked_all = (picked_sources is sources)
+        else:
+            picked_sources = [sp]
+            forced = True
+    else:
+        sources = _list_sources(drop_root)
+        picked_sources = _choose_source(sources)
+        forced = False
+        picked_all = (picked_sources is sources)
+
+    phases = ["combined"]
+    if picked_all and len(picked_sources) > 1:
+        phases = ["preflight", "process"]
+    for phase in phases:
+        do_process = phase != "preflight"
+        for si, src in enumerate(picked_sources, 1):
+            _run_one_source(src, si, len(picked_sources), phase=phase, do_process=do_process)
+# ISSUE #18: machine-readable report (printed at end; human output unchanged)
     if state.OPTS and getattr(state.OPTS, "json", False):
         report = _build_json_report(stage_runs_for_json)
         print(json.dumps(report, ensure_ascii=False, sort_keys=True), flush=True)
