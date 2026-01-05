@@ -49,6 +49,9 @@ deactivate
 
 ## 3) Authoritative files (FAIL FAST)
 
+- **Vsetky subory projektu (vratane patch skriptov a suborov poskytovanych chatom)** sa ukladju do adresara: `/home/pi/apps/patches`.
+- Tento adresar je kanonicke ulozisko pre vsetky dodane subory.
+
 - Ak pouzivatel vlozi / uploadne subor alebo snippet, je to AUTHORITATIVE pravda.
 - Repo stav / pamat / odhady su irelevantne, ak je k dispozicii AUTHORITATIVE subor.
 - Ak chyba potrebny subor → FAIL FAST a vyziadat ho.
@@ -76,7 +79,6 @@ deactivate
 ### 4.3 Umiestnenie patchov (MANDATORY)
 
 - Patch skripty sa ukladaju do: `/home/pi/apps/patches`
-- Patch skripty sa spustaju vzdy odtial.
 - Jeden issue = jeden skript: `/home/pi/apps/patches/issue_<N>.py`
 
 ### 4.4 Distribucia patchov
@@ -84,13 +86,6 @@ deactivate
 - Patch skripty sa dodavaju ako DOWNLOAD.
 - Inline patch iba na vyslovnu ziadost pouzivatela.
 
-### 4.5 Po uspechu
-
-- Patch skript sa po uspechu MUSI zmazat:
-
-```sh
-rm /home/pi/apps/patches/issue_<N>.py
-```
 
 ---
 
@@ -132,7 +127,6 @@ No inline shell blocks, no ad-hoc commands.**
 
 ### 5.1 Zakladne pravidla
 
-- Vsetky prikazy (patch + test + git) sa posielaju v jednom code blocku.
 - Commit message je povinna a musi byt explicitna.
 - Commit message MUSI mat prefix: `Feat:`, `Fix:` alebo `Chore:`.
 
@@ -141,15 +135,15 @@ No inline shell blocks, no ad-hoc commands.**
 - Ziadny `git add`, `git commit` ani `git push` NESMIE prebehnut, pokial nepresli testy.
 - Pred KAZDYM `git push` MUSI byt `python -m pytest -q &&` (push nikdy bez testov).
 
-### 5.3 Kanonicka sekvencia (POVINNA)
-
-```sh
-python /home/pi/apps/patches/issue_<N>.py rm /home/pi/apps/patches/issue_<N>.py python -m pytest -q && git add -A && git commit -m "<EXPLICIT MESSAGE>" && python -m pytest -q && git push
-```
 
 ---
 
 ## 6) Issue management (GH CLI ONLY)
+
+### 6.0 Jazyk issues (MANDATORY)
+
+- Vsetky GitHub issues (title aj body) MUSIA byt napisane po anglicky.
+
 
 ### 6.1 Otvaranie / uprava issues
 
