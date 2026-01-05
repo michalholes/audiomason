@@ -1,4 +1,4 @@
-# 🧭 AudioMason – AUTHORITATIVE HANDOFF / AI CONTRACT (v13)
+# 🧭 AudioMason – AUTHORITATIVE HANDOFF / AI CONTRACT (v15)
 TENTO DOKUMENT JE AUTHORITATIVE PRE PRACU NA PROJEKTE AudioMason.
 PLATI PRE VSETKY IMPLEMENTACNE CHATY, AK ISSUE HANDOFF NEPOVIE INAK.
 AK JE ROZPOR: EXPLICITNY ISSUE HANDOFF MA PREDNOST, INAK PLATI TENTO CONTRACT.
@@ -15,6 +15,7 @@ KAZDY novy issue chat MUSI zacat tymto blokom (doslovne):
 ```text
 AUTHORITATIVE: Tento handoff sa riadi pravidlami v HANDOFF_CONTRACT.md ulozenom v Project Files.
 V pripade konfliktu ma HANDOFF_CONTRACT.md absolutnu prednost.
+AUTHORITATIVE FILES: Vsetky subory uploadnute v tomto chate su AUTHORITATIVE; ak existuje viac verzii, plati POSLEDNA uploadnuta verzia.
 ```
 
 - Ziadny handoff bez tohto bloku.
@@ -63,6 +64,12 @@ deactivate
 ---
 
 ## 3) Authoritative files (FAIL FAST)
+
+- Ak pouzivatel v akomkolvek chate uploadne subor (alebo ho explicitne oznaci ako aktualny), je tento subor AUTOMATICKY AUTHORITATIVE.
+- Ak existuje viac verzii toho isteho suboru, **AUTHORITATIVE je VZDY POSLEDNA uploadnuta verzia.**
+- Starsie uploadnute verzie su AUTOMATICKY NEPLATNE a NESMU byt pouzite.
+- Chat sa NESMIE pytat, ktora verzia je authoritative.
+- V pripade rozporu ma posledna uploadnuta verzia ABSOLUTNU PREDNOST pred pamatou, repo stavom aj predoslymi odpovedami chatu.
 
 - **Vsetky subory projektu (vratane patch skriptov a suborov poskytovanych chatom)** sa ukladju do adresara: `/home/pi/apps/patches`.
 - Tento adresar je kanonicke ulozisko pre vsetky dodane subory.
