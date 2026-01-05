@@ -1,5 +1,4 @@
-# 🧭 AudioMason – AUTHORITATIVE HANDOFF / AI CONTRACT (v5)
-
+# 🧭 AudioMason – AUTHORITATIVE HANDOFF / AI CONTRACT (v13)
 TENTO DOKUMENT JE AUTHORITATIVE PRE PRACU NA PROJEKTE AudioMason.
 PLATI PRE VSETKY IMPLEMENTACNE CHATY, AK ISSUE HANDOFF NEPOVIE INAK.
 AK JE ROZPOR: EXPLICITNY ISSUE HANDOFF MA PREDNOST, INAK PLATI TENTO CONTRACT.
@@ -36,6 +35,22 @@ deactivate
 ---
 
 ## 2) Scope a styl prace (STRICT)
+
+### 2.1 Pravidla pre nove funkcie a opravy existujucich (MANDATORY)
+
+**Ovládanie**
+
+- Kazda nova funkcia alebo oprava MUSI byt ovladatelna:
+  - cez CLI (zapnut/vypnut + volitelne urcit cielovy adresar/subor)
+  - cez config (zapnut/vypnut + volitelne urcit cielovy adresar/subor)
+- **CLI ma vzdy prednost pred configom.**
+
+**Prompt-control kompatibilita**
+
+- Ak k funkcii existuje alebo vznikne interaktivna otazka:
+  - MUSI byt vypinatelna cez config,
+  - pri vypnuti sa MUSI pouzit deterministicky default,
+  - spravanie MUSI byt konzistentne s globalnym prompt-control mechanizmom.
 
 - Implementovat iba to, co je explicitne pozadovane v handoffe.
 - ❌ Ziadne refaktory mimo nutneho zasahu.
@@ -87,14 +102,6 @@ deactivate
 - Ak chat doda subor s inym nazvom alebo cestou **bez uvedenia rename kroku**, je to PORUSENIE contractu.
 - Jeden issue = jeden skript.
 
-- Patch skripty sa ukladaju do: `/home/pi/apps/patches`
-- **Kazdy patch skript MUSI byt dodany presne pod nazvom a cestou:** `/home/pi/apps/patches/issue_<N>.py` (bez verznych suffixov ako `_v1`, `_v2`, ...).
-- Ak chat doda subor s inym nazvom alebo cestou, je to PORUSENIE contractu.
-- Jeden issue = jeden skript.
-
-- Patch skripty sa ukladaju do: `/home/pi/apps/patches`
-- Jeden issue = jeden skript: `/home/pi/apps/patches/issue_<N>.py`
-
 ### 4.4 Distribucia patchov
 
 - Patch skripty sa dodavaju ako DOWNLOAD.
@@ -103,7 +110,7 @@ deactivate
 
 ---
 
-## 4.6 Patch runner (MANDATORY)
+## 4.5 Patch runner (MANDATORY)
 
 **All patches MUST be executed via the patch runner.  
 No inline shell blocks, no ad-hoc commands.**
@@ -220,3 +227,16 @@ Ak pouzivatel ziada "published notices":
 - pisat po anglicky
 - pouzivat straight apostrophes
 - davat do code blocku
+
+## 11) Dokumentacia (MANDATORY)
+
+- **Kanonicky zoznam vsetkych funkcii projektu AudioMason MUSI byt vedeny v jednom subore:** `docs/FUNCTIONS.md`.
+- Tento subor je **single source of truth** pre popis funkcii.
+- Popis, vlastnosti a spravanie **vsetkych funkcii** (novych aj upravenych) MUSIA byt zaznamenane v `docs/FUNCTIONS.md`.
+- Ak zmena ovplyvnuje:
+  - CLI rozhranie,
+  - konfiguračne volby,
+  - interaktivne otazky / prompt-control,
+  - defaultne spravanie,
+  → zodpovedajuca cast `docs/FUNCTIONS.md` MUSI byt aktualizovana.
+- README, manpage alebo ine dokumenty mozu obsahovat vyber alebo zhrnutie, ale **pravda je vzdy `docs/FUNCTIONS.md`.**
