@@ -695,14 +695,79 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
 
 
     def _process_one_source(src: Path, si: int, total: int, *, phase: str, do_process: bool) -> None:
-        # Issue #74: start per-source log capture
-        _pl_buf = io.StringIO()
-        _pl_tee = _PLTee(sys.stdout, _pl_buf)
-        _pl_tee_err = _PLTee(sys.stderr, _pl_buf)
+        global prompt, prompt_yes_no
+        # Issue #74: streaming per-source log (during run)
+        stage_run = stage_root / slug(src.name)
+        _pl_target = None
+        _pl_fh = None
         _pl_stdout0 = sys.stdout
         _pl_stderr0 = sys.stderr
-        sys.stdout = _pl_tee
-        sys.stderr = _pl_tee_err
+        _pl_prompt0 = prompt
+        _pl_prompt_yes_no0 = prompt_yes_no
+        _pl_util = None
+        _pl_util_prompt0 = None
+        _pl_util_prompt_yes_no0 = None
+        try:
+            _pl_target = _pl_resolve_target(cfg, stage_run, src)
+            if _pl_target is not None and not (state.OPTS and state.OPTS.dry_run):
+                # Ensure stage_run exists so we can log immediately.
+                ensure_dir(stage_run)
+                ensure_dir(_pl_target.parent)
+                # Line-buffered file => every message is written right away.
+                _pl_fh = _pl_target.open('w', encoding='utf-8', buffering=1)
+        except Exception:
+            _pl_target = None
+            _pl_fh = None
+
+        if _pl_fh is not None:
+            _pl_tee = _PLTee(sys.stdout, _pl_fh)
+            _pl_tee_err = _PLTee(sys.stderr, _pl_fh)
+            sys.stdout = _pl_tee
+            sys.stderr = _pl_tee_err
+
+            # Wrap prompts to explicitly log questions + user answers.
+            try:
+                import audiomason.util as _pl_util
+                _pl_util_prompt0 = getattr(_pl_util, 'prompt', None)
+                _pl_util_prompt_yes_no0 = getattr(_pl_util, 'prompt_yes_no', None)
+            except Exception:
+                _pl_util = None
+
+            def _pl_prompt(q: str, default: str) -> str:
+                try:
+                    _pl_fh.write(f"[prompt] {q} [default={default}]\n")
+                except Exception:
+                    pass
+                ans = _pl_prompt0(q, default)
+                try:
+                    _pl_fh.write(f"[answer] {ans}\n")
+                except Exception:
+                    pass
+                return ans
+
+            def _pl_prompt_yes_no(q: str, *, default_no: bool = True) -> bool:
+                try:
+                    _pl_fh.write(f"[prompt_yes_no] {q} [default={'no' if default_no else 'yes'}]\n")
+                except Exception:
+                    pass
+                ansb = _pl_prompt_yes_no0(q, default_no=default_no)
+                try:
+                    _pl_fh.write(f"[answer] {'yes' if ansb else 'no'}\n")
+                except Exception:
+                    pass
+                return ansb
+
+            # IMPORTANT: override module globals so all callers use wrappers.
+            prompt = _pl_prompt
+            prompt_yes_no = _pl_prompt_yes_no
+            try:
+                if _pl_util is not None and _pl_util_prompt0 is not None:
+                    _pl_util.prompt = _pl_prompt
+                if _pl_util is not None and _pl_util_prompt_yes_no0 is not None:
+                    _pl_util.prompt_yes_no = _pl_prompt_yes_no
+            except Exception:
+                pass
+
         try:
                 out(f"[source] {si}/{len(picked_sources)}: {src.name}")
 
@@ -1135,27 +1200,29 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
 
 
         finally:
-            # Issue #74: finalize per-source log
+            # Issue #74: finalize streaming per-source log
             sys.stdout = _pl_stdout0
             sys.stderr = _pl_stderr0
+            # restore prompt functions
             try:
-                _pl_tee.flush()
-                _pl_tee_err.flush()
+                prompt = _pl_prompt0
+                prompt_yes_no = _pl_prompt_yes_no0
             except Exception:
                 pass
-            _target = None
             try:
-                # stage_root is in outer scope; stage_run name is derived from slug(src.name)
-                _target = _pl_resolve_target(cfg, (stage_root / slug(src.name)), src)
+                if _pl_util is not None and _pl_util_prompt0 is not None:
+                    _pl_util.prompt = _pl_util_prompt0
+                if _pl_util is not None and _pl_util_prompt_yes_no0 is not None:
+                    _pl_util.prompt_yes_no = _pl_util_prompt_yes_no0
             except Exception:
-                _target = None
-            if _target is not None and not (state.OPTS and state.OPTS.dry_run):
-                try:
-                    ensure_dir(_target.parent)
-                    _target.write_text(_pl_buf.getvalue(), encoding='utf-8')
-                except Exception:
-                    # Logging must never break processing
-                    pass
+                pass
+            try:
+                if _pl_fh is not None:
+                    _pl_fh.flush()
+                    _pl_fh.close()
+            except Exception:
+                pass
+
     def _run_one_source(src: Path, si: int, total: int, *, phase: str, do_process: bool) -> None:
         # Explicit per-source boundary: delegate the full lifecycle to _process_one_source().
         return _process_one_source(src, si, total, phase=phase, do_process=do_process)
