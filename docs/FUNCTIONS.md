@@ -5,6 +5,23 @@ If any other documentation conflicts with this file, **THIS FILE WINS**.
 
 ---
 
+## Audio input formats (conversion)
+
+AudioMason treats the following file types as valid **audio inputs** during import:
+
+- `.mp3` (native)
+- `.m4a` (native)
+- `.opus` (supported via conversion)
+
+### Behavior
+
+- Each `.opus` input is **converted to `.mp3`** using the existing audio toolchain.
+- After conversion, processing continues **identically** to native `.mp3` sources (no semantic changes).
+- Mixed folders (`.opus` + `.mp3` / `.m4a`) are processed deterministically.
+- No new prompts are introduced by this feature.
+
+---
+
 ## Processing log (per-source)
 
 **Identifier:** `processing_log`  
