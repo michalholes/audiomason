@@ -77,12 +77,12 @@ def _pf_prompt(cfg: dict, key: str, question: str, default: str) -> str:
     return prompt(question, default)
 from audiomason.ignore import load_ignore, add_ignore
 from audiomason.archives import unpack
-from audiomason.audio import convert_m4a_in_place
+from audiomason.audio import convert_m4a_in_place, convert_opus_in_place
 from audiomason.rename import natural_sort, rename_sequential
 from audiomason.covers import choose_cover, find_file_cover, extract_embedded_cover_from_mp3, cover_from_input
 from audiomason.tags import wipe_id3, write_tags, write_cover, write_cover
 from audiomason.manifest import update_manifest, load_manifest, source_fingerprint
-_AUDIO_EXTS = {".mp3", ".m4a"}
+_AUDIO_EXTS = {".mp3", ".m4a", ".opus"}
 
 # Issue #75: prefix destination with source name when importing all sources ('a')
 _SOURCE_PREFIX: Optional[str] = None
@@ -851,6 +851,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
 
                 # Always convert m4a before book detection (so mp3s exist everywhere)
                 convert_m4a_in_place(stage_src, recursive=True)
+                convert_opus_in_place(stage_src, recursive=True)
 
                 books = _detect_books(stage_src)
 

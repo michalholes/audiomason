@@ -43,6 +43,19 @@ def ffmpeg_common_input() -> list[str]:
     return ["-hide_banner", "-nostdin", "-stats", "-loglevel", state.OPTS.ff_loglevel, "-threads", str(threads)]
 
 
+def opus_to_mp3_single(src: Path, dst: Path) -> None:
+    if not shutil.which("ffmpeg"):
+        die("ffmpeg not installed")
+    cmd = ["ffmpeg"] + ffmpeg_common_input() + ["-y", "-i", str(src), "-vn"]
+    if state.OPTS.loudnorm:
+        cmd += ["-af", "loudnorm=I=-16:LRA=11:TP=-1.5"]
+    cmd += ["-codec:a", "libmp3lame", "-q:a", state.OPTS.q_a, str(dst)]
+    if state.OPTS.dry_run:
+        out("[dry-run] " + " ".join(cmd))
+        return
+    run_cmd(cmd, check=True)
+
+
 def m4a_to_mp3_single(src: Path, dst: Path) -> None:
     if not shutil.which("ffmpeg"):
         die("ffmpeg not installed")
@@ -121,6 +134,25 @@ def m4a_split_by_chapters(src: Path, outdir: Path) -> list[Path]:
 
     run_cmd(cmd, check=True)
     return [p for p in produced if p.exists() and p.stat().st_size > 0]
+
+
+def convert_opus_in_place(stage: Path, recursive: bool = True) -> None:
+    opuses = sorted((stage.rglob("*.opus") if recursive else stage.glob("*.opus")), key=lambda p: p.as_posix().lower())
+    if not opuses:
+        return
+
+    out(f"[convert] found {len(opuses)} opus")
+
+    for idx, src in enumerate(opuses, 1):
+        out(f"[convert] {idx}/{len(opuses)} {src.name}")
+
+        dst = src.with_suffix(".mp3")
+        if dst.exists() and dst.stat().st_size > 0:
+            out(f"[convert] skip (mp3 exists): {dst.name}")
+            continue
+
+        out("[convert] opus -> mp3")
+        opus_to_mp3_single(src, dst)
 
 
 def convert_m4a_in_place(stage: Path, recursive: bool = True) -> None:
