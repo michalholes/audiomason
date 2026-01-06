@@ -15,6 +15,7 @@ DEFAULTS = {
     "preflight_disable": [],
     "prompts": {"disable": []},
     "processing_log": {"enabled": False, "path": None},
+    "openlibrary": {"enabled": True},
     "version-banner": True,
     # FEATURE #65: inbox cleanup control (delete processed source under DROP_ROOT)
     # Default preserves current behavior: never delete inbox sources unless explicitly configured.
@@ -87,6 +88,12 @@ def load_config(config_path: Path | None = None) -> dict:
                 )
 
     cfg = _deep_merge(DEFAULTS, _load_yaml(p))
+    # Issue #82: validate openlibrary config
+    _ol = cfg.get('openlibrary', {})
+    if not isinstance(_ol, dict):
+        raise AmConfigError('Invalid config: openlibrary must be a mapping')
+    if 'enabled' in _ol and not isinstance(_ol.get('enabled'), bool):
+        raise AmConfigError('Invalid config: openlibrary.enabled must be boolean')
     cfg['loaded_from'] = str(p)
     # Feature #72: expose runtime version (single source of truth)
     _rt = cfg.get('runtime', {})

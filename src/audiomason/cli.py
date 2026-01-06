@@ -197,6 +197,24 @@ def main() -> int:
 
             state.OPTS = _ns_to_opts(ns)
 
+            # Issue #82: resolve OpenLibrary enablement (CLI > config)
+            _ol_cfg = cfg.get('openlibrary', {})
+            if not isinstance(_ol_cfg, dict):
+                raise AmConfigError('Invalid config: openlibrary must be a mapping')
+            _ol_cfg_enabled = bool(_ol_cfg.get('enabled', True))
+
+            _argv = set(sys.argv[1:])
+            if '--lookup' in _argv:
+                _ol_cli = True
+            elif '--no-lookup' in _argv:
+                _ol_cli = False
+            else:
+                _ol_cli = None
+
+            _ol_effective = (_ol_cli if _ol_cli is not None else _ol_cfg_enabled)
+            state.OPTS.lookup = bool(_ol_effective)
+            cfg['_openlibrary_enabled'] = bool(_ol_effective)
+
             # Feature #72: version banner (configurable via config.yaml: version-banner)
             _vb = bool(cfg.get('version-banner', True))
             if _vb and ((not state.OPTS.quiet) or bool(getattr(state.OPTS, 'json', False))):

@@ -18,6 +18,11 @@ from audiomason.util import out, die, ensure_dir, slug, prompt, prompt_yes_no, A
 
 
 # FEATURE #67: disable selected preflight prompts (skip prompts deterministically)
+
+# Issue #82: OpenLibrary master switch
+def _ol_enabled(cfg: dict) -> bool:
+    return bool(cfg.get('_openlibrary_enabled', True))
+
 PREFLIGHT_DISABLE_KEYS = {
     'publish',
     'wipe_id3',
@@ -161,7 +166,9 @@ def _build_json_report(stage_runs: list[Path]) -> dict:
     }
 
 
-def _ol_offer_top(kind: str, entered: str, res) -> str:
+def _ol_offer_top(kind: str, entered: str, res, *, cfg: dict, key: str) -> str:
+    if not _ol_enabled(cfg):
+        return entered
     top = getattr(res, "top", None)
     if isinstance(top, str):
         top = top.strip()
@@ -172,7 +179,7 @@ def _ol_offer_top(kind: str, entered: str, res) -> str:
         return entered
     from audiomason.util import out, prompt_yes_no
     out(f"[ol] {kind} suggestion: '{e}' -> '{top}'")
-    if prompt_yes_no(f"Use suggested {kind} '{top}'?", default_no=True):
+    if _pf_prompt_yes_no(cfg, key, f"Use suggested {kind} '{top}'?", default_no=True):
         return top
     return entered
 
@@ -941,7 +948,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                             author = na
 
                     # OpenLibrary suggestion (author) — must run after final author decision
-                    if getattr(getattr(state, 'OPTS', None), 'lookup', False):
+                    if _ol_enabled(cfg):
                         if getattr(state, "DEBUG", False):
                             out(f"[ol] validate author: '{author}'")
                         ar = validate_author(author)
@@ -949,7 +956,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                             out(f"[ol] author not found: '{author}'")
                         if getattr(state, "DEBUG", False):
                             out(f"[ol] author result: ok={getattr(ar,'ok',None)} status={getattr(ar,'status',None)!r} hits={getattr(ar,'hits',None)} top={getattr(ar,'top',None)!r}")
-                        author = _ol_offer_top('author', author, ar)
+                        author = _ol_offer_top('author', author, ar, cfg=cfg, key='normalize_author')
                 if not author:
                     die("Author is required")
                 update_manifest(stage_run, {"decisions": {"author": author}})
@@ -974,7 +981,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                             title = _preflight_book(cfg, bi, len(picked_books), b, default_title=default_title)
 
                         # OpenLibrary suggestion (book title)
-                        if getattr(getattr(state, 'OPTS', None), 'lookup', False):
+                        if _ol_enabled(cfg):
                             if getattr(state, "DEBUG", False):
                                 out(f"[ol] validate book: author='{author}' title='{title}'")
                             br = validate_book(author, title)
@@ -982,7 +989,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                                 out(f"[ol] book not found: author='{author}' title='{title}'")
                             if getattr(state, "DEBUG", False):
                                 out(f"[ol] book result: ok={getattr(br,'ok',None)} status={getattr(br,'status',None)!r} hits={getattr(br,'hits',None)} top={getattr(br,'top',None)!r}")
-                            title = _ol_offer_top('book title', title, br)
+                            title = _ol_offer_top('book title', title, br, cfg=cfg, key='normalize_book_title')
 
                     # cover decision (Issue #43: choose/add cover during preflight; processing must not prompt)
                     default_cover_mode = (str(bm.get(b.label, {}).get("cover_mode") or "").strip() if (reuse_stage and use_manifest_answers and isinstance(bm, dict)) else "")
