@@ -1,4 +1,4 @@
-# 🧭 AudioMason – AUTHORITATIVE HANDOFF / AI CONTRACT (v18)
+# 🧭 AudioMason – AUTHORITATIVE HANDOFF / AI CONTRACT (v19)
 TENTO DOKUMENT JE AUTHORITATIVE PRE PRACU NA PROJEKTE AudioMason.
 PLATI PRE VSETKY IMPLEMENTACNE CHATY, AK ISSUE HANDOFF NEPOVIE INAK.
 AK JE ROZPOR: EXPLICITNY ISSUE HANDOFF MA PREDNOST, INAK PLATI TENTO CONTRACT.
@@ -129,6 +129,10 @@ deactivate
 
 ## 4.5 Patch runner (MANDATORY)
 
+- Jeden issue moze mat viac commitov a viac patch-runov.
+- Kazdy samostatny patch-run MUSI byt stale dodany/spusteny kanonicky ako: `/home/pi/apps/patches/issue_<N>.py` (runner ho po dobehnuti zmaze).
+- Ak chat doda patch pod inym menom (napr. `issue_<N>_docs.py`), MUSI uviest rename + run v jednom code blocku (podla tohto bodu).
+
 - Ak je potrebny rename krok (napr. kvoli sandbox kolizii nazvu), chat MUSI dodat rename + spustenie runnera **v jednom code blocku**, aby pouzivatel mohol vykonat jeden copy-paste.
 - Canonicky tvar v takom pripade je:
   ```sh
@@ -202,6 +206,12 @@ No inline shell blocks, no ad-hoc commands.**
 
 ### 6.2 UZATVARANIE ISSUES (EXTRÉMNE STRIKTNE)
 
+- Ak pouzivatel uz explicitne poskytol commit SHA(a) pre issue, chat NESMIE vyzadovat opakovane `git log` kroky len "pre audit". Moze pokracovat rovno na `gh issue close` prikaz s dodanym SHA(a) a subjectom.
+- Pred uzavretim issue MUSI byt dokumentacia aktualizovana, ak issue pridava alebo meni spravanie (nova funkcia / oprava funkcie / zmena UX).
+  - Minimalne: doplnit zmenu do `docs/FUNCTIONS.md` (single place pre funkcie).
+  - Ak sa meni prompt (pridany/odstraneny/upraveny), MUSI byt po testoch a code commite     aktualizovany aj `docs/prompts/catalog.md` podla pravidiel pre prompt katalog.
+  - Dokumentacny update moze byt samostatny commit po code commite.
+
 - ❌ ziadne auto-close
 - ❌ ziadne uzatvorenie bez schvalenia pouzivatela
 - ❌ ziadne "myslim, ze toto su commity"
@@ -240,6 +250,12 @@ Dovod: `importlib.metadata.version("audiomason")` musi reflektovat realitu.
 
 ## 9) Komunikacia (HARD RULES)
 
+- Scope chatu urcuje pouzivatel explicitne v prvej sprave (napr. "Tento chat je implementacny.").
+- Chat NESMIE spochybnovat scope ani navrhovat presun do ineho chatu, pokial pouzivatel vyslovene nepoziada o presun.
+- Ak existuje konflikt medzi implicitnymi pravidlami/pamatou a explicitnym scope pouzivatela, plati explicitny scope pouzivatela.
+- Ak pouzivatel da explicitne "OK", "pokracuj" alebo ekvivalent, chat NESMIE ziadat dalsie potvrdenie planu a MUSI prejst rovno na dalsi vykonavaci krok.
+- Chat NESMIE klast overovacie otazky, ak odpoved vyplyva z contractu alebo issue zadania.
+
 - Slovencina (ak pouzivatel vyslovne nepoziada inak).
 - Tento projekt = implementacny.
 - Ziadna teoria, ziadne eseje.
@@ -267,3 +283,24 @@ Ak pouzivatel ziada "published notices":
   - defaultne spravanie,
   → zodpovedajuca cast `docs/FUNCTIONS.md` MUSI byt aktualizovana.
 - README, manpage alebo ine dokumenty mozu obsahovat vyber alebo zhrnutie, ale **pravda je vzdy `docs/FUNCTIONS.md`.**
+
+## 12) Prompt catalog update rules (MANDATORY)
+
+### 🔒 Zavazne pravidlo pre `docs/prompts/catalog.md`
+
+- Katalog promptov (`docs/prompts/catalog.md`) MUSI ostat konzistentny s aktualnym stavom vetvy `main`.
+
+- Katalog promptov MUSI byt aktualizovany IBA PO:
+  1. uspesnom otestovani zmien (`python -m pytest -q`),
+  2. commitnuti zmeny, ktora prompt meni / pridava / odstraňuje.
+
+- Aktualizacia katalogu je sucastou uzatvarania issue, nie jeho priebehu.
+
+### Prakticky dosledok
+
+- Implementacne chaty MUSIA postupovat v poradi:
+  1. kod + testy + commit,
+  2. aktualizacia `docs/prompts/catalog.md`,
+  3. dokumentacny commit (samostatny, alebo v tom istom, ak to issue vyslovne povoľuje).
+
+- Katalog promptov NESMIE byt aktualizovany pred tym, nez je zmena realne pritomna v `main`.
