@@ -1,4 +1,4 @@
-# 🧭 AudioMason – AUTHORITATIVE HANDOFF / AI CONTRACT (v17)
+# 🧭 AudioMason – AUTHORITATIVE HANDOFF / AI CONTRACT (v18)
 TENTO DOKUMENT JE AUTHORITATIVE PRE PRACU NA PROJEKTE AudioMason.
 PLATI PRE VSETKY IMPLEMENTACNE CHATY, AK ISSUE HANDOFF NEPOVIE INAK.
 AK JE ROZPOR: EXPLICITNY ISSUE HANDOFF MA PREDNOST, INAK PLATI TENTO CONTRACT.
@@ -65,21 +65,24 @@ deactivate
 
 ## 3) Authoritative files (FAIL FAST)
 
-- Ak pouzivatel v akomkolvek chate uploadne subor (alebo ho explicitne oznaci ako aktualny), je tento subor AUTOMATICKY AUTHORITATIVE.
-- Ak existuje viac verzii toho isteho suboru, **AUTHORITATIVE je VZDY POSLEDNA uploadnuta verzia.**
-- Starsie uploadnute verzie su AUTOMATICKY NEPLATNE a NESMU byt pouzite.
-- Chat sa NESMIE pytat, ktora verzia je authoritative.
-- V pripade rozporu ma posledna uploadnuta verzia ABSOLUTNU PREDNOST pred pamatou, repo stavom aj predoslymi odpovedami chatu.
+- Ak pouzivatel v akomkolvek chate uploadne subor
+  (alebo ho explicitne oznaci ako aktualny),
+  je tento subor AUTOMATICKY AUTHORITATIVE.
 
-- **Vsetky subory projektu (vratane patch skriptov a suborov poskytovanych chatom)** sa ukladju do adresara: `/home/pi/apps/patches`.
-- Tento adresar je kanonicke ulozisko pre vsetky dodane subory.
+- Ak existuje viac verzii toho isteho suboru,
+  **AUTHORITATIVE je VZDY POSLEDNA uploadnuta verzia.**
+  Starsie verzie su AUTOMATICKY NEPLATNE a NESMU byt pouzite.
 
-- Ak pouzivatel vlozi / uploadne subor alebo snippet, je to AUTHORITATIVE pravda.
-- Repo stav / pamat / odhady su irelevantne, ak je k dispozicii AUTHORITATIVE subor.
-- Ak chyba potrebny subor → FAIL FAST a vyziadat ho.
-- Nehadat, nevymyslat kod.
+- Chat sa NESMIE pytat, ktora verzia je authoritative,
+  ani ziadat potvrdenie.
 
----
+- V pripade rozporu ma posledna uploadnuta verzia
+  ABSOLUTNU PREDNOST pred pamatou, repo stavom
+  aj predoslymi odpovedami chatu.
+
+- Ak potrebny subor nebol uploadnuty,
+  chat MUSI fail-fast a vyziadat si ho.
+
 
 ## 4) Patchovanie (KRITICKE, NEVYJEDNAVATELNE)
 
@@ -99,6 +102,13 @@ deactivate
 - post-edit assertions
 
 ### 4.3 Umiestnenie patchov (MANDATORY)
+
+- Vsetky subory **dodane chatom**
+  (patch skripty, kontrakty na stiahnutie,
+  pomocne alebo docasne subory)
+  MUSIA byt ulozene v adresari: `/home/pi/apps/patches`.
+- Chat NESMIE navrhovat pracu so subormi
+  v inych adresaroch.
 
 - Patch skripty sa ukladaju do: `/home/pi/apps/patches`
 - **Kazdy patch skript MUSI byt dodany presne pod nazvom a cestou:** `/home/pi/apps/patches/issue_<N>.py` (bez verznych suffixov ako `_v1`, `_v2`, ...).
