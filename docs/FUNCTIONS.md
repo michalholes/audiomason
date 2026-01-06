@@ -83,3 +83,65 @@ processing_log:
 - log files are **not cleaned up automatically**
 
 ---
+
+## OpenLibrary (metadata validation & suggestions)
+
+**Identifier:** `openlibrary`  
+**Scope:** import / preflight (author, book title)  
+**Default:** enabled
+
+AudioMason can validate and suggest **author** and **book title** using OpenLibrary.
+
+---
+
+### Configuration
+
+```yaml
+openlibrary:
+  enabled: true
+```
+
+---
+
+### Behavior
+
+- `enabled: true`  
+  -> OpenLibrary lookup runs for author and book title  
+  -> interactive suggestions may be offered  
+  -> default UX (no behavior change)
+
+- `enabled: false`  
+  -> **no OpenLibrary lookups**  
+  -> **no OpenLibrary prompts**  
+  -> **no `[ol]` output**  
+  -> fully deterministic behavior
+
+---
+
+### CLI
+
+```bash
+--lookup
+--no-lookup
+```
+
+#### Semantics
+
+- `--no-lookup`  
+  -> disables OpenLibrary regardless of config
+
+- `--lookup`  
+  -> forces OpenLibrary enable regardless of config
+
+**CLI options override configuration values.**
+
+---
+
+### Prompt-control compatibility
+
+OpenLibrary suggestions respect the existing prompt-control keys:
+
+- `normalize_author`
+- `normalize_book_title`
+
+---
