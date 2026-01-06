@@ -1,4 +1,19 @@
-# 🧭 AudioMason – AUTHORITATIVE HANDOFF / AI CONTRACT (v19)
+# 🧭 AudioMason – AUTHORITATIVE HANDOFF / AI CONTRACT (v20)
+
+## 🔒 AUTHORITATIVE SCOPE
+
+TENTO DOKUMENT JE AUTHORITATIVE PRE PRACU NA PROJEKTE AudioMason
+A PLATI PRE VSETKY IMPLEMENTACNE CHATY BEZ VYNIMKY.
+
+ISSUE HANDOFF NESMIE BYT V ROZPORE S TYMTO CONTRACTOM.
+ISSUE HANDOFF MOZE CONTRACT IBA SPRESNIT (DOPLNIT DETAILY),
+NIKDY HO NESMIE OSLABIT ANI OBIST.
+
+AK EXISTUJE ROZPOR:
+- PLATI TENTO CONTRACT,
+- ISSUE HANDOFF SA POVAZUJE ZA CHYBNY.
+VYNIMKU MOZE POVOLIT IBA POUZIVATEL EXPLICITNE.
+
 TENTO DOKUMENT JE AUTHORITATIVE PRE PRACU NA PROJEKTE AudioMason.
 PLATI PRE VSETKY IMPLEMENTACNE CHATY, AK ISSUE HANDOFF NEPOVIE INAK.
 AK JE ROZPOR: EXPLICITNY ISSUE HANDOFF MA PREDNOST, INAK PLATI TENTO CONTRACT.
@@ -37,7 +52,7 @@ deactivate
 
 ## 2) Scope a styl prace (STRICT)
 
-### 2.1 Pravidla pre nove funkcie a opravy existujucich (MANDATORY)
+### 2.1 Pravidla pre nove funkcie a opravy existujucich (POVINNE)
 
 **Ovládanie**
 
@@ -101,7 +116,7 @@ deactivate
 - fail-fast
 - post-edit assertions
 
-### 4.3 Umiestnenie patchov (MANDATORY)
+### 4.3 Umiestnenie patchov (POVINNE)
 
 - Vsetky subory **dodane chatom**
   (patch skripty, kontrakty na stiahnutie,
@@ -127,7 +142,7 @@ deactivate
 
 ---
 
-## 4.5 Patch runner (MANDATORY)
+## 4.5 Patch runner (POVINNE)
 
 - Jeden issue moze mat viac commitov a viac patch-runov.
 - Kazdy samostatny patch-run MUSI byt stale dodany/spusteny kanonicky ako: `/home/pi/apps/patches/issue_<N>.py` (runner ho po dobehnuti zmaze).
@@ -192,7 +207,7 @@ No inline shell blocks, no ad-hoc commands.**
 
 ## 6) Issue management (GH CLI ONLY)
 
-### 6.0 Jazyk issues (MANDATORY)
+### 6.0 Jazyk issues (POVINNE)
 
 - Vsetky GitHub issues (title aj body) MUSIA byt napisane po anglicky.
 
@@ -248,7 +263,7 @@ Dovod: `importlib.metadata.version("audiomason")` musi reflektovat realitu.
 
 ---
 
-## 9) Komunikacia (HARD RULES)
+## 9) Komunikacia (TVRDE PRAVIDLA)
 
 - Scope chatu urcuje pouzivatel explicitne v prvej sprave (napr. "Tento chat je implementacny.").
 - Chat NESMIE spochybnovat scope ani navrhovat presun do ineho chatu, pokial pouzivatel vyslovene nepoziada o presun.
@@ -271,7 +286,7 @@ Ak pouzivatel ziada "published notices":
 - pouzivat straight apostrophes
 - davat do code blocku
 
-## 11) Dokumentacia (MANDATORY)
+## 11) Dokumentacia (POVINNE)
 
 - **Kanonicky zoznam vsetkych funkcii projektu AudioMason MUSI byt vedeny v jednom subore:** `docs/FUNCTIONS.md`.
 - Tento subor je **single source of truth** pre popis funkcii.
@@ -284,7 +299,7 @@ Ak pouzivatel ziada "published notices":
   → zodpovedajuca cast `docs/FUNCTIONS.md` MUSI byt aktualizovana.
 - README, manpage alebo ine dokumenty mozu obsahovat vyber alebo zhrnutie, ale **pravda je vzdy `docs/FUNCTIONS.md`.**
 
-## 12) Prompt catalog update rules (MANDATORY)
+## 12) Prompt catalog update rules (POVINNE)
 
 ### 🔒 Zavazne pravidlo pre `docs/prompts/catalog.md`
 
