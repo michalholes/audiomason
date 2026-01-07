@@ -721,7 +721,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
     picked_all = False
 
 
-    def _process_one_source(src: Path, si: int, total: int, *, phase: str, do_process: bool) -> None:
+    def _process_one_source(src: Path, si: int, total: int, *, phase: str, do_process: bool, run_clean_inbox: bool) -> None:
         global prompt, prompt_yes_no
         # Issue #74: streaming per-source log (during run)
         stage_run = stage_root / slug(src.name)
@@ -942,12 +942,8 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                 else:
                     clean_stage = _pf_prompt_yes_no(cfg, "clean_stage", "Clean stage after successful import?", default_no=(not default_clean))
 
-                # FEATURE #65: decide inbox cleanup in PREPARE (prompt in preflight; action only on success)
-                preflight_clean_inbox = False
-                if clean_inbox_mode == 'yes':
-                    preflight_clean_inbox = True
-                elif clean_inbox_mode == 'ask':
-                    preflight_clean_inbox = _pf_prompt_yes_no(cfg, "clean_inbox", "Clean inbox after successful import?", default_no=True)
+                # FEATURE #65: inbox cleanup decision is RUN-level (prompt must never occur mid-PROCESS)
+                preflight_clean_inbox = bool(run_clean_inbox)
 
                 update_manifest(stage_run, {"decisions": {"clean_stage": bool(clean_stage), "clean_inbox": bool(preflight_clean_inbox)}})
                 # [issue_86] Always PROCESS into output_root; final publish (copy to archive_root) happens at end.
@@ -1201,9 +1197,8 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                 if not (state.OPTS and state.OPTS.dry_run):
                     add_ignore(drop_root, src.name)
                     out(f"[ignore] added: {src.name}")
-
-                # FEATURE #65: inbox cleanup control (delete processed inbox source under DROP_ROOT)
-                do_clean_inbox = bool(load_manifest(stage_run).get('decisions', {}).get('clean_inbox'))
+                # FEATURE #65: inbox cleanup control (run-level decision)
+                do_clean_inbox = bool(run_clean_inbox)
 
                 if do_clean_inbox:
                     if state.OPTS and state.OPTS.dry_run:
@@ -1250,9 +1245,9 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             except Exception:
                 pass
 
-    def _run_one_source(src: Path, si: int, total: int, *, phase: str, do_process: bool) -> None:
+    def _run_one_source(src: Path, si: int, total: int, *, phase: str, do_process: bool, run_clean_inbox: bool) -> None:
         # Explicit per-source boundary: delegate the full lifecycle to _process_one_source().
-        return _process_one_source(src, si, total, phase=phase, do_process=do_process)
+        return _process_one_source(src, si, total, phase=phase, do_process=do_process, run_clean_inbox=run_clean_inbox)
 
 
 
@@ -1273,13 +1268,23 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
         forced = False
         picked_all = (picked_sources is sources)
 
+    # ISSUE #88: resolve inbox cleanup decision ONCE per run (never prompt mid-PROCESS)
+    run_clean_inbox: bool
+    if clean_inbox_mode == 'yes':
+        run_clean_inbox = True
+    elif clean_inbox_mode == 'no':
+        run_clean_inbox = False
+    else:
+        # clean_inbox_mode == 'ask' (validated above)
+        run_clean_inbox = _pf_prompt_yes_no(cfg, "clean_inbox", "Clean inbox after successful import?", default_no=True)
+
     phases = ["combined"]
     if picked_all and len(picked_sources) > 1:
         phases = ["preflight", "process"]
     for phase in phases:
         do_process = phase != "preflight"
         for si, src in enumerate(picked_sources, 1):
-            _run_one_source(src, si, len(picked_sources), phase=phase, do_process=do_process)
+            _run_one_source(src, si, len(picked_sources), phase=phase, do_process=do_process, run_clean_inbox=run_clean_inbox)
 # ISSUE #18: machine-readable report (printed at end; human output unchanged)
     if state.OPTS and getattr(state.OPTS, "json", False):
         report = _build_json_report(stage_runs_for_json)

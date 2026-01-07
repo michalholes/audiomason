@@ -181,6 +181,85 @@ def test_clean_inbox_yes_deletes_processed_source(monkeypatch, tmp_path: Path):
         assert not src.exists()
     finally:
         state.OPTS = old_opts
+
+
+
+def test_clean_inbox_prompt_never_happens_during_process_when_selecting_all_sources(monkeypatch, tmp_path: Path):
+    # Issue #88 regression: when selecting 'a' (all sources), clean_inbox prompt must NOT occur mid-PROCESS.
+    drop_root = tmp_path / "abooksinbox"
+    stage_root = tmp_path / "_am_stage"
+    archive_root = tmp_path / "abooks"
+    output_root = tmp_path / "abooks_ready"
+    for d in (drop_root, stage_root, archive_root, output_root):
+        d.mkdir(parents=True, exist_ok=True)
+
+    s1 = drop_root / "Src.One"
+    s2 = drop_root / "Src.Two"
+    s1.mkdir()
+    s2.mkdir()
+    (s1 / "01.mp3").write_bytes(b"x")
+    (s2 / "01.mp3").write_bytes(b"x")
+
+    import audiomason.import_flow as imp
+
+    events: list[str] = []
+
+    answers = iter(["a", "Src.One", "Src.Two"])
+
+    def fake_prompt(msg: str, default: str = "") -> str:
+        if str(msg).startswith("[source] Author"):
+            events.append(f"author:{default}")
+        return next(answers)
+
+    def fake_pf(cfg, key: str, q: str, default_no: bool = True):
+        events.append(f"pf:{key}")
+        return False
+
+    def fake_process(*args, **kwargs):
+        events.append(f"process:{getattr(imp, '_SOURCE_PREFIX', '')}")
+        return None
+
+    monkeypatch.setattr(imp, "get_drop_root", lambda cfg: drop_root)
+    monkeypatch.setattr(imp, "get_stage_root", lambda cfg: stage_root)
+    monkeypatch.setattr(imp, "get_archive_root", lambda cfg: archive_root)
+    monkeypatch.setattr(imp, "get_output_root", lambda cfg: output_root)
+
+    monkeypatch.setattr(imp, "convert_m4a_in_place", lambda *a, **k: None)
+    monkeypatch.setattr(imp, "_process_book", fake_process)
+    monkeypatch.setattr(imp, "prompt", fake_prompt)
+    monkeypatch.setattr(imp, "prompt_yes_no", lambda *a, **k: False)
+    monkeypatch.setattr(imp, "_pf_prompt_yes_no", fake_pf)
+    monkeypatch.setattr(imp, "_choose_books", lambda books, default_ans="1": books)
+
+    old_opts = getattr(state, "OPTS", None)
+    try:
+        state.OPTS = Opts(
+            debug=False,
+            yes=False,
+            quiet=False,
+            dry_run=True,
+            config=None,
+            publish=None,
+            wipe_id3=None,
+            source_prefix=None,
+            verify=False,
+            verify_root=output_root,
+            lookup=False,
+            cleanup_stage=False,
+            clean_inbox_mode="ask",
+            split_chapters=True,
+            ff_loglevel="warning",
+            cpu_cores=None,
+            json=False,
+        )
+        imp.run_import(cfg={})
+    finally:
+        state.OPTS = old_opts
+
+    assert events.count("pf:clean_inbox") == 1
+    first_process = next((i for i, e in enumerate(events) if e.startswith("process:")), None)
+    assert first_process is not None
+    assert events.index("pf:clean_inbox") < first_process
 def test_choose_all_sources_runs_all_preflights_before_any_processing(monkeypatch, tmp_path: Path):
     # BUG #70: selecting 'a' must run preflight for ALL sources first, then processing for ALL sources.
     drop_root = tmp_path / "abooksinbox"
