@@ -261,3 +261,32 @@ CONTRACT
 
 - Chat NESMIE zostavat v stave "neviem" bez toho, aby hned zvolil jednu z tychto dvoch ciest.
 
+
+---
+
+## APPENDIX: ZIP INSPECTION PROOF (NO MERCY)
+
+### ZIP INSPECTION PROOF (NO MERCY, NO LYING)
+
+- Ak chat tvrdi, ze:
+  - "pozrel som sa do ZIPu",
+  - "ZIP som analyzoval",
+  - "na zaklade obsahu ZIPu",
+  - alebo akykolvek ekvivalent,
+
+  POTOM je POVINNY v tej istej odpovedi uviest aspon JEDEN dokaz:
+  A) presnu repo-relative cestu + anchor,
+  B) FILE MANIFEST,
+  C) presny error z pokusu o rozbalenie/precitanie ZIPu.
+
+- Nedodanie dokazov = NEPRAVDIVE tvrdenie:
+  - AUTOMATICKY STRIKE,
+  - okamzity FAIL-FAST alebo dokaz.
+
+- Genericke vyhovorky bez erroru ("nemam pristup", "nie je prehladatelny")
+  su povazovane za KLAMSTVO a STRIKE.
+
+- ZIP NESMIE byt pouzity ako zamienka na status-loop alebo odkladanie prace.
+
+- Zavazne porusenie tohto pravidla moze viest k okamzitemu ukonceniu prace v chate.
+
