@@ -56,8 +56,46 @@ def _resolved_preflight_disable(cfg: dict) -> set[str]:
     cfg['_preflight_disable_set'] = out_set
     return out_set
 
+def _resolved_prompts_disable(cfg: dict) -> set[str]:
+    # Cache the resolved set on cfg to avoid repeated parsing.
+    cached = cfg.get('_prompts_disable_set')
+    if isinstance(cached, set):
+        return cached
+    prm = cfg.get('prompts', {})
+    if prm is None:
+        prm = {}
+    if not isinstance(prm, dict):
+        raise AmConfigError("Invalid config: prompts must be a mapping")
+    raw = prm.get('disable', [])
+    if raw is None:
+        raw = []
+    if not isinstance(raw, list):
+        raise AmConfigError("Invalid config: prompts.disable must be a list")
+    seen: set[str] = set()
+    for x in raw:
+        if not isinstance(x, str):
+            raise AmConfigError("Invalid config: prompts.disable items must be strings")
+        if x in seen:
+            raise AmConfigError(f"Invalid config: duplicate prompts.disable key: {x}")
+        seen.add(x)
+    if "*" in seen and len(seen) != 1:
+        raise AmConfigError("Invalid config: prompts.disable cannot combine '*' with other keys")
+    unknown = sorted(k for k in seen if k != "*" and k not in {
+        "normalize_author","normalize_book_title","publish","wipe_id3","reuse_stage","cover",
+        "choose_source","choose_books","skip_processed_books","overwrite_destination",
+        "source_author","book_title","choose_cover","cover_input",
+    })
+    if unknown:
+        raise AmConfigError(f"Invalid config: unknown prompts.disable key(s): {', '.join(unknown)}")
+    cfg['_prompts_disable_set'] = seen
+    return seen
+
+def _prompt_disabled(cfg: dict, key: str) -> bool:
+    ds = _resolved_prompts_disable(cfg)
+    return "*" in ds or key in ds
+
 def _pf_disabled(cfg: dict, key: str) -> bool:
-    return key in _resolved_preflight_disable(cfg)
+    return _prompt_disabled(cfg, key) or (key in _resolved_preflight_disable(cfg))
 
 def _pf_prompt_yes_no(cfg: dict, key: str, question: str, *, default_no: bool) -> bool:
     # Disabled => behave like pressing Enter (use existing defaults).
@@ -231,14 +269,17 @@ def _list_sources(drop_root: Path) -> list[Path]:
     return items
 
 
-def _choose_source(sources: list[Path]) -> list[Path]:
+def _choose_source(cfg: dict, sources: list[Path]) -> list[Path]:
     if not sources:
         out("[inbox] empty")
         return []
     out("[inbox] sources:")
     for i, p in enumerate(sources, 1):
         out(f"  {i}) {p.name}")
-    ans = prompt("Choose source number, or 'a' for all", "1").strip().lower()
+    if _prompt_disabled(cfg, 'choose_source'):
+        ans = "1"
+    else:
+        ans = prompt("Choose source number, or 'a' for all", "1").strip().lower()
     if ans == "a":
         return sources
     try:
@@ -324,7 +365,42 @@ def _detect_books(stage_src: Path) -> list[BookGroup]:
         die("No books found in source (no mp3/m4a in any directory)")
     return books
 
-def _choose_books(books: list[BookGroup], default_ans: str = "1") -> list[BookGroup]:
+def _choose_books_disabled(books: list[BookGroup], default_ans: str = "1") -> list[BookGroup]:
+    if len(books) == 1:
+        return books
+    ans = default_ans.strip().lower()
+    if ans == "a":
+        return books
+    try:
+        n = int(ans)
+        if 1 <= n <= len(books):
+            return [books[n - 1]]
+    except Exception:
+        pass
+    die("Invalid book selection")
+    return []
+
+def _choose_books(cfg: dict, books: list[BookGroup], default_ans: str = "1") -> list[BookGroup]:
+    # Issue #76: allow disabling choose_books prompt deterministically.
+    if _prompt_disabled(cfg, 'choose_books'):
+        return _choose_books_disabled(books, default_ans=default_ans)
+    if len(books) == 1:
+        return books
+    out(f"[books] found {len(books)}:")
+    for i, b in enumerate(books, 1):
+        out(f"  {i}) {b.label}")
+    ans = prompt("Choose book number, or 'a' for all", default_ans).strip().lower()
+    if ans == "a":
+        return books
+    try:
+        n = int(ans)
+        if 1 <= n <= len(books):
+            return [books[n - 1]]
+    except Exception:
+        pass
+    die("Invalid book selection")
+    return []
+
     if len(books) == 1:
         return books
     out(f"[books] found {len(books)}:")
@@ -369,7 +445,10 @@ def _preflight_global(cfg: dict) -> tuple[bool, bool]:
 def _preflight_book(cfg: dict, i: int, n: int, b: BookGroup, default_title: str = "") -> str:
     out(f"[book-meta] {i}/{n}: {b.label}")
     default_title = (default_title or (b.label if b.label != "__ROOT_AUDIO__" else "Untitled"))
-    title = prompt(f"[book {i}/{n}] Book title", default_title).strip()
+    if _prompt_disabled(cfg, 'book_title'):
+        title = default_title.strip()
+    else:
+        title = prompt(f"[book {i}/{n}] Book title", default_title).strip()
     nt = normalize_sentence(title)
     if nt != title:
         out(f"[name] book suggestion: '{title}' -> '{nt}'")
@@ -893,7 +972,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                             default_ans = "1"
 
                 if not picked_books:
-                    picked_books = _choose_books(books, default_ans=default_ans)
+                    picked_books = _choose_books(cfg, books, default_ans=default_ans)
 
                 update_manifest(stage_run, {
                     "books": {
@@ -910,7 +989,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     already = [x for x in before if x in done]
                     if already:
                         out(f"[books] resume: already processed: {', '.join(already)}")
-                        if prompt_yes_no("Skip already processed books?", default_no=True):
+                        if (False if _prompt_disabled(cfg, 'skip_processed_books') else prompt_yes_no("Skip already processed books?", default_no=True)):
                             picked_books = [b for b in picked_books if b.label not in done]
                             if not picked_books:
                                 out("[books] resume: nothing left to process")
@@ -956,7 +1035,10 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                 if reuse_stage and use_manifest_answers and isinstance(dec, dict) and str(dec.get("author") or "").strip():
                     author = str(dec.get("author") or "").strip()
                 else:
-                    author = prompt("[source] Author", default_author2).strip()
+                    if _prompt_disabled(cfg, 'source_author'):
+                        author = default_author2.strip()
+                    else:
+                        author = prompt("[source] Author", default_author2).strip()
                     na = normalize_name(author)
                     if na != author:
                         out(f"[name] author suggestion: '{author}' -> '{na}'")
@@ -1156,7 +1238,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                         # 1) offer overwrite (interactive only)
                         if not (state.OPTS and state.OPTS.yes):
                             out(f"[dest] exists: {outdir}")
-                            overwrite = prompt_yes_no("Destination exists. Overwrite?", default_no=True)
+                            overwrite = (False if _prompt_disabled(cfg, 'overwrite_destination') else prompt_yes_no("Destination exists. Overwrite?", default_no=True))
                         else:
                             overwrite = False
 
@@ -1256,7 +1338,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
         sp = _resolve_source_arg(drop_root, src_path)
         if sp.expanduser().resolve() == drop_root.expanduser().resolve():
             sources = _list_sources(drop_root)
-            picked_sources = _choose_source(sources)
+            picked_sources = _choose_source(cfg, sources)
             forced = False
             picked_all = (picked_sources is sources)
         else:
@@ -1264,7 +1346,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             forced = True
     else:
         sources = _list_sources(drop_root)
-        picked_sources = _choose_source(sources)
+        picked_sources = _choose_source(cfg, sources)
         forced = False
         picked_all = (picked_sources is sources)
 

@@ -59,6 +59,53 @@ def user_config_path() -> Path:
         return Path(xdg) / "audiomason" / "config.yaml"
     return Path.home() / ".config" / "audiomason" / "config.yaml"
 
+# Issue #76: global prompt disable (config validation)
+PROMPT_DISABLE_KEYS = {
+    # preflight keys (existing)
+    "normalize_author",
+    "normalize_book_title",
+    "publish",
+    "wipe_id3",
+    "reuse_stage",
+    "cover",
+    # non-preflight keys
+    "choose_source",
+    "choose_books",
+    "skip_processed_books",
+    "overwrite_destination",
+    "source_author",
+    "book_title",
+    # cover module prompts (non-preflight)
+    "choose_cover",
+    "cover_input",
+}
+
+def _validate_prompts_disable(cfg: dict) -> None:
+    prm = cfg.get("prompts", {})
+    if prm is None:
+        prm = {}
+    if not isinstance(prm, dict):
+        raise AmConfigError("Invalid config: prompts must be a mapping")
+    raw = prm.get("disable", [])
+    if raw is None:
+        raw = []
+    if not isinstance(raw, list):
+        raise AmConfigError("Invalid config: prompts.disable must be a list")
+    seen: set[str] = set()
+    for x in raw:
+        if not isinstance(x, str):
+            raise AmConfigError("Invalid config: prompts.disable items must be strings")
+        if x in seen:
+            raise AmConfigError(f"Invalid config: duplicate prompts.disable key: {x}")
+        seen.add(x)
+    if "*" in seen and len(seen) != 1:
+        raise AmConfigError("Invalid config: prompts.disable cannot combine '*' with other keys")
+    unknown = sorted(k for k in seen if k != "*" and k not in PROMPT_DISABLE_KEYS)
+    if unknown:
+        allowed = ", ".join(sorted(PROMPT_DISABLE_KEYS))
+        raise AmConfigError(f"Invalid config: unknown prompts.disable key(s): {', '.join(unknown)}. Allowed: {allowed}")
+
+
 def load_config(config_path: Path | None = None) -> dict:
     tried: list[Path] = []
 
@@ -88,7 +135,38 @@ def load_config(config_path: Path | None = None) -> dict:
                 )
 
     cfg = _deep_merge(DEFAULTS, _load_yaml(p))
+    # Issue #76: validate prompts.disable (global prompt disable)
+    _pr = cfg.get('prompts', {})
+    if not isinstance(_pr, dict):
+        raise AmConfigError('Invalid config: prompts must be a mapping')
+    _disable = _pr.get('disable', [])
+    if _disable is None:
+        _disable = []
+    if not isinstance(_disable, list):
+        raise AmConfigError('Invalid config: prompts.disable must be a list of keys')
+
+    _allowed = {
+        '*',
+        # preflight keys
+        'publish','wipe_id3','clean_stage','clean_inbox','reuse_stage','use_manifest_answers',
+        'normalize_author','normalize_book_title','cover',
+        # non-preflight keys
+        'choose_source','choose_books','skip_processed_books','enter_author','enter_book_title','dest_overwrite',
+    }
+    _seen: set[str] = set()
+    for x in _disable:
+        k = str(x).strip()
+        if not k:
+            continue
+        if k not in _allowed:
+            raise AmConfigError(f'Invalid config: unknown prompts.disable key: {k}')
+        if k in _seen:
+            raise AmConfigError(f'Invalid config: duplicate prompts.disable key: {k}')
+        _seen.add(k)
+    if '*' in _seen and len(_seen) != 1:
+        raise AmConfigError("Invalid config: prompts.disable cannot combine '*' with other keys")
     # Issue #82: validate openlibrary config
+    _validate_prompts_disable(cfg)
     _ol = cfg.get('openlibrary', {})
     if not isinstance(_ol, dict):
         raise AmConfigError('Invalid config: openlibrary must be a mapping')

@@ -213,7 +213,11 @@ def choose_cover(
         out("  1) embedded cover from audio")
         out(f"  2) {file_cover.name} (preferred)")
         try:
-            ans = prompt("Choose cover [1/2]", "2").strip()
+            dis = (cfg.get('prompts', {}) or {}).get('disable', [])
+            if dis == ['*'] or 'choose_cover' in (dis or []):
+                ans = "2"
+            else:
+                ans = prompt("Choose cover [1/2]", "2").strip()
         except KeyboardInterrupt:
             out("\n[cover] skipped")
             return None
@@ -249,7 +253,11 @@ def choose_cover(
         if got:
             return got
 
-    raw = prompt("No cover found. Path or URL to image (Enter=skip)", "")
+    dis = (cfg.get('prompts', {}) or {}).get('disable', [])
+    if dis == ['*'] or 'cover_input' in (dis or []):
+        raw = ""
+    else:
+        raw = prompt("No cover found. Path or URL to image (Enter=skip)", "")
     if not raw:
         return None
 

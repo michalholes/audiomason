@@ -155,7 +155,7 @@ def test_clean_inbox_yes_deletes_processed_source(monkeypatch, tmp_path: Path):
 
     # Avoid any prompts; keep deterministic.
     monkeypatch.setattr(imp, 'prompt_yes_no', lambda *a, **k: False)
-    monkeypatch.setattr(imp, '_choose_books', lambda books, default_ans='1': books)
+    monkeypatch.setattr(imp, '_choose_books', lambda cfg, books, default_ans='1': books)
 
     old_opts = getattr(state, 'OPTS', None)
     try:
@@ -229,7 +229,7 @@ def test_clean_inbox_prompt_never_happens_during_process_when_selecting_all_sour
     monkeypatch.setattr(imp, "prompt", fake_prompt)
     monkeypatch.setattr(imp, "prompt_yes_no", lambda *a, **k: False)
     monkeypatch.setattr(imp, "_pf_prompt_yes_no", fake_pf)
-    monkeypatch.setattr(imp, "_choose_books", lambda books, default_ans="1": books)
+    monkeypatch.setattr(imp, "_choose_books", lambda cfg, books, default_ans="1": books)
 
     old_opts = getattr(state, "OPTS", None)
     try:
