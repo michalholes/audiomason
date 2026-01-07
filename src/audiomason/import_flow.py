@@ -347,8 +347,8 @@ def _choose_books(books: list[BookGroup], default_ans: str = "1") -> list[BookGr
 def _collect_audio_files(group_root: Path) -> list[Path]:
     mp3s = sorted([p for p in group_root.iterdir() if p.is_file() and p.suffix.lower() == ".mp3"], key=lambda p: p.name.casefold())
     m4as = sorted([p for p in group_root.iterdir() if p.is_file() and p.suffix.lower() == ".m4a"], key=lambda p: p.name.casefold())
-    return mp3s + m4as
-
+    opuses = sorted([p for p in group_root.iterdir() if p.is_file() and p.suffix.lower() == ".opus"], key=lambda p: p.name.casefold())
+    return mp3s + m4as + opuses
 def _preflight_global(cfg: dict) -> tuple[bool, bool]:
     # publish (placeholder, but must be decided before processing)
     if state.OPTS.publish is None:
@@ -421,7 +421,7 @@ def _copy_audio_to_out_no_rename(group_root: Path, outdir: Path) -> list[Path]:
     ensure_dir(outdir)
     src_mp3s = _collect_audio_files(group_root)
     if not src_mp3s:
-        die("No mp3 files to import (convert step did not produce mp3)")
+        die("No audio files to import (no mp3/m4a/opus found)")
     copied: list[Path] = []
     for p in src_mp3s:
         dst = outdir / p.name
@@ -434,7 +434,7 @@ def _copy_audio_to_out_raw(group_root: Path, outdir: Path) -> list[Path]:
     ensure_dir(outdir)
     src_mp3s = _collect_audio_files(group_root)
     if not src_mp3s:
-        die("No mp3 files to import (convert step did not produce mp3)")
+        die("No audio files to import (no mp3/m4a/opus found)")
     copied: list[Path] = []
     for p in src_mp3s:
         dst = outdir / p.name
@@ -498,7 +498,7 @@ def _write_dry_run_summary(stage_run: Path, author: str, title: str, lines: list
     ]
     path.write_text("\n".join(header + lines) + "\n", encoding="utf-8")
 
-def _process_book(i: int, n: int, b: BookGroup, stage_run: Path, dest_root: Path, author: str, title: str, out_title: str, wipe: bool, cover_mode: str, overwrite: bool, cfg: dict, steps: list[str]) -> None:
+def _process_book(i: int, n: int, b: BookGroup, stage_run: Path, dest_root: Path, author: str, title: str, out_title: str, wipe: bool, cover_mode: str, overwrite: bool, cfg: dict, final_root: Path, steps: list[str]) -> None:
     out(f"[book] {i}/{n}: {b.label}")
 
     outdir = _output_dir(dest_root, author, out_title)
@@ -532,6 +532,13 @@ def _process_book(i: int, n: int, b: BookGroup, stage_run: Path, dest_root: Path
         return
     mp3s = _copy_audio_to_out_no_rename(b.group_root, outdir)
 
+    # [issue_86] PROCESS-only conversion (m4a/opus -> mp3)
+    convert_m4a_in_place(outdir, recursive=False)
+    convert_opus_in_place(outdir, recursive=False)
+    mp3s = natural_sort([p for p in outdir.iterdir() if p.is_file() and p.suffix.lower() == '.mp3'])
+    if not mp3s:
+        die('No mp3 files to import after conversion')
+
     # Preserve embedded cover across ID3 wipe (Issue #55)
     _embedded_cover = None
     if wipe and mp3s:
@@ -563,6 +570,19 @@ def _process_book(i: int, n: int, b: BookGroup, stage_run: Path, dest_root: Path
         cfg=cfg,
         cover_mode=cover_mode,
     )
+
+    # [issue_86] publish-at-end: copy finalized book dir to final_root (archive) only after all PROCESS steps
+    if final_root != dest_root:
+        final_outdir = _output_dir(final_root, author, out_title)
+        if state.OPTS and state.OPTS.dry_run:
+            out(f"[dry-run] would publish: {outdir} -> {final_outdir}")
+        else:
+            ensure_dir(final_outdir.parent)
+            if final_outdir.exists() and any(final_outdir.iterdir()):
+                shutil.rmtree(final_outdir, ignore_errors=True)
+            shutil.copytree(outdir, final_outdir, dirs_exist_ok=True)
+            shutil.rmtree(outdir, ignore_errors=True)
+
 
 def _resolve_source_arg(drop_root: Path, src_path: Path) -> Path:
     p = src_path
@@ -849,9 +869,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     out(f"[stage] copying source into stage: {src} -> {stage_src}")
                     _stage_source(src, stage_src)
 
-                # Always convert m4a before book detection (so mp3s exist everywhere)
-                convert_m4a_in_place(stage_src, recursive=True)
-                convert_opus_in_place(stage_src, recursive=True)
+                # [issue_86] Conversion is PROCESS-only (m4a/opus -> mp3). No heavy work in PREPARE.
 
                 books = _detect_books(stage_src)
 
@@ -932,7 +950,8 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     preflight_clean_inbox = _pf_prompt_yes_no(cfg, "clean_inbox", "Clean inbox after successful import?", default_no=True)
 
                 update_manifest(stage_run, {"decisions": {"clean_stage": bool(clean_stage), "clean_inbox": bool(preflight_clean_inbox)}})
-                dest_root = archive_root if publish else output_root
+                # [issue_86] Always PROCESS into output_root; final publish (copy to archive_root) happens at end.
+                dest_root = output_root
 
                 # AUTHOR is per-source (not per-book)
                 default_author = src.name if src.is_dir() else src.stem
@@ -1157,7 +1176,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
 
                     # persist
                     dest_kind = "archive" if dest_root2 == archive_root else "output"
-                    meta.append((b, title, cover_mode, dest_root2, out_title, overwrite))
+                    meta.append((b, title, cover_mode, dest_root2, out_title, overwrite, dest_root2))  # [issue_86] include final_root
                     update_manifest(stage_run, {"book_meta": {b.label: {"title": title, "cover_mode": cover_mode, "cover_src": cover_src, "dest_kind": dest_kind, "out_title": out_title, "overwrite": bool(overwrite)}}})
 
                 if not do_process:
@@ -1170,8 +1189,8 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     processed_labels = []
 
                 # processing phase (no prompts)
-                for bi, (b, title, cover_mode, dest_root2, out_title, overwrite) in enumerate(meta, 1):
-                    _process_book(bi, len(meta), b, stage_run, dest_root2, author, title, out_title, wipe, cover_mode, overwrite, cfg, steps)
+                for bi, (b, title, cover_mode, dest_root2, out_title, overwrite, final_root2) in enumerate(meta, 1):
+                    _process_book(bi, len(meta), b, stage_run, dest_root2, author, title, out_title, wipe, cover_mode, overwrite, cfg, final_root2, steps)
                     processed_labels.append(b.label)
                     update_manifest(stage_run, {"books": {"processed": processed_labels}})
 
