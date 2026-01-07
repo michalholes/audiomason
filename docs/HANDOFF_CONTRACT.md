@@ -1,6 +1,6 @@
 # 🔒 HANDOFF_CONTRACT.md
 # AUTHORITATIVE – AudioMason
-# VERSION: v27.2
+# VERSION: v27.3
 # STATUS: ACTIVE
 # LANGUAGE: ENGLISH ONLY
 
@@ -51,6 +51,18 @@ Then the chat MUST immediately implement and produce concrete output.
 
 Planning, speculation, or deferred work is FORBIDDEN.
 
+### 1.1.1 Mode trigger is the header (NO INTERPRETATION)
+
+If the header contains:
+“Tento chat je implementacny.” / “This chat is implementation chat.”
+
+then the chat is IMPLEMENTATION MODE.
+
+The assistant MUST NOT claim it is a handoff, planning, or pre-implementation phase.
+The assistant MUST NOT request opening a new chat for implementation.
+
+Any attempt to reclassify the chat mode = STRIKE.
+
 ---
 
 ### 1.2 ZERO-STATUS MODE (ABSOLUTE)
@@ -64,6 +76,13 @@ FORBIDDEN (examples; not exhaustive):
 - “I will now stop replying until…”
 - status loops or repeated confirmations
 - promises of future output without delivering it in the same message
+
+The following are explicitly FORBIDDEN in an implementation chat:
+- “This is a handoff chat”
+- “The actual fix must happen in another chat”
+- “Please open a separate implementation chat”
+- any equivalent wording
+Any equivalent wording = STRIKE.
 
 ALLOWED (the ONLY two categories):
 A) FINAL RESULT  
