@@ -52,6 +52,37 @@ Recommended practices:
 
 ---
 
+## Global prompt disable: `prompts.disable`
+
+AudioMason supports a **global prompt-disable list** to make imports fully deterministic / unattended.
+
+Config key:
+
+```yaml
+prompts:
+  disable: ["*"]   # disable ALL prompts (preflight + non-preflight)
+```
+
+Selective disable:
+
+```yaml
+prompts:
+  disable:
+    - choose_source
+    - choose_books
+    - skip_processed_books
+```
+
+Rules (fail-fast validation):
+- `prompts.disable` must be a **list**
+- unknown keys are an error
+- duplicates are an error
+- `"*"` must not be combined with other keys
+
+Behavior when a prompt is disabled:
+- use the **existing deterministic default** (same behavior as pressing Enter)
+- if there is no deterministic default for the situation, AudioMason **fails fast**
+
 ## Related docs
 
 - docs/WORKFLOW.md

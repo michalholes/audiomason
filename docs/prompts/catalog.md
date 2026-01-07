@@ -27,32 +27,29 @@ When `--yes` is enabled, these helpers **do not prompt** and return the determin
     - `False` if `default_no=True`
     - `True` if `default_no=False`
 
-### Preflight prompt disable list: `preflight_disable`
-Import preflight supports disabling specific prompt families via config and CLI.
+\1
+### Global prompt disable list: `prompts.disable`
 
-- **Config key:** `preflight_disable: [<key>, ...]`
-- **CLI flag:** `--preflight-disable <key>` (repeatable; comma-separated supported)
+In addition to `--yes` and `preflight_disable`, AudioMason supports a global disable list:
 
-**Known keys (from code):**
-- `publish`
-- `wipe_id3`
-- `clean_stage`
-- `clean_inbox`
-- `reuse_stage`
-- `use_manifest_answers`
-- `normalize_author`
-- `normalize_book_title`
-- `cover`
+- **Config key:** `prompts.disable: [<key>, ...]`
+- Special value: `["*"]` disables **all prompts** (preflight + non-preflight)
+
+**Known keys:**
+- `choose_source`
+- `choose_books`
+- `skip_processed_books`
 
 Behavior when disabled:
-- **String preflight prompt** (`_pf_prompt`): behaves like pressing Enter → returns the provided default string.
-- **Yes/No preflight prompt** (`_pf_prompt_yes_no`): returns deterministic default based on `default_no` (same rule as `prompt_yes_no`).
+- the prompt is not shown
+- the deterministic default is used (same as pressing Enter / default choice)
+- if the situation has no deterministic default, the run fails fast
 
----
 
 ## Prompts
 
 ### import.choose_source
+- **Config keys:** `prompts.disable`
 
 - **Question text:** `Choose source number, or 'a' for all`
 - **Phase:** non-preflight
