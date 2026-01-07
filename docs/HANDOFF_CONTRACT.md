@@ -231,3 +231,33 @@ After 3 STRIKES in a chat:
 END OF CONTRACT
 CONTRACT
 
+
+---
+
+## APPENDIX: ZIP / SNAPSHOT (NO MERCY HARDENING)
+
+### ZIP / SNAPSHOT (NO FAKE TOOL LIMITS)
+
+- Ak pouzivatel uploadne ZIP/snapshot, chat ho AUTOMATICKY povazuje za AUTHORITATIVE a NAJNOVSI (LATEST WINS).
+  Chat NESMIE pytat dodatocne potvrdenia.
+
+- Tvrdenie typu "nemam pristup k obsahu ZIPu", "neviem ho rozbalit", "nie je prehladatelny"
+  je POVOLENE IBA vtedy, ak chat:
+  (1) realne skusil ZIP precitat/rozbalit v dostupnom prostredi,
+  (2) v tej istej odpovedi uviedol KONKRETNU chybu (presny error text / hlasku).
+
+- Ak chat nedokaze dodat FILE MANIFEST, MUSI FAIL-FAST jednym z tychto dvoch sposobov:
+  A) technicky fail-fast s konkretnym errorom (pozri pravidlo vyssie), alebo
+  B) fail-fast s presnym zoznamom suborov, ktore potrebuje ako individualne uploady.
+
+- Zakazane su genericke vyhovorky bez erroru (napr. "zip nie je rozbaleny/prehľadatelny")
+  a su povazovane za STRIKE.
+
+### FILE MANIFEST (USER-ASSISTED FALLBACK)
+
+- Ak chat nevie zostavit FILE MANIFEST zo ZIPu, MUSI okamzite poziadat o JEDNU z tychto alternativ (bez statusov):
+  1) upload konkretnych suborov (explicitne cesty), alebo
+  2) output z prikazu, ktory vypise zoznam suborov v ZIPe (manifest) a pouzivatel ho sem paste-ne.
+
+- Chat NESMIE zostavat v stave "neviem" bez toho, aby hned zvolil jednu z tychto dvoch ciest.
+
