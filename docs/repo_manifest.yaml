@@ -13,59 +13,276 @@ repo_root_markers:
   - src/audiomason/__init__.py
 
 domains:
-
-  cli:
-    description: "CLI flags, argument parsing, runtime option resolution"
+  python:
+    description: "Auto-generated anchors for all src/audiomason Python files"
     files:
-      - path: src/audiomason/cli.py
+      - path: src/audiomason/__init__.py
         anchors:
-          - "def main("
-          - "--help"
-          - "argparse"
-
-  config:
-    description: "Config defaults, validation, runtime config resolution"
-    files:
-      - path: src/audiomason/config.py
+          - "<empty>"
+      - path: src/audiomason/__main__.py
         anchors:
-          - "DEFAULTS"
-          - "def load_config"
-          - "AmConfigError"
-
-  import_flow:
-    description: "Import flow orchestration, PREPARE vs PROCESS (if present)"
-    files:
-      - path: src/audiomason/import_flow.py
+          - "<empty>"
+      - path: src/audiomason/archives.py
         anchors:
-          - "PREPARE"
-          - "PROCESS"
-          - "def run_import"
-
-  audio:
-    description: "Audio conversion/toolchain (if present)"
-    files:
+          - "def _require_tool("
+          - "def unpack("
+      - path: src/audiomason/args.py
+        anchors:
+          - "<empty>"
       - path: src/audiomason/audio.py
         anchors:
-          - "ffmpeg"
-          - "convert"
-          - ".opus"
-          - ".m4a"
-
-  publish:
-    description: "Publish/copy to final output (if present)"
-    files:
+          - "def ffprobe_json("
+          - "def m4a_chapters("
+          - "def ffmpeg_common_input("
+          - "def opus_to_mp3_single("
+          - "def m4a_to_mp3_single("
+          - "def m4a_split_by_chapters("
+          - "def convert_opus_in_place("
+          - "def convert_m4a_in_place("
+      - path: src/audiomason/cache_gc.py
+        anchors:
+          - "def _is_known_cache_file("
+          - "class CacheEntry"
+          - "def _iter_entries("
+          - "def cache_gc("
+      - path: src/audiomason/cli.py
+        anchors:
+          - "def _version_kv_line("
+          - "def _parent_parser("
+          - "def _parse_args("
+          - "def _ns_to_opts("
+          - "def main("
+          - "--yes"
+          - "--dry-run"
+          - "--quiet"
+          - "--verbose"
+          - "--debug"
+          - "--json"
+          - "--config"
+          - "--verify"
+          - "--verify-root"
+          - "--lookup"
+          - "--no-lookup"
+          - "--publish"
+          - "--clean-inbox"
+          - "--wipe-id3"
+          - "--no-wipe-id3"
+          - "--loudnorm"
+          - "--q-a"
+          - "--split-chapters"
+          - "--no-split-chapters"
+          - "--cpu-cores"
+          - "--ff-loglevel"
+          - "--version"
+          - "--processing-log"
+          - "--processing-log-path"
+          - "--preflight-disable"
+          - "--days"
+          - "--max-mb"
+          - "--config="
+          - "AmConfigError"
+          - "ArgumentParser"
+          - "add_argument"
+      - path: src/audiomason/config.py
+        anchors:
+          - "def _deep_merge("
+          - "def _load_yaml("
+          - "def user_config_path("
+          - "def load_config("
+          - "DEFAULTS"
+          - "AmConfigError"
+      - path: src/audiomason/covers.py
+        anchors:
+          - "def extract_embedded_cover_from_mp3("
+          - "def convert_image_to_jpg("
+          - "def _sha1("
+          - "def _sniff_image_ext("
+          - "def download_url("
+          - "def cover_from_input("
+          - "def find_file_cover("
+          - "def extract_cover_from_m4a("
+          - "def choose_cover("
+      - path: src/audiomason/googlebooks.py
+        anchors:
+          - "def _dry_run("
+          - "def _norm("
+          - "def _author_match("
+          - "def _get_json("
+          - "def _pick_best("
+          - "def suggest_title("
+          - "def _dia_score("
+      - path: src/audiomason/guess.py
+        anchors:
+          - "def guess_author_book("
+      - path: src/audiomason/ignore.py
+        anchors:
+          - "def _resolve_ignore_file("
+          - "def load_ignore("
+          - "def add_ignore("
+      - path: src/audiomason/import_flow.py
+        anchors:
+          - "def _ol_enabled("
+          - "def _resolved_preflight_disable("
+          - "def _pf_disabled("
+          - "def _pf_prompt_yes_no("
+          - "def _pf_prompt("
+          - "class BookGroup"
+          - "def _build_json_report("
+          - "def _ol_offer_top("
+          - "def _list_sources("
+          - "def _choose_source("
+          - "def _reset_dir("
+          - "def _stage_source("
+          - "def _has_audio_files_here("
+          - "def _find_first_m4a("
+          - "def _detect_books("
+          - "def _choose_books("
+          - "def _collect_audio_files("
+          - "def _preflight_global("
+          - "def _preflight_book("
+          - "def _is_dir_nonempty("
+          - "def _next_available_title("
+          - "def _output_dir("
+          - "def _copy_audio_to_out_no_rename("
+          - "def _copy_audio_to_out_raw("
+          - "def _copy_audio_to_out("
+          - "def _apply_book_steps("
+          - "def _write_dry_run_summary("
+          - "def _process_book("
+          - "def _resolve_source_arg("
+          - "def _resolved_pipeline_steps("
+          - "def _is_interactive("
+          - "def _stage_cover_from_raw("
+          - "def run_import("
+          - "def _norm("
+          - "def visit("
+          - "def _pl_resolve_target("
+          - "class _PLTee"
+          - "def _process_one_source("
+          - "def _run_one_source("
+          - "def __init__("
+          - "def write("
+          - "def flush("
+          - "def isatty("
+          - "def _pl_prompt("
+          - "def _pl_prompt_yes_no("
+          - "AmConfigError"
+          - "PREPARE"
+          - "PROCESS"
+      - path: src/audiomason/inspect.py
+        anchors:
+          - "def _is_audio("
+          - "def _is_archive("
+          - "def inspect_source("
+      - path: src/audiomason/manifest.py
+        anchors:
+          - "def source_fingerprint("
+          - "def manifest_path("
+          - "def load_manifest("
+          - "def _deep_merge("
+          - "def write_manifest_atomic("
+          - "def update_manifest("
+      - path: src/audiomason/naming.py
+        anchors:
+          - "def normalize_name("
+          - "def normalize_sentence("
+      - path: src/audiomason/openlibrary.py
+        anchors:
+          - "def _cache_path("
+          - "def _cache_load("
+          - "def _cache_get("
+          - "def _cache_put("
+          - "class OLResult"
+          - "def _get_json("
+          - "def validate_author("
+          - "def _norm_title("
+          - "def _sanitize_title_suggestion("
+          - "def _best_title_suggestion("
+          - "def _fallback_q("
+          - "def _author_match("
+          - "def _lang_codes("
+          - "def _pick_edition_title("
+          - "def validate_book("
+      - path: src/audiomason/paths.py
+        anchors:
+          - "def _default_user_base("
+          - "def _find_repo_root("
+          - "def _env_base("
+          - "def require_audiomason_root("
+          - "def _data_base("
+          - "def _defaults_for("
+          - "def _ensure_abs("
+          - "def _resolve_path("
+          - "def validate_paths_contract("
+          - "def _get("
+          - "def get_drop_root("
+          - "def get_stage_root("
+          - "def get_output_root("
+          - "def get_archive_root("
+          - "def get_cache_root("
+          - "def get_ignore_file("
+          - "AmConfigError"
+      - path: src/audiomason/pipeline_steps.py
+        anchors:
+          - "def _validate_step_order("
+          - "def resolve_pipeline_steps("
+          - "AmConfigError"
+          - "PROCESS"
       - path: src/audiomason/publish.py
         anchors:
-          - "publish"
-          - "copy"
-          - "output"
-
-  tests:
-    description: "Test suite entrypoint"
-    files:
-      - path: tests/
-        glob: true
+          - "<empty>"
+      - path: src/audiomason/rename.py
+        anchors:
+          - "def extract_track_num("
+          - "def natural_sort("
+          - "def rename_sequential("
+          - "def key("
+      - path: src/audiomason/state.py
+        anchors:
+          - "class Opts"
+      - path: src/audiomason/tags.py
+        anchors:
+          - "def _load_id3("
+          - "def wipe_id3("
+          - "def write_tags("
+          - "def write_cover("
+      - path: src/audiomason/util.py
+        anchors:
+          - "class AmExit"
+          - "class AmConfigError"
+          - "class AmValidationError"
+          - "class AmExternalToolError"
+          - "class AmAbort"
+          - "def run_cmd("
+          - "def out("
+          - "def die("
+          - "def strip_diacritics("
+          - "def clean_text("
+          - "def slug("
+          - "def two("
+          - "def ensure_dir("
+          - "def unique_path("
+          - "def prompt("
+          - "def prompt_yes_no("
+          - "def prune_empty_dirs("
+          - "def is_url("
+          - "def find_archive_match("
+          - "def enable_trace("
+          - "def __init__("
+          - "def _t("
+          - "def run("
+          - "def check_call("
+          - "def check_output("
+          - "class Popen"
+          - "def _wrap("
+          - "def w("
+          - "AmConfigError"
+      - path: src/audiomason/verify.py
+        anchors:
+          - "def verify_library("
+      - path: src/audiomason/version.py
+        anchors:
+          - "def _pkg_version("
 
 generated:
-  created_utc: "2026-01-07T08:55:55Z"
-  generator: "gen_repo_manifest.sh"
+  fingerprint_sha1: "5855805fbca23cf22cd033bf71cac210988db7a7"
