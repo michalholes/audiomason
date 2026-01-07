@@ -1,180 +1,171 @@
-# 🧭 AudioMason – AUTHORITATIVE HANDOFF / AI CONTRACT (v5)
+# HANDOFF_CONTRACT.md
+# AUTHORITATIVE – AudioMason
+# VERSION: v26.0
+# STATUS: ACTIVE
+# LANGUAGE: ENGLISH ONLY
 
-TENTO DOKUMENT JE AUTHORITATIVE PRE PRACU NA PROJEKTE AudioMason.
-PLATI PRE VSETKY IMPLEMENTACNE CHATY, AK ISSUE HANDOFF NEPOVIE INAK.
-AK JE ROZPOR: EXPLICITNY ISSUE HANDOFF MA PREDNOST, INAK PLATI TENTO CONTRACT.
+THIS DOCUMENT IS AUTHORITATIVE FOR ALL IMPLEMENTATION CHATS
+UNLESS AN ISSUE HANDOFF EXPLICITLY STATES OTHERWISE.
 
-Komunikacia: slovensky (ak nepovies inak).
-Kod/prikazy: vzdy v code blockoch.
-
----
-
-## 0) Povinny zaciatok KAZDEHO handoffu (DOSLOVNE)
-
-KAZDY novy issue chat MUSI zacat tymto blokom (doslovne):
-
-```text
-AUTHORITATIVE: Tento handoff sa riadi pravidlami v HANDOFF_CONTRACT.md ulozenom v Project Files.
-V pripade konfliktu ma HANDOFF_CONTRACT.md absolutnu prednost.
-```
-
-- Ziadny handoff bez tohto bloku.
-- Ziadna parafraza.
-- Ziadne vynimky.
+LAST UPDATE: 2026-01-07
 
 ---
 
-## 1) Runtime a prostredie
+## 1. CORE PRINCIPLES (NO MERCY)
 
-AudioMason vzdy bezi vo venv `.venv`. Ked sa uvadza venv, MUSI sa uviest aktivacia aj deaktivacia:
-
-```sh
-. .venv/bin/activate
-deactivate
-```
-
----
-
-## 2) Scope a styl prace (STRICT)
-
-- Implementovat iba to, co je explicitne pozadovane v handoffe.
-- ❌ Ziadne refaktory mimo nutneho zasahu.
-- ❌ Ziadne "bonus" zmeny.
-- ❌ Ziadne manualne edit pokyny.
-- ❌ Ziadne partial fixes.
-- ❌ Ziadne shell hacky (sed/awk inline prepisy, one-off piped transforms, fragile in-place edits).
-- Minimalny zasah, ktory splni acceptance criteria.
+- This contract is binding.
+- Status messages, confirmations, or promises are FORBIDDEN.
+- After any file upload or "ok", the assistant MUST respond with:
+  - FINAL RESULT, or
+  - FAIL-FAST with a concrete technical reason.
+- Violations are STRIKEs.
 
 ---
 
-## 3) Authoritative files (FAIL FAST)
+## 2. AUTHORITATIVE FILES (LATEST WINS)
 
-- Ak pouzivatel vlozi / uploadne subor alebo snippet, je to AUTHORITATIVE pravda.
-- Repo stav / pamat / odhady su irelevantne, ak je k dispozicii AUTHORITATIVE subor.
-- Ak chyba potrebny subor → FAIL FAST a vyziadat ho.
-- Nehadat, nevymyslat kod.
-
----
-
-## 4) Patchovanie (KRITICKE, NEVYJEDNAVATELNE)
-
-### 4.1 Povolený sposob zmien
-
-- ❌ Ziadne diff patches
-- ❌ Ziadne heredoc pre patch kod (<<EOF, <<PY)
-- ❌ Ziadne manualne edit pokyny
-- ❌ Ziadne shell hacky
-- ✅ JEDINY povoleny sposob: deterministicky Python patch skript
-
-### 4.2 Vlastnosti patch skriptu (MUST)
-
-- anchor checks
-- idempotentny
-- fail-fast
-- post-edit assertions
-
-### 4.3 Umiestnenie patchov (MANDATORY)
-
-- Patch skripty sa ukladaju do: `/home/pi/apps/patches`
-- Patch skripty sa spustaju vzdy odtial.
-- Jeden issue = jeden skript: `/home/pi/apps/patches/issue_<N>.py`
-
-### 4.4 Distribucia patchov
-
-- Patch skripty sa dodavaju ako DOWNLOAD.
-- Inline patch iba na vyslovnu ziadost pouzivatela.
-
-### 4.5 Po uspechu
-
-- Patch skript sa po uspechu MUSI zmazat:
-
-```sh
-rm /home/pi/apps/patches/issue_<N>.py
-```
+- Any file uploaded by the user is AUTHORITATIVE.
+- If multiple versions exist, the LAST uploaded version wins.
+- The assistant MUST NOT question whether files are “complete” or “current”.
 
 ---
 
-## 5) Git workflow (STRICT)
+## 3. ZIP / ARCHIVE RULE (NO EXCEPTIONS)
 
-### 5.1 Zakladne pravidla
+If the user uploads a ZIP archive:
 
-- Vsetky prikazy (patch + test + git) sa posielaju v jednom code blocku.
-- Commit message je povinna a musi byt explicitna.
-- Commit message MUSI mat prefix: `Feat:`, `Fix:` alebo `Chore:`.
+1. The ZIP is AUTHORITATIVE for ALL files it contains.
+2. The assistant MUST open and use the ZIP contents.
+3. The assistant MUST NOT request re-upload of files already inside the ZIP.
+4. If the ZIP contains `docs/repo_manifest.yaml`, it MUST be used.
+5. If the ZIP cannot be opened:
+   - FAIL-FAST with a concrete technical reason.
 
-### 5.2 Test gate (NEPRESTRELITELNE)
-
-- Ziadny `git add`, `git commit` ani `git push` NESMIE prebehnut, pokial nepresli testy.
-- Pred KAZDYM `git push` MUSI byt `python -m pytest -q &&` (push nikdy bez testov).
-
-### 5.3 Kanonicka sekvencia (POVINNA)
-
-```sh
-python /home/pi/apps/patches/issue_<N>.py rm /home/pi/apps/patches/issue_<N>.py python -m pytest -q && git add -A && git commit -m "<EXPLICIT MESSAGE>" && python -m pytest -q && git push
-```
+Process excuses are forbidden.
 
 ---
 
-## 6) Issue management (GH CLI ONLY)
+## 4. REPO MANIFEST (MANDATORY)
 
-### 6.1 Otvaranie / uprava issues
+### 4.1 Definition
 
-- Vyhradne cez `gh`.
-- Dlhe texty: vyhradne cez `-F <file>` (ziadne heredoc).
-  - Priklad: `gh issue create -R michalholes/audiomason -F /path/to/body.md`
-  - Priklad: `gh issue edit <N> -R michalholes/audiomason -F /path/to/body.md`
+`docs/repo_manifest.yaml` is the AUTHORITATIVE MAP of the repository:
+- files
+- domains
+- anchors
+- phase boundaries
 
-### 6.2 UZATVARANIE ISSUES (EXTRÉMNE STRIKTNE)
+### 4.2 Mandatory Usage
 
-- ❌ ziadne auto-close
-- ❌ ziadne uzatvorenie bez schvalenia pouzivatela
-- ❌ ziadne "myslim, ze toto su commity"
-- SHA vybera VYHRADNE pouzivatel na zaklade `git log --oneline`.
+Every implementation chat MUST:
 
-Povinny vzor uzatvarania:
+- Load the repo manifest BEFORE any code analysis.
+- Use it as the PRIMARY source of truth.
+- NOT scan or grep the repository blindly if info exists in the manifest.
+- NOT claim ignorance of file locations if present in the manifest.
 
-```sh
-cd /home/pi/apps/audiomason && . .venv/bin/activate && git log --oneline -10 && echo && echo "Skopiruj sem SHA(cka) z hore uvedeneho logu, ktore patria k #<ISSUE>, potom spusti tento prikaz:" && echo && echo "gh issue close <ISSUE> -R michalholes/audiomason -c \"Resolved: <short summary>.\n\nCommits:\n- <SHA1> <subject>\n- <SHA2> <subject>\"" && deactivate
-```
+Violation = process failure.
 
----
+### 4.3 Manifest Discovery Order
 
-## 7) Verzie & pyproject.toml (POVINNE)
+The assistant MUST search for the manifest in this order:
 
-Po KAZDOM bumpnuti verzie alebo zasahu do `pyproject.toml` je POVINNE v dev prostredi:
+1. Uploaded files in the chat
+2. Uploaded ZIP archive
+3. Repository working tree
 
-```sh
-. .venv/bin/activate
-pip uninstall -y audiomason
-pip install -e .
-deactivate
-```
-
-Dovod: `importlib.metadata.version("audiomason")` musi reflektovat realitu.
+If found → USE IT  
+If not found → FAIL-FAST
 
 ---
 
-## 8) Beta / release pravidla (STRICT)
+## 5. MANIFEST MAINTENANCE
 
-- Beta cislo (betaX) sa NEZVYSUJE automaticky.
-- Zvysenie verzie je len po rozhodnuti pouzivatela.
-- Release workflow je striktne oddeleny od feature prace (nespajat do jedneho "nahodneho" patchu).
+The repo manifest MUST be updated if:
+- files are added / removed / moved
+- pipeline phases change
+- audio / publish / orchestration logic changes
 
----
-
-## 9) Komunikacia (HARD RULES)
-
-- Slovencina (ak pouzivatel vyslovne nepoziada inak).
-- Tento projekt = implementacny.
-- Ziadna teoria, ziadne eseje.
-- Kratke, chirurgicke odpovede.
-- Vsetko deterministicke.
+Manifest update:
+- is part of the issue
+- must happen before issue close
+- may be in the same commit or a dedicated RUN: MANIFEST commit
 
 ---
 
-## 10) Notices (ak sa pisu)
+## 6. IMPLEMENTATION FLOW (STRICT ORDER)
 
-Ak pouzivatel ziada "published notices":
-- pisat po anglicky
-- pouzivat straight apostrophes
-- davat do code blocku
+1. Repo Manifest
+2. AUTHORITATIVE files (or ZIP)
+3. Patch script
+4. Tests (`python -m pytest -q`)
+5. Commit + push
+6. Documentation update (if applicable)
+7. Manifest update (if applicable)
+8. Issue close
+
+No step may be skipped or reordered.
+
+---
+
+## 7. PATCH RULES
+
+- Patches MUST be deterministic Python scripts.
+- Path: `/home/pi/apps/patches/issue_<N>.py`
+- Requirements:
+  - anchor checks
+  - idempotency
+  - fail-fast
+  - post-assert
+- Patch script MUST be deleted after successful run.
+
+---
+
+## 8. DOCUMENTATION RULE
+
+If a feature is added or behavior changes:
+- documentation MUST be updated
+- documentation update happens AFTER code + tests + commit
+- before issue close
+
+---
+
+## 9. PROMPT / CONFIG COMPATIBILITY
+
+If a feature introduces interaction:
+- it MUST be disableable via config
+- disabled mode MUST use deterministic defaults
+- behavior MUST be compatible with global prompt-control
+
+---
+
+## 10. ISSUE LANGUAGE
+
+All issue titles and bodies MUST be written in ENGLISH.
+
+---
+
+## 11. HANDOFF TEMPLATE (MANDATORY)
+
+Every implementation chat MUST start with:
+
+Issue <N>  
+Tento chat je implementacny.  
+AUTHORITATIVE je subor HANDOFF_CONTRACT.md ulozeny v Project Files.
+
+AUTHORITATIVE FILES:
+Vsetky subory uploadnute v tomto chate su AUTHORITATIVE.
+Ak existuje viac verzii, plati POSLEDNA uploadnuta verzia.
+
+REPO MANIFEST (MANDATORY):
+Projekt AudioMason pouziva AUTHORITATIVE repo manifest:
+docs/repo_manifest.yaml
+
+---
+
+## 12. FINAL RULE
+
+If this contract is violated:
+- the output is INVALID
+- the issue MUST NOT be closed
+
