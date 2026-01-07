@@ -1,6 +1,6 @@
 # 🔒 HANDOFF_CONTRACT.md
 # AUTHORITATIVE – AudioMason
-# VERSION: v27.1
+# VERSION: v27.2
 # STATUS: ACTIVE
 # LANGUAGE: ENGLISH ONLY
 
@@ -220,6 +220,37 @@ Any patch execution bypassing am_patch.sh is INVALID, even if technically correc
 - no-op patch MUST FAIL with explanation
 
 Silent no-op = STRIKE.
+
+### 5.3 Naming fallback (TECHNICAL ONLY, SINGLE STEP)
+
+If the assistant is technically unable to deliver the patch script
+with the canonical name `issue_<N>.py`:
+
+- the assistant MAY deliver the patch under a temporary filename
+- the assistant MUST explicitly state that this is a technical limitation
+
+In this case, the assistant MUST provide:
+
+- EXACTLY ONE shell command to rename the file to `issue_<N>.py`
+- this command MUST be presented as the IMMEDIATE STEP
+  before invoking the canonical runner
+
+The ONLY allowed command format is:
+
+mv <downloaded_filename> issue_<N>.py
+
+Rules:
+- no paths (assumed working directory: `/home/pi/apps/patches`)
+- no additional shell commands
+- no chaining (`&&`, `;`)
+- no runner execution commands
+- no copy (`cp`) commands
+- no directory navigation (`cd`)
+
+All downloaded patch files are assumed to be placed by THE USER
+into `/home/pi/apps/patches` BEFORE this rename step.
+
+Any deviation = STRIKE.
 
 ---
 
