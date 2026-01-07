@@ -1,306 +1,180 @@
-# 🔒 HANDOFF_CONTRACT.md (v24 – NO MERCY, HARDENED)
+# 🧭 AudioMason – AUTHORITATIVE HANDOFF / AI CONTRACT (v5)
 
-## AUTHORITATIVE STATEMENT
+TENTO DOKUMENT JE AUTHORITATIVE PRE PRACU NA PROJEKTE AudioMason.
+PLATI PRE VSETKY IMPLEMENTACNE CHATY, AK ISSUE HANDOFF NEPOVIE INAK.
+AK JE ROZPOR: EXPLICITNY ISSUE HANDOFF MA PREDNOST, INAK PLATI TENTO CONTRACT.
 
-THIS DOCUMENT IS AUTHORITATIVE FOR ALL WORK ON THE AudioMason PROJECT.
-
-It applies to all implementation chats unless explicitly overridden by YOU in writing.
-
-Rules produced by chats (handoffs, plans, summaries) are NOT authoritative by default.
-
-Priority order in case of conflict:
-1. YOU (explicit instructions)
-2. THIS CONTRACT
-3. Issue description written by YOU
-4. Everything else
-
-Only the LAST uploaded or installed version of this file is authoritative.
-All previous versions are void.
+Komunikacia: slovensky (ak nepovies inak).
+Kod/prikazy: vzdy v code blockoch.
 
 ---
 
-## 0. MANDATORY IMPLEMENTATION PREAMBLE (VERBATIM)
+## 0) Povinny zaciatok KAZDEHO handoffu (DOSLOVNE)
 
-In every implementation chat, immediately after the header lines (Issue <N> / This chat is implementation chat),
-the FIRST sentence MUST be exactly:
+KAZDY novy issue chat MUSI zacat tymto blokom (doslovne):
 
-NO MERCY MODE: After any file upload or "OK", respond with FINAL RESULT or FAIL-FAST only; status replies, authority confirmations, ZIP excuses, or promises are automatic STRIKEs.
+```text
+AUTHORITATIVE: Tento handoff sa riadi pravidlami v HANDOFF_CONTRACT.md ulozenom v Project Files.
+V pripade konfliktu ma HANDOFF_CONTRACT.md absolutnu prednost.
+```
 
----
-
-## 1. CHAT ROLE & MODE
-
-### 1.1 Implementation chat
-If you state:
-“This chat is implementation chat.”
-
-Then the chat MUST immediately implement and produce concrete output.
-
-### 1.2 ZERO-STATUS MODE (ABSOLUTE)
-
-After you say OK / proceed / continue:
-
-FORBIDDEN (examples; not exhaustive):
-- “I’m working on it”
-- “Next message will be…”
-- “Patch is being generated”
-- “I will now stop replying until…”
-- any status loops / repeated confirmations
-- any promises of future output without delivering it in the same message
-
-ALLOWED (the ONLY two categories):
-A) FINAL RESULT (real output: concrete file paths, patch file for download, and/or runnable commands)
-B) FAIL-FAST with exact technical reason (concrete missing files/paths/anchors; STOP; no planning; no promises)
-
-Violation = contract breach (STRIKE).
-
-### 1.3 SILENT ACCEPTANCE RULE
-
-- Any user upload is “silent acceptance”.
-  The chat MUST accept it as authoritative and the newest available version.
-- After an upload, the chat gets exactly ONE reply to either:
-  A) deliver a final result, or
-  B) fail-fast.
-  Any other reply is a contract breach (STRIKE).
-- The chat MUST NOT negotiate scope, move implementation to another chat, or re-ask already satisfied requests.
+- Ziadny handoff bez tohto bloku.
+- Ziadna parafraza.
+- Ziadne vynimky.
 
 ---
 
-## 2. AUTHORITATIVE FILES
+## 1) Runtime a prostredie
 
-### 2.1 Uploaded files (GLOBAL, LATEST WINS, NO QUESTIONS)
+AudioMason vzdy bezi vo venv `.venv`. Ked sa uvadza venv, MUSI sa uviest aktivacia aj deaktivacia:
 
-Any file you upload is:
-- AUTHORITATIVE
-- the NEWEST available version (LATEST WINS)
-- the ONLY source of truth for this implementation
-
-This applies to ALL uploads:
-- single source files
-- ZIP/snapshots
-- docs
-- tests
-- patch scripts
-
-The chat MUST NOT:
-- ask whether a file is current/complete/correct repo root
-- ask for “confirmation” of authority
-- compare against memory, previous chats, or other sources
-
-If multiple versions of the same file exist, the LAST uploaded version wins.
-
-### 2.2 Missing files
-
-If required files are missing:
-- FAIL-FAST
-- explicitly request the missing files
-- do not guess or infer
+```sh
+. .venv/bin/activate
+deactivate
+```
 
 ---
 
-## 3. ZIP / SNAPSHOT RULES (NO MERCY)
+## 2) Scope a styl prace (STRICT)
 
-### 3.1 No confirmation
-After receiving a ZIP/snapshot, the chat MUST NOT ask for confirmation that it is “complete” or “current”.
-
-### 3.2 FILE MANIFEST REQUIRED
-Before delivering any patch based on a ZIP/snapshot, the chat MUST first provide a FILE MANIFEST:
-- the exact repo-relative paths of every file it will modify
-- at least one anchor per file (exact text it will assert/locate)
-
-Without a FILE MANIFEST, the chat may ONLY FAIL-FAST (no patch, no “plan”, no promises).
-
-### 3.3 No fake tool limits
-Claiming any of the following is ALLOWED ONLY if the chat:
-(1) actually attempted to read/extract the ZIP in the available environment, AND
-(2) includes the exact error text in the same reply:
-
-- “I can’t access the ZIP contents”
-- “I can’t extract the ZIP”
-- “The ZIP is not searchable/inspectable”
-
-Generic excuses without an error are a STRIKE.
-
-### 3.4 ZIP INSPECTION PROOF (NO LYING)
-If the chat claims it looked at / analyzed the ZIP (“based on ZIP contents”, etc.), it MUST include at least ONE proof in the SAME reply:
-A) a repo-relative file path found in the ZIP + an anchor snippet,
-B) a FILE MANIFEST,
-C) an exact extraction/reading error.
-
-Missing proof = false claim = STRIKE + immediate FAIL-FAST or provide proof.
-
-### 3.5 User-assisted fallback (when manifest cannot be produced)
-If the chat cannot produce a FILE MANIFEST from the ZIP, it MUST immediately request ONE of:
-1) the required files as individual uploads (explicit repo paths), OR
-2) a pasted ZIP file listing/manifest output (provided by the user).
-
-The chat MUST NOT remain in “I can’t” without choosing 1) or 2).
+- Implementovat iba to, co je explicitne pozadovane v handoffe.
+- ❌ Ziadne refaktory mimo nutneho zasahu.
+- ❌ Ziadne "bonus" zmeny.
+- ❌ Ziadne manualne edit pokyny.
+- ❌ Ziadne partial fixes.
+- ❌ Ziadne shell hacky (sed/awk inline prepisy, one-off piped transforms, fragile in-place edits).
+- Minimalny zasah, ktory splni acceptance criteria.
 
 ---
 
-## 4. PATCH DELIVERY (CRITICAL)
+## 3) Authoritative files (FAIL FAST)
 
-### 4.1 Mandatory format
-All code changes MUST be delivered as:
-- deterministic Python patch script
-- path: /home/pi/apps/patches/issue_<N>.py
-- idempotent
-- anchor-checked
+- Ak pouzivatel vlozi / uploadne subor alebo snippet, je to AUTHORITATIVE pravda.
+- Repo stav / pamat / odhady su irelevantne, ak je k dispozicii AUTHORITATIVE subor.
+- Ak chyba potrebny subor → FAIL FAST a vyziadat ho.
+- Nehadat, nevymyslat kod.
+
+---
+
+## 4) Patchovanie (KRITICKE, NEVYJEDNAVATELNE)
+
+### 4.1 Povolený sposob zmien
+
+- ❌ Ziadne diff patches
+- ❌ Ziadne heredoc pre patch kod (<<EOF, <<PY)
+- ❌ Ziadne manualne edit pokyny
+- ❌ Ziadne shell hacky
+- ✅ JEDINY povoleny sposob: deterministicky Python patch skript
+
+### 4.2 Vlastnosti patch skriptu (MUST)
+
+- anchor checks
+- idempotentny
 - fail-fast
-- post-asserted
+- post-edit assertions
 
-Diffs, inline edits, heredocs are FORBIDDEN.
+### 4.3 Umiestnenie patchov (MANDATORY)
 
-### 4.2 Repo root detection (ANTI-HARDCODE)
-Patch script MUST locate repo root by walking up from CWD and finding pyproject.toml.
+- Patch skripty sa ukladaju do: `/home/pi/apps/patches`
+- Patch skripty sa spustaju vzdy odtial.
+- Jeden issue = jeden skript: `/home/pi/apps/patches/issue_<N>.py`
 
-Hardcoded paths (e.g. /home/pi/src/...) are FORBIDDEN.
+### 4.4 Distribucia patchov
 
-Failure to resolve repo root = FAIL-FAST.
+- Patch skripty sa dodavaju ako DOWNLOAD.
+- Inline patch iba na vyslovnu ziadost pouzivatela.
 
-### 4.3 Patch pre-flight (REQUIRED)
-At the start, every patch script MUST:
-- print the resolved repo root
-- verify existence of all target files it will edit
-- fail-fast with explicit missing paths if any are absent
+### 4.5 Po uspechu
 
----
+- Patch skript sa po uspechu MUSI zmazat:
 
-## 5. PATCH EXECUTION (RUNNER)
-
-### 5.1 Canonical runner
-All patches are executed ONLY via:
-/home/pi/apps/patches/am_patch.sh <ISSUE> "<COMMIT MESSAGE>"
-
-### 5.2 Patch lifecycle
-- patch script is always deleted after execution
-- patch script is never reused
-- no-op patch MUST fail with explanation (never silent)
+```sh
+rm /home/pi/apps/patches/issue_<N>.py
+```
 
 ---
 
-## 6. MULTI-RUN DISCIPLINE (CODE / DOCS)
+## 5) Git workflow (STRICT)
 
-If an issue requires multiple steps, the chat MUST label runs explicitly:
-- RUN 1: CODE
-- RUN 2: DOCS
-- RUN 3: ...
+### 5.1 Zakladne pravidla
 
-Rules:
-- Each run has its own patch, its own commit, and explicit label.
-- RUN 2 (DOCS) is allowed ONLY AFTER the user confirms:
-  - tests OK and push OK for RUN 1 (CODE).
-- Patch scripts MUST NOT overwrite each other across runs.
+- Vsetky prikazy (patch + test + git) sa posielaju v jednom code blocku.
+- Commit message je povinna a musi byt explicitna.
+- Commit message MUSI mat prefix: `Feat:`, `Fix:` alebo `Chore:`.
 
----
+### 5.2 Test gate (NEPRESTRELITELNE)
 
-## 7. TESTING & GIT
+- Ziadny `git add`, `git commit` ani `git push` NESMIE prebehnut, pokial nepresli testy.
+- Pred KAZDYM `git push` MUSI byt `python -m pytest -q &&` (push nikdy bez testov).
 
-Before every push:
-python -m pytest -q
+### 5.3 Kanonicka sekvencia (POVINNA)
 
-Patch + tests + commit + push must be presented together.
-
-Commit message is provided by the chat (never guessed later).
+```sh
+python /home/pi/apps/patches/issue_<N>.py rm /home/pi/apps/patches/issue_<N>.py python -m pytest -q && git add -A && git commit -m "<EXPLICIT MESSAGE>" && python -m pytest -q && git push
+```
 
 ---
 
-## 8. DOCUMENTATION (HARD GATE)
+## 6) Issue management (GH CLI ONLY)
 
-If a change adds, fixes, or alters user-visible behavior:
-- documentation MUST be updated before issue closure
+### 6.1 Otvaranie / uprava issues
 
-“No docs in scope” is NOT an exemption.
+- Vyhradne cez `gh`.
+- Dlhe texty: vyhradne cez `-F <file>` (ziadne heredoc).
+  - Priklad: `gh issue create -R michalholes/audiomason -F /path/to/body.md`
+  - Priklad: `gh issue edit <N> -R michalholes/audiomason -F /path/to/body.md`
 
----
+### 6.2 UZATVARANIE ISSUES (EXTRÉMNE STRIKTNE)
 
-## 9. FAIL-FAST = STOP (HARD)
+- ❌ ziadne auto-close
+- ❌ ziadne uzatvorenie bez schvalenia pouzivatela
+- ❌ ziadne "myslim, ze toto su commity"
+- SHA vybera VYHRADNE pouzivatel na zaklade `git log --oneline`.
 
-On any error or ambiguity:
-- print exact reason
-- STOP
-- wait for user input
+Povinny vzor uzatvarania:
 
-After fail-fast, the chat MUST NOT:
-- continue planning
-- promise future results
-- proceed with implementation
-
-Continuing is forbidden.
-
----
-
-## 10. ISSUE CLOSURE
-
-- issues closed ONLY via gh CLI
-- never auto-close
-- explicit commit SHAs required
-- docs must be complete
+```sh
+cd /home/pi/apps/audiomason && . .venv/bin/activate && git log --oneline -10 && echo && echo "Skopiruj sem SHA(cka) z hore uvedeneho logu, ktore patria k #<ISSUE>, potom spusti tento prikaz:" && echo && echo "gh issue close <ISSUE> -R michalholes/audiomason -c \"Resolved: <short summary>.\n\nCommits:\n- <SHA1> <subject>\n- <SHA2> <subject>\"" && deactivate
+```
 
 ---
 
-## 11. LANGUAGE
+## 7) Verzie & pyproject.toml (POVINNE)
 
-- Issue titles/bodies: ENGLISH ONLY
-- Contract language: ENGLISH ONLY
+Po KAZDOM bumpnuti verzie alebo zasahu do `pyproject.toml` je POVINNE v dev prostredi:
 
----
+```sh
+. .venv/bin/activate
+pip uninstall -y audiomason
+pip install -e .
+deactivate
+```
 
-## 12. ENFORCEMENT (STRIKE SYSTEM)
-
-A “STRIKE” is any contract breach, including (examples):
-- status replies or promises without output
-- asking for confirmation of authority of an uploaded file/ZIP
-- ignoring LATEST WINS
-- delivering a patch without FILE MANIFEST when using a ZIP/snapshot
-- claiming ZIP inspection without proof
-- generic “tool limits” without an exact error
-- attempting to move implementation away from an implementation chat
-- missing the MANDATORY SELF-AUDIT CHECKLIST before delivering a patch
-
-After 3 STRIKES in a chat:
-- outputs from that chat are considered unreliable
-- the user should ignore the chat and move the issue to a new implementation chat
+Dovod: `importlib.metadata.version("audiomason")` musi reflektovat realitu.
 
 ---
 
-## 13. MANDATORY SELF-AUDIT CHECKLIST (NO MERCY)
+## 8) Beta / release pravidla (STRICT)
 
-Before delivering ANY patch, the chat MUST print this checklist and answer each line with YES / NO / N/A.
-If the checklist is missing: STRIKE.
-
-[ ] AUTHORITATIVE FILES
-    - I used only the last uploaded files (LATEST WINS).
-    - I did NOT ask for authority confirmation.
-
-[ ] ZIP INSPECTION PROOF (if ZIP was provided)
-    - I provided proof: (path+anchor) OR FILE MANIFEST OR exact error.
-
-[ ] FILE MANIFEST
-    - I listed exact repo-relative files to be modified.
-    - I listed at least one anchor per file.
-
-[ ] PATCH SCRIPT
-    - Deterministic issue_<N>.py
-    - Idempotent, anchor-checked, fail-fast, post-asserted
-    - Repo root resolved via pyproject.toml (no hardcoded paths)
-
-[ ] SCOPE CONTROL
-    - Changes are strictly within issue scope.
-    - No new features / no UX changes.
-
-[ ] TESTS
-    - Tests will be run (python -m pytest -q).
-    - Regressions are covered (existing or minimal new test, if needed).
-
-[ ] DOCS GATE
-    - If user-visible behavior changes, docs will be updated BEFORE closing the issue (RUN: DOCS).
-
-[ ] ZERO-STATUS COMPLIANCE
-    - This message is not a status/plan/promise; it is output or fail-fast.
-
-False checklist answers = severe contract breach.
+- Beta cislo (betaX) sa NEZVYSUJE automaticky.
+- Zvysenie verzie je len po rozhodnuti pouzivatela.
+- Release workflow je striktne oddeleny od feature prace (nespajat do jedneho "nahodneho" patchu).
 
 ---
 
-END OF CONTRACT
+## 9) Komunikacia (HARD RULES)
+
+- Slovencina (ak pouzivatel vyslovne nepoziada inak).
+- Tento projekt = implementacny.
+- Ziadna teoria, ziadne eseje.
+- Kratke, chirurgicke odpovede.
+- Vsetko deterministicke.
+
+---
+
+## 10) Notices (ak sa pisu)
+
+Ak pouzivatel ziada "published notices":
+- pisat po anglicky
+- pouzivat straight apostrophes
+- davat do code blocku
