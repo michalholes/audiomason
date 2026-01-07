@@ -1,5 +1,4 @@
-# 🧭 AudioMason – AUTHORITATIVE HANDOFF / AI CONTRACT (v20)
-
+# 🧭 AudioMason – AUTHORITATIVE HANDOFF / AI CONTRACT (v21)
 ## 🔒 AUTHORITATIVE SCOPE
 
 TENTO DOKUMENT JE AUTHORITATIVE PRE PRACU NA PROJEKTE AudioMason
@@ -80,6 +79,14 @@ deactivate
 
 ## 3) Authoritative files (FAIL FAST)
 
+- ZIP / ARCHIV je AUTHORITATIVE vstup, ale chat NESMIE predstierat analyzu.
+  Ak je dodany ZIP, chat MUSI spravit jedno z tychto:
+  A) vypisat konkretne subory (cesty v repo) z toho archivu, ktore budu editovane/pouzite,
+     a nasledne dodat patch alebo konkretnu analyzu tychto suborov,
+  B) alebo fail-fast a vyziadat si konkretne subory ako uploady.
+- Ak chat nevie alebo nemoze realne precitat/analyzovat ZIP,
+  MUSI fail-fast (nesmie slubovat "rozbalim a zanalyzujem").
+
 - Ak pouzivatel v akomkolvek chate uploadne subor
   (alebo ho explicitne oznaci ako aktualny),
   je tento subor AUTOMATICKY AUTHORITATIVE.
@@ -110,6 +117,13 @@ deactivate
 - ✅ JEDINY povoleny sposob: deterministicky Python patch skript
 
 ### 4.2 Vlastnosti patch skriptu (MUST)
+
+- Patch skript NESMIE hardcodovat repo root na `/home/pi/src` ani na ziadnu inu pevnu cestu.
+- Repo root sa MUSI urcit deterministicky takto (v tomto poradi):
+  1) najdi najblizsi rodicovsky adresar (od `cwd`) obsahujuci `pyproject.toml`.
+     Tento adresar je repo root.
+  2) ak sa `pyproject.toml` nenasiel, fail-fast.
+- Patch skript MUSI pracovat s cestami relativne k repo root (napr. `repo_root / "src/..."`).
 
 - anchor checks
 - idempotentny
@@ -143,6 +157,12 @@ deactivate
 ---
 
 ## 4.5 Patch runner (POVINNE)
+
+- Ak ma issue viac patch-runov, kazdy run MUSI byt jasne oznaceny v odpovedi:
+  - "RUN 1: code", "RUN 2: docs" (alebo ekvivalent),
+  - a commit message MUSI mat zodpovedajuci prefix (napr. `Feat:` vs `Docs:`/`Chore:`).
+- Patch pre dokumentaciu NESMIE byt dodany, kym nie je potvrdene,
+  ze code-run bol uspesne commitnuty a pushnuty.
 
 - Jeden issue moze mat viac commitov a viac patch-runov.
 - Kazdy samostatny patch-run MUSI byt stale dodany/spusteny kanonicky ako: `/home/pi/apps/patches/issue_<N>.py` (runner ho po dobehnuti zmaze).
@@ -265,6 +285,16 @@ Dovod: `importlib.metadata.version("audiomason")` musi reflektovat realitu.
 
 ## 9) Komunikacia (TVRDE PRAVIDLA)
 
+- STATUS ODPOVEDE SU ZAKAZANE.
+  Priklady zakazanych odpovedi: "pokracujem", "idem na to", "patch sa generuje",
+  "dalsia sprava bude", "uz to robim", opakovane "OK" bez vysledku.
+- Po potvrdeni pouzivatela (napr. "OK", "pokracuj") MUSI byt kazda dalsia odpoved
+  IBA jedna z tychto moznosti:
+  A) realny vysledok (download patch / konkretna analyza s citaciou suborov / prikazy),
+  B) TECHNICKY FAIL-FAST: presny dovod + konkretne subory, ktore chybaju alebo blokator.
+- Chat NESMIE slubovat buduce vysledky bez toho, aby ich dodal v tej istej odpovedi.
+- Chat NESMIE opakovane vyzyvat pouzivatela na "OK"; ak pouzivatel napise "OK", chat kona.
+
 - Scope chatu urcuje pouzivatel explicitne v prvej sprave (napr. "Tento chat je implementacny.").
 - Chat NESMIE spochybnovat scope ani navrhovat presun do ineho chatu, pokial pouzivatel vyslovene nepoziada o presun.
 - Ak existuje konflikt medzi implicitnymi pravidlami/pamatou a explicitnym scope pouzivatela, plati explicitny scope pouzivatela.
@@ -287,6 +317,11 @@ Ak pouzivatel ziada "published notices":
 - davat do code blocku
 
 ## 11) Dokumentacia (POVINNE)
+
+- Text v issue handoffe typu "bez docs zmien" znamena iba:
+  "nerobit docs pocas implementacie kodu".
+  NEZNAMENA to vynimku z povinnosti aktualizovat dokumentaciu pred uzavretim issue.
+  Vynimku moze povolit iba pouzivatel explicitne.
 
 - **Kanonicky zoznam vsetkych funkcii projektu AudioMason MUSI byt vedeny v jednom subore:** `docs/FUNCTIONS.md`.
 - Tento subor je **single source of truth** pre popis funkcii.
