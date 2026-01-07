@@ -139,14 +139,16 @@ Behavior when disabled:
 ### preflight.clean_inbox
 
 - **Question text:** `Clean inbox after successful import?`
-- **Phase:** preflight
+- **Phase:** preflight (**RUN-level decision**; prompt happens before any PROCESS)
 - **Default value:** **No** unless configured otherwise
 - **Interactive by default:** depends on mode (`ask|yes|no`)
 - **Config keys:** `clean_inbox: {ask|yes|no}`
 - **CLI flags:** `--clean-inbox {ask|yes|no}`
 - **Prompt-control compatible:** yes (`preflight_disable: [clean_inbox]`)
+- **Run-level decision:** resolved **once per run** and applied consistently to all selected sources
+- **Strict rule:** prompt must **never during PROCESS** (only before processing starts, or after all sources finish)
+- **Action timing:** inbox cleanup (delete processed source) executes only after a source completes successfully (FINALIZE)
 - **Behavior when disabled:** uses deterministic default based on `default_no`.
-
 ### preflight.reuse_stage
 
 - **Question text:** `[stage] Reuse existing staged source?`

@@ -422,6 +422,7 @@ files:
       context_after: "# Back-compat:"
 - path: src/audiomason/import_flow.py
   domains: ['audio', 'pipeline', 'prompts', 'publish']
+-   file_sha1: "7d6f5efc2db700da0919981fcd24bf306f00b5b4"
   file_sha1: \"3abe4c8f14fbdefb1ce167a402c3f037d3814ae0"
   anchors:
     - anchor: "def _ol_enabled("
