@@ -103,6 +103,8 @@ Behavior when disabled:
 
 - **Question text:** `Publish after import?`
 - **Phase:** preflight
+
+- **Note:** publish/copy is executed at the end of PROCESS, after all PROCESS steps finish (Issue #86).
 - **Default value:** typically **No** (unless a saved manifest decision exists or computed default differs)
 - **Interactive by default:** yes (when `--publish ask`)
 - **Config keys:** `publish` (default for CLI)

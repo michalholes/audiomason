@@ -14,6 +14,10 @@ AudioMason treats the following file types as valid **audio inputs** during impo
 - `.mp3` (native)
 - `.m4a` (native)
 - `.opus` (supported via conversion)
+**Phase ordering (Issue #86):**
+- `.m4a` / `.opus` conversion to `.mp3` runs **during PROCESS** (after staging), never during PREPARE/stage.
+- Publish/copy to the final destination happens **at the end of PROCESS**, after all processing steps complete.
+
 
 ### Behavior
 
