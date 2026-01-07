@@ -1,0 +1,71 @@
+version: 1
+project: AudioMason
+
+rules:
+  authoritative: true
+  latest_wins: true
+  anchors_required: true
+  fail_fast_on_missing_anchor: true
+  fail_fast_on_missing_file: true
+
+repo_root_markers:
+  - pyproject.toml
+  - src/audiomason/__init__.py
+
+domains:
+
+  cli:
+    description: "CLI flags, argument parsing, runtime option resolution"
+    files:
+      - path: src/audiomason/cli.py
+        anchors:
+          - "def main("
+          - "--help"
+          - "argparse"
+
+  config:
+    description: "Config defaults, validation, runtime config resolution"
+    files:
+      - path: src/audiomason/config.py
+        anchors:
+          - "DEFAULTS"
+          - "def load_config"
+          - "AmConfigError"
+
+  import_flow:
+    description: "Import flow orchestration, PREPARE vs PROCESS (if present)"
+    files:
+      - path: src/audiomason/import_flow.py
+        anchors:
+          - "PREPARE"
+          - "PROCESS"
+          - "def run_import"
+
+  audio:
+    description: "Audio conversion/toolchain (if present)"
+    files:
+      - path: src/audiomason/audio.py
+        anchors:
+          - "ffmpeg"
+          - "convert"
+          - ".opus"
+          - ".m4a"
+
+  publish:
+    description: "Publish/copy to final output (if present)"
+    files:
+      - path: src/audiomason/publish.py
+        anchors:
+          - "publish"
+          - "copy"
+          - "output"
+
+  tests:
+    description: "Test suite entrypoint"
+    files:
+      - path: tests/
+        glob: true
+
+generated:
+  created_utc: "2026-01-07T08:55:55Z"
+  generator: "gen_repo_manifest.sh"
