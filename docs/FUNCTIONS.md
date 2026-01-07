@@ -3,6 +3,8 @@
 This document is the **single source of truth** for functional behavior in AudioMason.
 If any other documentation conflicts with this file, **THIS FILE WINS**.
 
+**See also:** Interactive prompts are documented in `docs/prompts/catalog.md`.
+
 ---
 
 ## Audio input formats (conversion)

@@ -2,6 +2,8 @@
 
 This document is the **single source of truth** for **all interactive prompts** in AudioMason.
 
+**See also:** Functional behavior is documented in `docs/FUNCTIONS.md`.
+
 Scope (Issue #83):
 - **No behavior changes.** This is documentation of the current code behavior only.
 - Includes:
