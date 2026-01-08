@@ -1144,3 +1144,9 @@ files:
   file_sha1: "6278f1fb48e84af8bb4c18ae573a9e781ea1300b"
   anchors:
 
+- path: src/audiomason/preflight_registry.py
+  sha1: 6326f53a03c87a81e3d88eb43251be1275fe3cda
+- path: src/audiomason/preflight_orchestrator.py
+  sha1: 1991530d696d013679ca2b478e9d1f9add9a4b00
+- path: docs/design/preflight_orchestration.md
+  sha1: 962d757da95e352c750f1bf8e8649d13ff3b5a60
