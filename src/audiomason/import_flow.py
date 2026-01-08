@@ -15,6 +15,7 @@ import audiomason.state as state
 from audiomason.pipeline_steps import resolve_pipeline_steps
 from audiomason.paths import get_drop_root, get_stage_root, get_output_root, get_archive_root, ARCHIVE_EXTS
 from audiomason.util import out, die, ensure_dir, slug, prompt, prompt_yes_no, AmConfigError
+from audiomason.preflight_registry import DEFAULT_PREFLIGHT_STEPS
 
 
 # FEATURE #67: disable selected preflight prompts (skip prompts deterministically)
@@ -36,23 +37,8 @@ PREFLIGHT_DISABLE_KEYS = {
 }
 
 # Issue #66: configurable preflight question order (deterministic, validated)
-PREFLIGHT_STEP_KEYS = [
-    # stage reuse / answers
-    'reuse_stage',
-    'use_manifest_answers',
-    # selection / resume
-    'choose_books',
-    'skip_processed_books',
-    # global decisions
-    'publish',
-    'wipe_id3',
-    'clean_stage',
-    # source + per-book
-    'source_author',
-    'book_title',
-    'cover',
-    'overwrite_destination',
-]
+PREFLIGHT_STEP_KEYS = list(DEFAULT_PREFLIGHT_STEPS)
+
 
 def _resolved_preflight_steps(cfg: dict) -> list[str]:
     cached = cfg.get('_preflight_steps_list')
