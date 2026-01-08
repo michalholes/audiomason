@@ -423,7 +423,7 @@ files:
 - path: src/audiomason/import_flow.py
   domains: ['audio', 'pipeline', 'prompts', 'publish']
 -   file_sha1: "7d6f5efc2db700da0919981fcd24bf306f00b5b4"
-  file_sha1: \"3abe4c8f14fbdefb1ce167a402c3f037d3814ae0"
+  file_sha1: "81ca66e5cc84e31880f59be489956f0b4a975180"
   anchors:
     - anchor: "def _ol_enabled("
       first_line: 23
@@ -494,7 +494,7 @@ files:
       first_line: 288
       count: 1
       context_before: ""
-      context_after: "for f in sorted(p.rglob(\"*.m4a\"), key=lambda x: x.as_posix().lower()):"
+      context_after: "for f in sorted(p.rglob("*.m4a"), key=lambda x: x.as_posix().lower()):"
     - anchor: "def _detect_books("
       first_line: 296
       count: 1
@@ -509,7 +509,7 @@ files:
       first_line: 347
       count: 1
       context_before: "# [issue_75] _collect_audio_files"
-      context_after: "mp3s = sorted([p for p in group_root.iterdir() if p.is_file() and p.suffix.lower() == \".mp3\"], key=lambda p: p.name.casefold())"
+      context_after: "mp3s = sorted([p for p in group_root.iterdir() if p.is_file() and p.suffix.lower() == ".mp3"], key=lambda p: p.name.casefold())"
     - anchor: "def _preflight_global("
       first_line: 352
       count: 1
@@ -519,7 +519,7 @@ files:
       first_line: 369
       count: 1
       context_before: ""
-      context_after: "out(f\"[book-meta] {i}/{n}: {b.label}\")"
+      context_after: "out(f"[book-meta] {i}/{n}: {b.label}")"
     - anchor: "def _is_dir_nonempty("
       first_line: 383
       count: 1
@@ -559,12 +559,12 @@ files:
       first_line: 492
       count: 1
       context_before: ""
-      context_after: "name = f\"{author} - {title}.dryrun.txt\""
+      context_after: "name = f"{author} - {title}.dryrun.txt""
     - anchor: "def _process_book("
       first_line: 501
       count: 1
       context_before: ""
-      context_after: "out(f\"[book] {i}/{n}: {b.label}\")"
+      context_after: "out(f"[book] {i}/{n}: {b.label}")"
     - anchor: "def _resolve_source_arg("
       first_line: 587
       count: 1
@@ -584,7 +584,7 @@ files:
       first_line: 628
       count: 1
       context_before: ""
-      context_after: "\"\"\"Resolve a cover input (URL/path) and stage it as cover.<ext> inside the book folder."
+      context_after: """"Resolve a cover input (URL/path) and stage it as cover.<ext> inside the book folder."
     - anchor: "def run_import("
       first_line: 647
       count: 1
@@ -594,7 +594,7 @@ files:
       first_line: 192
       count: 2
       context_before: ""
-      context_after: "return unicodedata.normalize(\"NFKC\", s).strip().casefold()"
+      context_after: "return unicodedata.normalize("NFKC", s).strip().casefold()"
     - anchor: "def visit("
       first_line: 308
       count: 1
@@ -1132,3 +1132,9 @@ files:
       count: 1
       context_before: ""
       context_after: "try:"
+- path: tests/test_preflight_steps_order.py
+  domains: ['tests']
+  file_sha1: "0cf12c398af1111b45cdb0221d823c8114770e92"
+- path: docs/CONFIGURATION.md
+  domains: ['docs']
+  file_sha1: "2b978f26ca76103421fe58a2242df4c0451e27a0"

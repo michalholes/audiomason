@@ -87,4 +87,4 @@ Behavior when a prompt is disabled:
 
 - docs/WORKFLOW.md
 - docs/PIPELINE.md
-- docs/MAINTENANCE.md
+- docs/MAINTENANCE.md\n\n## Preflight step order (Issue #66)\n\nYou can configure the **deterministic order** of preflight questions using `preflight_steps`.\n\nExample:\n\n```yaml\npreflight_steps:\n  - reuse_stage\n  - use_manifest_answers\n  - choose_books\n  - skip_processed_books\n  - publish\n  - wipe_id3\n  - clean_stage\n  - source_author\n  - book_title\n  - cover\n  - overwrite_destination\n```\n\nValidation (fail-fast, before staging / disk writes):\n\n* unknown `step_key` → error\n* duplicate `step_key` → error\n* missing required step → error\n\nIf `preflight_steps` is not set, AudioMason uses the built-in default order.\n
