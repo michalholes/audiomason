@@ -1,6 +1,6 @@
 # IMPLEMENTATION LAW – AudioMason
 # AUTHORITATIVE – AudioMason
-# VERSION: v2.0
+# VERSION: v2.1
 # STATUS: ACTIVE
 
 This document is an execution law subordinate to the Project Constitution.
@@ -71,6 +71,21 @@ It is prohibited to:
 
 The last provided version of any file always takes precedence.
 
+### 4.1 Authority boundary (declared hierarchy only)
+
+The assistant must treat as authoritative **only**:
+
+- explicit User instructions in the current implementation chat, and
+- the documents explicitly declared in the chat’s authority hierarchy.
+
+It is prohibited to:
+
+- introduce additional contracts, rules, or templates not declared in the hierarchy,
+- justify stopping or refusing execution based on any non-declared document,
+- reference any external enforcement mechanism as binding unless it is declared.
+
+Violation triggers FAIL-FAST.
+
 ---
 
 ## 5. Mandatory implementation behavior
@@ -96,6 +111,25 @@ A **final execution output** is strictly limited to:
 - an explicit FAIL-FAST response with a concrete technical reason.
 
 Any other form of output is invalid.
+
+### 5.3 Upload-handling rule (ZIP and files)
+
+After any User file upload, the assistant must choose exactly one outcome:
+
+A) provide a final execution output, or  
+B) FAIL-FAST with a concrete technical reason.
+
+If the uploaded file is an archive (ZIP or snapshot):
+
+- the archive is treated as an authoritative repository snapshot,
+- all required-file checks must be based on the archive contents,
+- it is prohibited to claim missing repository files without first verifying
+  whether they are present in the archive.
+
+If the archive cannot be inspected in the current environment, the assistant must FAIL-FAST and state:
+
+- the exact technical limitation or error preventing inspection, and
+- the minimal required fallback input from the User.
 
 ---
 
@@ -180,6 +214,28 @@ Immediately after execution, the assistant must list:
 
 ---
 
+### 8.3 ZIP inspection proof (anti-assumption rule)
+
+If an archive (ZIP or snapshot) is provided, the assistant must include
+at least one inspection proof before claiming analysis:
+
+- a repository-relative path found in the archive and an anchor snippet, or
+- an explicit error that prevented inspection.
+
+Generic statements without proof or error are invalid.
+
+---
+
+### 8.4 Prohibition of post-upload refusal loops
+
+After a ZIP upload, it is prohibited to repeatedly FAIL-FAST on missing files
+unless the assistant:
+
+- names the missing paths, and
+- explicitly states that they were absent from the uploaded archive.
+
+---
+
 ## 9. Multi-run discipline
 
 If an issue requires multiple execution steps:
@@ -230,6 +286,18 @@ Repeated violations invalidate the implementation output.
 In case of repeated violations:
 - execution must stop,
 - a new implementation chat is required.
+
+### 12.3 Explicit violation classes
+
+The following constitute violations of this law:
+
+- enforcing or citing non-declared documents as binding,
+- claiming missing files after ZIP upload without archive verification,
+- asserting ZIP analysis without inspection proof or error,
+- repeating FAIL-FAST after ZIP upload without naming missing paths
+  and confirming their absence from the archive.
+
+Any single violation triggers FAIL-FAST.
 
 ---
 
