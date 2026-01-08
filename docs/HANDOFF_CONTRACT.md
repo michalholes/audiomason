@@ -1,6 +1,6 @@
 # 🔒 HANDOFF_CONTRACT.md
 # AUTHORITATIVE – AudioMason
-# VERSION: v27.3
+# VERSION: v27.4
 # STATUS: ACTIVE
 # LANGUAGE: ENGLISH ONLY
 
@@ -336,8 +336,23 @@ The runner MUST:
 - perform commit and push only after successful tests
 
 The chat MUST:
-- deliver ONLY patch scripts
-- NEVER provide git or test commands
+- deliver patch scripts (as downloads)
+- NEVER provide git commands or test commands
+- MAY provide the canonical runner invocation line as a single command line DIRECTLY UNDER the patch download, using the exact format:
+
+  /home/pi/apps/patches/am_patch.sh <ISSUE> "<COMMIT MESSAGE>"
+
+Rules for this runner line:
+- exactly one line
+- no chaining (`&&`, `;`)
+- no `cd`, no `cp`, no `python`, no `git`, no environment activation commands
+- it MUST invoke `/home/pi/apps/patches/am_patch.sh` with `<ISSUE>` and the explicit commit message
+
+If Naming fallback (5.3) is used, the chat MAY include exactly ONE rename line immediately before the runner line:
+
+  mv <downloaded_filename> issue_<N>.py
+
+No other shell commands are permitted.
 
 ---
 
@@ -373,8 +388,10 @@ Ambiguity REQUIRES FAIL-FAST with explicit description of the ambiguity.
 
 FINAL RESULT MUST contain ONLY:
 - the patch script (or a download reference)
+- optionally the allowed runner invocation line (Section 8)
+- optionally the single rename fallback line (Section 5.3), only if needed
 
-Any explanation, commentary, or justification inside FINAL RESULT = STRIKE.
+Any explanation, commentary, or additional commands inside FINAL RESULT = STRIKE.
 
 ---
 
