@@ -1,6 +1,6 @@
 # 🔒 HANDOFF_CONTRACT.md
 # AUTHORITATIVE – AudioMason
-# VERSION: v27.5
+# VERSION: v27.6
 # STATUS: ACTIVE
 # LANGUAGE: ENGLISH ONLY
 
@@ -341,6 +341,24 @@ If Naming fallback (5.3) is used, the chat MAY include exactly ONE rename line i
   mv /home/pi/apps/patches/<provided_filename> /home/pi/apps/patches/issue_<N>.py
 
 No other shell commands are permitted.
+
+---
+## 8.1 AFFECTED FILES DISCLOSURE (MANDATORY)
+
+Immediately AFTER the code block containing the patch execution command
+(and optional rename command), the assistant MUST list ALL files
+that the patch script modifies.
+
+Rules:
+- the list MUST be complete
+- paths MUST be repo-relative
+- one file per line
+- NO explanations, NO commentary
+
+This list is REQUIRED so THE USER can re-upload modified files
+as the authoritative baseline if tests fail and no commit is created.
+
+Missing, incomplete, or incorrect file list = STRIKE.
 
 ---
 
