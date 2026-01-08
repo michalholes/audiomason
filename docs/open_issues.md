@@ -11,11 +11,7 @@ Last updated: 2026-01-08 (Europe/Bratislava)
 
 ## Index (OPEN)
 
-
-- #91 – Enhancement: preflight_steps does not fully control all preflight prompts
-- #92 – Design: canonical preflight orchestration
-- #93 – Refactor: preflight step registry enforcement
-- #94 – Cleanup: docs + repo_manifest + legacy preflight paths
+- #66 – Feat: configurable preflight question order (deterministic, validated)
 - #68 – Feat: configurable default answers for binary preflight questions (y/n)
 - #69 – Feat: configurable handling of non-binary preflight questions (deterministic)
 - #78 – Feat: preflight stage creation toggle per source (disable-able via config/CLI)
