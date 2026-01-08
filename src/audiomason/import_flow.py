@@ -16,6 +16,7 @@ from audiomason.pipeline_steps import resolve_pipeline_steps
 from audiomason.paths import get_drop_root, get_stage_root, get_output_root, get_archive_root, ARCHIVE_EXTS
 from audiomason.util import out, die, ensure_dir, slug, prompt, prompt_yes_no, AmConfigError
 from audiomason.preflight_registry import DEFAULT_PREFLIGHT_STEPS, validate_steps_list
+from audiomason.preflight_orchestrator import PreflightOrchestrator, PreflightContext
 
 
 # FEATURE #67: disable selected preflight prompts (skip prompts deterministically)
@@ -1031,16 +1032,14 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                                 out("[books] resume: nothing left to process")
                                 return
 
-                # publish/wipe (skip when allowed, otherwise prompt with defaults)
-                # Issue #66: configurable preflight question order (deterministic)
+                # publish/wipe/clean_stage via dispatcher (Issue #93)
                 preflight_order = _resolved_preflight_steps(cfg)
-                _done: set[str] = set()
 
                 publish: bool | None = None
                 wipe: bool | None = None
                 clean_stage: bool | None = None
 
-                def _do_publish_wipe() -> None:
+                def _step_publish_wipe() -> None:
                     nonlocal publish, wipe
                     default_publish = bool(dec.get("publish")) if isinstance(dec, dict) and "publish" in dec else False
                     default_wipe = bool(dec.get("wipe_id3")) if isinstance(dec, dict) and "wipe_id3" in dec else False
@@ -1058,33 +1057,44 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                         wipe = bool(state.OPTS.wipe_id3)
                     update_manifest(stage_run, {"decisions": {"publish": bool(publish), "wipe_id3": bool(wipe)}})
 
-                def _do_clean_stage() -> None:
+                def _step_clean_stage() -> None:
                     nonlocal clean_stage
                     default_clean = bool(dec.get("clean_stage")) if isinstance(dec, dict) and ("clean_stage" in dec) else False
                     if reuse_stage and use_manifest_answers and isinstance(dec, dict) and ("clean_stage" in dec):
                         clean_stage = bool(dec.get("clean_stage"))
                         return
                     clean_stage = _pf_prompt_yes_no(cfg, "clean_stage", "Clean stage after successful import?", default_no=(not default_clean))
+                    update_manifest(stage_run, {"decisions": {"clean_stage": bool(clean_stage)}})
 
-                for sk in preflight_order:
-                    if sk in {"publish", "wipe_id3"}:
-                        if "publish" not in _done or "wipe_id3" not in _done:
-                            _do_publish_wipe()
-                            _done.add("publish")
-                            _done.add("wipe_id3")
-                    elif sk == "clean_stage":
-                        _do_clean_stage(); _done.add(sk)
+                # Orchestrator is used for deterministic pending decisions.
+                orchestrator = PreflightOrchestrator(cfg)
+                ctx = PreflightContext(cfg=cfg)
+
+                # In this flow, we already have source + books context here.
+                ctx.context_level = "books_selected"
+
+                plan = orchestrator.plan(ctx)
+
+                def _exec_step(step_key: str) -> None:
+                    if step_key in {"publish", "wipe_id3"}:
+                        if publish is None or wipe is None:
+                            _step_publish_wipe()
+                    elif step_key == "clean_stage":
+                        if clean_stage is None:
+                            _step_clean_stage()
                     else:
-                        # Other step keys are handled elsewhere in existing flow.
-                        _done.add(sk)
+                        # Other keys are handled elsewhere in existing flow.
+                        return
+
+                orchestrator.materialize_pending(ctx, plan, executor=_exec_step)
 
                 if publish is None or wipe is None:
                     die("Internal error: missing required preflight decisions (publish/wipe_id3)")
                 if clean_stage is None:
-                    # keep original behavior: clean_stage is required decision
-                    _do_clean_stage()
+                    # Keep original behavior: clean_stage is required decision
+                    _step_clean_stage()
 
-                # Issue #66: resolve source author (required for OpenLibrary validate_book)
+# Issue #66: resolve source author (required for OpenLibrary validate_book)
                 default_author = str(dec.get('author') or '').strip() if isinstance(dec, dict) else ''
                 if reuse_stage and use_manifest_answers and default_author:
                     author = default_author
