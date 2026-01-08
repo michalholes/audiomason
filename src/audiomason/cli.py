@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from audiomason.version import __version__
-from audiomason.config import load_config
+from audiomason.config import load_config, _validate_prompts_disable
 import audiomason.state as state
 from audiomason.state import Opts
 from audiomason.import_flow import run_import
@@ -98,6 +98,15 @@ def _parse_args(cfg: Dict[str, Any] | None = None) -> argparse.Namespace:
         action="append",
         default=None,
         help="disable selected preflight prompts (repeatable, comma-separated keys)",
+    )
+
+    # Issue #89: disable selected prompts at runtime (CLI overrides config)
+    imp.add_argument(
+        "--disable-prompt",
+        dest="disable_prompt",
+        action="append",
+        default=None,
+        help="disable prompts (repeatable, comma-separated keys; supports '*')",
     )
 
     v = sub.add_parser("verify", help="verify audiobook library", parents=[parent])
@@ -215,11 +224,6 @@ def main() -> int:
             state.OPTS.lookup = bool(_ol_effective)
             cfg['_openlibrary_enabled'] = bool(_ol_effective)
 
-            # Feature #72: version banner (configurable via config.yaml: version-banner)
-            _vb = bool(cfg.get('version-banner', True))
-            if _vb and ((not state.OPTS.quiet) or bool(getattr(state.OPTS, 'json', False))):
-                print(_version_kv_line(), flush=True)
-
             # FEATURE #65: config default + debug print for clean_inbox
             argv = list(sys.argv[1:])
             argv_has_clean_inbox = ('--clean-inbox' in argv)
@@ -244,6 +248,37 @@ def main() -> int:
                 out(f"[config] clean_inbox_mode={state.OPTS.clean_inbox_mode}")
             if str(state.OPTS.verify_root) == "__AUDIOMASON_VERIFY_ROOT_UNSET__":
                 state.OPTS.verify_root = get_output_root(cfg)
+
+            # Issue #89: resolve prompts.disable (CLI overrides config)
+            _dp = getattr(ns, "disable_prompt", None)
+            if _dp is not None:
+                items: list[str] = []
+                for raw in _dp:
+                    for part in str(raw).split(","):
+                        k = part.strip()
+                        if k:
+                            items.append(k)
+                if not items:
+                    raise AmConfigError("Invalid --disable-prompt: no keys specified")
+
+                prm = cfg.get("prompts", {})
+                if prm is None:
+                    prm = {}
+                if not isinstance(prm, dict):
+                    raise AmConfigError("Invalid config: prompts must be a mapping")
+
+                prm2 = dict(prm)
+                prm2["disable"] = items
+                cfg["prompts"] = prm2
+                if "_prompts_disable_set" in cfg:
+                    del cfg["_prompts_disable_set"]
+                _validate_prompts_disable(cfg)
+
+            # Feature #72: version banner (configurable via config.yaml: version-banner)
+            # Print only after config + CLI validation so fail-fast errors start with [error].
+            _vb = bool(cfg.get('version-banner', True))
+            if _vb and ((not state.OPTS.quiet) or bool(getattr(state.OPTS, 'json', False))):
+                print(_version_kv_line(), flush=True)
 
             if ns.cmd == "inspect":
                 from audiomason.inspect import inspect_source
@@ -291,6 +326,7 @@ def main() -> int:
             else:
                 _d = cfg.get('preflight_disable', [])
                 cfg['preflight_disable'] = list(_d) if isinstance(_d, list) else []
+
             run_import(cfg, getattr(ns, "path", None))
             return 0
         except KeyboardInterrupt as e:
