@@ -2272,3 +2272,19 @@ Commits:
 Verdict:
 Scope fulfilled. Follow-up design/refactor tracked in #91–#94.
 ================================================================================
+
+================================================================================
+ISSUE #93 – Refactor: move preflight prompts under step registry + enforce ordering (Follow-up to #91)
+CLOSED AT: 2026-01-09
+
+Runs / commits:
+- b7b5032 – RUN 1 (CODE)
+- e1d2cc1 – RUN 2 (CODE + TESTS)
+- 1fdd207 – RUN 3 (DOCS)
+- 9526eaa – RUN 4 (repo_manifest)
+- dcebad5 – RUN 5 (dispatcher wiring)
+
+Verdict:
+Design from #92 implemented. Unified one-list preflight ordering + pending decisions + dispatcher enforcement.
+Docs + repo_manifest updated.
+================================================================================
