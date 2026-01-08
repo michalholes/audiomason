@@ -1,6 +1,6 @@
 # 🔒 HANDOFF_CONTRACT.md
 # AUTHORITATIVE – AudioMason
-# VERSION: v27.4
+# VERSION: v27.5
 # STATUS: ACTIVE
 # LANGUAGE: ENGLISH ONLY
 
@@ -240,36 +240,24 @@ Any patch execution bypassing am_patch.sh is INVALID, even if technically correc
 
 Silent no-op = STRIKE.
 
-### 5.3 Naming fallback (TECHNICAL ONLY, SINGLE STEP)
+### 5.3 Naming fallback (MANDATORY IF NON-CANONICAL NAME)
 
-If the assistant is technically unable to deliver the patch script
-with the canonical name `issue_<N>.py`:
+If the delivered patch script does NOT have the canonical name `issue_<N>.py`
+(e.g. `issue_89_v3.py`, `issue_89_fixed.py`):
 
-- the assistant MAY deliver the patch under a temporary filename
-- the assistant MUST explicitly state that this is a technical limitation
+- renaming is MANDATORY
+- the rename command MUST be included in the SAME code block as the runner command
+- the rename command MUST appear BEFORE the runner command
 
-In this case, the assistant MUST provide:
+The ONLY allowed rename command format is:
 
-- EXACTLY ONE shell command to rename the file to `issue_<N>.py`
-- this command MUST be presented as the IMMEDIATE STEP
-  before invoking the canonical runner
-
-The ONLY allowed command format is:
-
-mv <downloaded_filename> issue_<N>.py
+mv /home/pi/apps/patches/<provided_filename> /home/pi/apps/patches/issue_<N>.py
 
 Rules:
-- no paths (assumed working directory: `/home/pi/apps/patches`)
-- no additional shell commands
-- no chaining (`&&`, `;`)
-- no runner execution commands
-- no copy (`cp`) commands
-- no directory navigation (`cd`)
-
-All downloaded patch files are assumed to be placed by THE USER
-into `/home/pi/apps/patches` BEFORE this rename step.
-
-Any deviation = STRIKE.
+- absolute paths are REQUIRED
+- maximum of TWO lines total (rename + runner)
+- no other commands are allowed
+- any deviation = STRIKE
 
 ---
 
@@ -350,7 +338,7 @@ Rules for this runner line:
 
 If Naming fallback (5.3) is used, the chat MAY include exactly ONE rename line immediately before the runner line:
 
-  mv <downloaded_filename> issue_<N>.py
+  mv /home/pi/apps/patches/<provided_filename> /home/pi/apps/patches/issue_<N>.py
 
 No other shell commands are permitted.
 
