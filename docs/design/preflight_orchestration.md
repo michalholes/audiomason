@@ -1,133 +1,112 @@
 # Preflight Orchestration
 
-## 1. Purpose
-Preflight orchestration provides a **deterministic and configurable mechanism**
-to control the order and scope of all preflight decisions **before any data
-processing occurs**.
+This document describes the preflight orchestration model introduced in Issue #93.
 
-Its goals are:
-- deterministic execution,
-- explicit ordering control,
-- fail-fast validation,
-- full backward compatibility when no configuration is provided.
+The goal is to make all preflight prompts deterministic, reorderable, and centrally
+governed by a single ordering mechanism.
 
 ---
 
-## 2. What is a preflight step
-A *preflight step* represents **one logical decision** taken before processing.
+## 1. Motivation
 
-Rules:
-- each decision is represented by exactly one `step_key`,
-- every preflight prompt must belong to a registered step,
-- no preflight prompt may execute outside the step registry.
+Historically, preflight prompts were partially hard-coded and partially ordered
+implicitly by control flow.
 
-There are no hidden side-effects.
+This made it impossible to:
+- reason about ordering deterministically,
+- safely reorder prompts,
+- defer decisions until sufficient context existed.
+
+Issue #93 introduces a unified orchestration model that fixes these problems.
 
 ---
 
-## 3. Fixed vs movable steps
+## 2. One-list model
 
-### Non-movable steps (always first)
-The following steps are **not reorderable** and are executed first:
+Preflight ordering is defined by one linear list:
 
-- `select_source`
-- `select_books`
+```
+preflight_steps: [step_key, step_key, ...]
+```
 
-They establish execution context and are intentionally excluded from ordering.
+There are no user-visible levels (run/source/book).
 
-### Movable steps
-All other preflight decisions are movable and ordered via `preflight_steps`.
+All ordering semantics are internal.
+
+---
+
+## 3. Non-movable selection steps
+
+Some steps are structural and must never be reordered:
+
+- choose_source
+- choose_books
+
+Properties:
+- they are part of the one-list,
+- they are validated, but
+- they are never offered as movable options.
+
+This guarantees structural integrity while preserving a single ordering model.
 
 ---
 
 ## 4. Ordering model
-Preflight uses a **single global ordering list**:
 
-```
-preflight_steps:
-  - reuse_stage
-  - clean_stage
-  - publish
-```
+The ordering system enforces:
 
-Characteristics:
-- ordering is linear and deterministic,
-- there are no run/source/book sections in configuration,
-- unknown, duplicate, or invalid steps cause FAIL-FAST errors.
+- unknown keys: fail-fast
+- duplicate keys: fail-fast
+- missing required keys: fail-fast
+- required relative ordering constraints: fail-fast
+
+Default ordering is defined in code and represents the canonical baseline.
+
+If preflight_steps is not configured, behavior is identical to historical behavior.
 
 ---
 
-## 5. Default ordering
-If `preflight_steps` is not provided, AudioMason uses the **default ordering**
-defined in the **step registry within the code**.
+## 5. Context eligibility
 
-The default ordering:
-- exactly preserves current behavior,
-- serves as the canonical baseline,
-- is documented here for reference only.
+Each step declares a minimum required context:
 
-Documentation mirrors code but is **not authoritative**.
+- none
+- source_selected
+- books_selected
 
----
-
-## 6. Context and pending decisions
-Some steps require execution context (selected source or books).
-
-If a step is encountered **before its required context exists**:
-- it is recorded as a *pending decision*,
-- it is materialized automatically once the context becomes available.
-
-This guarantees:
-- full ordering freedom,
-- no heuristics,
-- deterministic behavior.
+If a step appears before its context exists, it is not executed immediately.
 
 ---
 
-## 7. Scope and overrides
-Each decision applies at a certain scope:
-- run,
-- source,
-- book.
+## 6. Pending decisions
 
-Override rules:
-1. more specific scope overrides less specific (`book > source > run`),
-2. at equal scope, the later decision wins.
+Steps that appear too early are handled via pending decisions:
 
-This allows early defaults with later, more specific overrides.
+- the step is recorded as pending,
+- once sufficient context exists, it is materialized deterministically,
+- no heuristics or reordering occur.
+
+Materialization always respects the original list order.
 
 ---
 
-## 8. Canonical step keys (overview)
+## 7. Determinism guarantees
 
-Movable steps:
-- `clean_inbox`
-- `reuse_stage`
-- `clean_stage`
-- `use_manifest_answers`
-- `skip_processed_books`
-- `normalize_author`
-- `normalize_title`
-- `apply_suggested_author`
-- `apply_suggested_title`
-- `tags`
-- `chapters`
-- `loudnorm`
-- `publish`
-- `wipe_id3`
+The orchestration system guarantees:
 
-Exact eligibility and defaults are defined in code.
+- same inputs lead to same ordering,
+- same context progression leads to same execution points,
+- no hidden prompts,
+- no implicit control-flow ordering.
 
 ---
 
-## 9. Backward compatibility guarantees
-- No configuration means no behavior change.
-- Existing flows continue to work unchanged.
-- Reordering is always explicit and opt-in.
+## 8. Summary
 
----
+Issue #93 establishes a foundation for:
 
-## 10. Relation to issues
-- Introduced in Issue #66
-- Design finalized in Issue #92
-- Implemented in Issue #93
+- fully deterministic preflight execution,
+- safe reordering,
+- future non-interactive and GUI frontends.
+
+All future preflight behavior must go through the registry and orchestrator.
