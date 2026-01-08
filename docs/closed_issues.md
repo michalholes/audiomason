@@ -2260,3 +2260,15 @@ Acceptance:
 - Existing target dir => book is skipped/aborted with [conflict] message.
 - Exit code non-zero if any conflicts encountered (unless --yes defines otherwise).
 
+
+================================================================================
+ISSUE #66 – Feat: configurable preflight question order (deterministic, validated)
+CLOSED AT: 2026-01-08
+
+Commits:
+- dd7b455 – implementation (code + tests)
+- 1cd69c7 – documentation + repo_manifest
+
+Verdict:
+Scope fulfilled. Follow-up design/refactor tracked in #91–#94.
+================================================================================
