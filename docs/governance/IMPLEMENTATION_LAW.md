@@ -1,131 +1,254 @@
 # IMPLEMENTATION LAW – AudioMason
+# AUTHORITATIVE – AudioMason
+# VERSION: v2.0
+# STATUS: ACTIVE
 
-AUTHORITATIVE – AudioMason  
-Status: active  
-
-This document is an execution law subordinate to the Project Constitution
-and defines all implementation mechanisms of the AudioMason project.
+This document is an execution law subordinate to the Project Constitution.
+It defines all mandatory implementation mechanisms for the AudioMason project.
 
 ---
 
 ## 1. Purpose
 
 This law defines:
-- implementation procedures,
-- technical mechanisms,
-- execution workflows,
-- obligations of the implementation chat.
+
+- mandatory behavior of implementation chats,
+- allowed and forbidden implementation actions,
+- deterministic execution requirements,
+- patch delivery, execution, and validation mechanisms,
+- enforcement rules in case of violations.
+
+This law governs **how implementation must be performed**, not what should be implemented.
 
 ---
 
-## 2. Implementation chat
+## 2. Implementation chat scope
 
-The implementation chat is used exclusively
-to execute User-approved changes.
+An implementation chat is used **exclusively** to execute changes explicitly approved by the User.
 
-It is prohibited to:
+It is prohibited in an implementation chat to:
+
 - make decisions,
-- perform planning,
-- discuss governance,
-- propose architecture,
-- present alternative solutions.
+- perform planning or prioritization,
+- discuss governance or project strategy,
+- propose alternative architectures or scopes,
+- negotiate requirements.
+
+Any activity outside execution constitutes a violation.
 
 ---
 
-## 3. Determinism and stopping
+## 3. Deterministic execution model
 
 All implementation must be deterministic.
 
-In case of ambiguity, missing input, or conflict:
-- execution must stop immediately,
-- a User decision must be requested.
+### 3.1 Mandatory stopping (FAIL-FAST)
+
+Implementation must stop immediately if any of the following occurs:
+
+- missing or incomplete authoritative input,
+- ambiguity or conflicting instructions,
+- missing required files,
+- violation of this law.
+
+After a stop:
+- no further reasoning,
+- no proposals,
+- no suggestions
+are allowed until the User intervenes.
 
 ---
 
 ## 4. Authoritative inputs
 
-Only inputs explicitly provided by the User
-in the current implementation chat are authoritative.
+Only inputs explicitly provided by the User **in the current implementation chat** are authoritative.
 
-Working with assumptions or historical repository state
-is prohibited.
+It is prohibited to:
 
----
+- infer intent from previous chats,
+- rely on repository memory or assumptions,
+- request confirmation of authority for user-provided files.
 
-## 5. Patch mechanism
-
-All changes must be performed
-using the official project patch mechanism.
-
-Patching must:
-- be deterministic,
-- include validations,
-- fail on no-op changes.
+The last provided version of any file always takes precedence.
 
 ---
 
-## 6. Runner and execution
+## 5. Mandatory implementation behavior
 
-Implementation must be performed exclusively
-using the official project runner.
+### 5.1 Zero-status execution
 
-The official runner is located at:
+After any of the following:
+- explicit “OK”, “continue”, or equivalent,
+- file upload by the User,
 
-/home/pi/apps/patches/am_patch.sh
+the assistant is allowed to respond with **only one of the following**:
 
-The runner MUST be invoked exactly as follows:
+- **final execution output**, or
+- **immediate failure (FAIL-FAST)**.
 
+Status updates, progress messages, promises, or meta commentary are prohibited.
+
+### 5.2 Definition of final execution output
+
+A **final execution output** is strictly limited to:
+
+- delivery of a patch script ready for execution, or
+- an explicit FAIL-FAST response with a concrete technical reason.
+
+Any other form of output is invalid.
+
+---
+
+## 6. Patch delivery mechanism
+
+### 6.1 Required patch format
+
+All code changes must be delivered exclusively as:
+
+- a deterministic Python patch script,
+- idempotent and repeatable,
+- anchor-based (explicit text anchors),
+- with explicit pre-edit validation,
+- with post-edit assertions.
+
+The patch script must fail if no effective change is applied.
+
+Diffs, inline edits, or manual instructions are prohibited.
+
+---
+
+### 6.2 Patch script location and naming
+
+Patch scripts must be located at:
+
+```
+/home/pi/apps/patches/issue_<ISSUE_NUMBER>.py
+```
+
+Patch scripts must automatically discover the repository root by locating
+`pyproject.toml`.
+Hardcoded repository paths are prohibited.
+
+---
+
+## 7. Patch execution
+
+### 7.1 Canonical runner (exclusive)
+
+All patch execution must be performed **exclusively** using the official runner:
+
+```
 /home/pi/apps/patches/am_patch.sh <ISSUE_NUMBER> "<COMMIT_MESSAGE>"
+```
 
-If the runner is unavailable or cannot be used,
-the implementation chat must stop immediately
-and request a User decision.
+It is prohibited to:
+- run tests manually,
+- invoke git commands,
+- execute patch scripts directly,
+- bypass the runner in any way.
+
+The runner is responsible for:
+- executing tests,
+- blocking commits on test failure,
+- committing and pushing changes,
+- removing the patch script after execution.
 
 ---
 
-## 7. Testing
+## 8. Validation and proof requirements
 
-Running tests is mandatory.
+### 8.1 File manifest (mandatory)
+
+Before any patch execution, the implementation output must include
+a **File Manifest** listing:
+
+- every file that will be modified,
+- at least one exact anchor per file.
+
+Without a File Manifest, execution must stop.
+
+---
+
+### 8.2 Changed files disclosure
+
+Immediately after execution, the assistant must list:
+
+- all modified files,
+- repository-relative paths,
+- one file per line,
+- without commentary.
+
+---
+
+## 9. Multi-run discipline
+
+If an issue requires multiple execution steps:
+
+- each step is a separate run (e.g. CODE, DOCS, MANIFEST),
+- each run produces its own patch and commit,
+- scope is strictly limited to the declared run,
+- no subsequent run may proceed without explicit User confirmation.
+
+Scope bleed between runs is prohibited.
+
+---
+
+## 10. Testing
+
+Running tests is mandatory for every execution.
 
 If tests fail:
-- the implementation is invalid.
+- the execution is invalid,
+- no commit may be produced.
 
 ---
 
-## 8. Implementation output
+## 11. Implementation output
 
-The output of an implementation chat consists of:
-- a successful execution,
-- one or more commits in the repository,
-- SHA identifiers of the commits.
+A valid implementation produces:
 
----
+- one or more successful commits,
+- commit SHA identifiers,
+- no modification of issue state.
 
-## 9. Issue management
-
-The implementation chat:
-- must not close issues,
-- must not modify issue state.
-
-It must:
-- provide commit SHAs,
-- explicitly inform that the Project Manager
-  must use those SHAs to close the issue.
+The implementation chat must explicitly state that
+issue closure is the responsibility of the Project Manager.
 
 ---
 
-## 10. Amendments to the Implementation Law
+## 12. Violations and enforcement
+
+### 12.1 Definition of repeated violations
+
+A **repeated violation** is defined as **more than one violation of this law
+within a single implementation chat**.
+
+### 12.2 Enforcement
+
+Repeated violations invalidate the implementation output.
+
+In case of repeated violations:
+- execution must stop,
+- a new implementation chat is required.
+
+---
+
+## 13. Amendments
 
 Amendments to this law:
+
 - may be proposed by the Consultant or Project Manager,
 - may be applied exclusively by the User.
 
 ---
 
-## 11. Authority and supersession
+## 14. Authority and supersession
 
-This document is the sole authoritative source
-of implementation rules for the AudioMason project.
+This document is the sole authoritative source of implementation rules
+for the AudioMason project.
+
+It supersedes all previous implementation instructions, guides,
+and informal contracts.
 
 ---
 
