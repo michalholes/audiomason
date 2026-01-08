@@ -1,6 +1,6 @@
 # IMPLEMENTATION LAW – AudioMason
 # AUTHORITATIVE – AudioMason
-# VERSION: v2.2
+# VERSION: v2.3
 # STATUS: ACTIVE
 
 This document is an execution law subordinate to the Project Constitution.
@@ -241,6 +241,30 @@ unless the assistant:
 
 ---
 
+### 8.5 Mandatory ZIP inspection attempt proof
+
+If the assistant claims that an uploaded archive (ZIP or snapshot)
+cannot be inspected or read in the current environment, it MUST provide
+evidence of the inspection attempt.
+
+Such evidence MUST include at least one of the following:
+
+- a concrete technical error message encountered during extraction or reading,
+- an explicit statement of the exact technical operation that failed
+  and the reason for the failure.
+
+Generic statements such as:
+- “this environment cannot read ZIP files”,
+- “inspection is not possible here”,
+- or descriptions of consequences without a failed operation,
+
+are INVALID and constitute a violation of this law.
+
+Claiming inability to inspect an archive without inspection attempt proof
+is not a valid FAIL-FAST reason.
+
+---
+
 ## 9. Multi-run discipline
 
 If an issue requires multiple execution steps:
@@ -301,7 +325,8 @@ The following constitute violations of this law:
 - asserting ZIP analysis without inspection proof or error,
 - repeating FAIL-FAST after ZIP upload without naming missing paths
   and confirming their absence from the archive,
-- FAIL-FAST based on non-technical inability (see 3.1).
+- FAIL-FAST based on non-technical inability (see 3.1),
+- claiming inability to inspect ZIP without inspection attempt proof (see 8.5).
 
 Any single violation triggers FAIL-FAST.
 
