@@ -4,6 +4,15 @@
 # STATUS: ACTIVE
 # LANGUAGE: ENGLISH ONLY
 
+## SUPERSEDES AND AUTHORITY
+
+This document **supersedes** all previously used governance contracts and handoff documents,
+including but not limited to **HANDOFF_CONTRACT.md**.
+
+From the moment this document is adopted, it becomes the **sole AUTHORITATIVE Constitution**
+for project governance (Ústava projektu, **UP**).
+
+
 THIS DOCUMENT IS AUTHORITATIVE FOR ALL WORK ON THE AudioMason PROJECT.
 
 Slovak name: ÚSTAVA PROJEKTU

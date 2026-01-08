@@ -1,5 +1,14 @@
 # CONSULTANT LAW – AudioMason
 
+## SUPERSEDES AND AUTHORITY
+
+This document **supersedes** all previously used consultant-level governance documents,
+including but not limited to **CONSULTANT_CHARTER.md**.
+
+From the moment this document is adopted, it becomes the **sole AUTHORITATIVE Consultant Law**
+(Konzultačný zákon, **KZ**) under the Constitution (UP).
+
+
 Slovak name: KONZULTAČNÝ ZÁKON
 Acronym: KZ
 

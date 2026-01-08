@@ -1,5 +1,14 @@
 # PROJECT LAW – AudioMason
 
+## SUPERSEDES AND AUTHORITY
+
+This document **supersedes** all previously used project-level governance documents,
+including but not limited to **PROJECT_GUARD_RAILS.md**.
+
+From the moment this document is adopted, it becomes the **sole AUTHORITATIVE Project Law**
+(Projektový zákon, **PZ**) under the Constitution (UP).
+
+
 Slovak name: PROJEKTOVÝ ZÁKON
 Acronym: PZ
 
