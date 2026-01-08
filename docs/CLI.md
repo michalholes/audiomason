@@ -79,6 +79,19 @@ If a run fails:
 
 ---
 
+## Disable prompts at runtime
+
+AudioMason supports a global prompt disable override at runtime:
+
+- Disable **all** prompts: `am import --disable-prompt '*'`
+- Disable selected prompts: `am import --disable-prompt choose_source,choose_books`
+
+Rules:
+- CLI overrides config (`prompts.disable`)
+- unknown keys / duplicates / mixing `'*'` with others -> fail-fast
+- when a prompt is disabled, AudioMason uses the existing deterministic default (or fails fast if none exists)
+
+
 ## Related docs
 
 - docs/WORKFLOW.md

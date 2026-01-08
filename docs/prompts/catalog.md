@@ -33,6 +33,8 @@ When `--yes` is enabled, these helpers **do not prompt** and return the determin
 In addition to `--yes` and `preflight_disable`, AudioMason supports a global disable list:
 
 - **Config key:** `prompts.disable: [<key>, ...]`
+- **CLI flag:** `--disable-prompt <items>` (comma-separated list or `'*'`; CLI overrides config)
+
 - Special value: `["*"]` disables **all prompts** (preflight + non-preflight)
 
 **Known keys:**
