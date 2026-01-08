@@ -1,6 +1,6 @@
 # IMPLEMENTATION LAW – AudioMason
 # AUTHORITATIVE – AudioMason
-# VERSION: v2.1
+# VERSION: v2.2
 # STATUS: ACTIVE
 
 This document is an execution law subordinate to the Project Constitution.
@@ -57,6 +57,9 @@ After a stop:
 - no suggestions
 are allowed until the User intervenes.
 
+Non-technical inability (scope, time, complexity, or “not possible in this response”)
+is **not** a valid FAIL-FAST reason.
+
 ---
 
 ## 4. Authoritative inputs
@@ -105,9 +108,10 @@ Status updates, progress messages, promises, or meta commentary are prohibited.
 
 ### 5.2 Definition of final execution output
 
-A **final execution output** is strictly limited to:
+A **final execution output** must include **all mandatory pre-execution artifacts**
+required by this law, and is strictly limited to:
 
-- delivery of a patch script ready for execution, or
+- delivery of a patch script ready for execution **including File Manifest**, or
 - an explicit FAIL-FAST response with a concrete technical reason.
 
 Any other form of output is invalid.
@@ -216,10 +220,11 @@ Immediately after execution, the assistant must list:
 
 ### 8.3 ZIP inspection proof (anti-assumption rule)
 
-If an archive (ZIP or snapshot) is provided, the assistant must include
-at least one inspection proof before claiming analysis:
+If an archive (ZIP or snapshot) is provided, claiming successful inspection
+requires proof in the same response:
 
-- a repository-relative path found in the archive and an anchor snippet, or
+- a repository-relative path found in the archive **and**
+  an anchor snippet of at least one full line from that file, or
 - an explicit error that prevented inspection.
 
 Generic statements without proof or error are invalid.
@@ -295,7 +300,8 @@ The following constitute violations of this law:
 - claiming missing files after ZIP upload without archive verification,
 - asserting ZIP analysis without inspection proof or error,
 - repeating FAIL-FAST after ZIP upload without naming missing paths
-  and confirming their absence from the archive.
+  and confirming their absence from the archive,
+- FAIL-FAST based on non-technical inability (see 3.1).
 
 Any single violation triggers FAIL-FAST.
 
