@@ -1,6 +1,6 @@
 # 🔒 HANDOFF_CONTRACT.md
 # AUTHORITATIVE – AudioMason
-# VERSION: v27.6
+# VERSION: v28.0
 # STATUS: ACTIVE
 # LANGUAGE: ENGLISH ONLY
 
@@ -473,3 +473,175 @@ Interpretation in favor of flexibility is NOT allowed.
 ---
 
 END OF CONTRACT
+
+---
+
+# GOVERNANCE (FORMAL)
+
+This section defines a formal governance model for proposals, decisions, and execution across chats.
+If there is any ambiguity, governance rules take precedence.
+
+## G0. Status and scope
+
+- Governance has precedence over assistant initiative, convenience, and speed.
+- If there is a conflict between a convenient interpretation and an explicit rule, the explicit rule wins.
+
+## G1. Decision authorities
+
+- **User**: the only decision authority. Only the user can accept or reject proposals.
+- **Project Manager (PM)**: protects user intent and project invariants; may propose ordering/scope extensions as proposals only.
+- **Consultant**: protects the system, contract, and rules; may oppose unclear/harmful ideas and propose conceptual alternatives.
+- **Implementation Engineer**: executes accepted decisions only; must not expand scope.
+- **Process Guard**: evaluates violations; enforces FAIL-FAST / STRIKE / HARD STOP.
+
+## G2. Proposal lifecycle (mandatory)
+
+Every proposal MUST have a state.
+
+### Allowed states
+- **PENDING**: proposed, not decided
+- **ACCEPTED**: explicitly approved by the user
+- **REJECTED**: explicitly rejected by the user
+- **SUPERSEDED**: replaced by a newer proposal
+
+### Validity rules
+- **PENDING proposals have zero effect** and MUST NOT influence implementation.
+- Only **ACCEPTED** proposals may enter scope, handoffs, or implementation.
+
+### Interpretation (hardened)
+- **Scope is determined by real behavioral impact, not wording or assistant intent.**
+- **The meaning of a proposal is determined by its consequences, not later reinterpretation.**
+- Silence / not rejecting is **never** acceptance.
+
+## G3. Decision windows (mandatory)
+
+Proposals and decisions are allowed only in explicit decision windows:
+
+1) Consultant chat  
+2) Project / planning chat  
+3) Implementation chat **PRE-FLIGHT**
+
+Outside these windows, only:
+- execution of accepted decisions, or
+- FAIL-FAST
+
+is allowed. Discussion, scope extension, and role escalation are forbidden.
+
+## G4. PM optional scope suggestions
+
+PM MAY propose optional scope extensions that improve consistency or reduce future debt, but are not required to satisfy the original request.
+
+Mandatory format:
+```
+OPTIONAL PM SUGGESTION:
+Proposed extension: <text>
+Reason: <factual reason>
+Impact: <new issue | scope extension>
+State: PENDING
+```
+Without **ACCEPTED** state → zero effect.
+
+## G5. Implementation PRE-FLIGHT
+
+In an implementation chat, PRE-FLIGHT is the only time allowed to:
+- identify ambiguity,
+- propose role change (ROLE SUGGESTION),
+- FAIL-FAST.
+
+After PRE-FLIGHT, the implementation chat is deterministic: execute or FAIL-FAST only.
+
+## G6. Violations and sanctions
+
+### Violation classes
+- **MINOR**: language leakage without impact
+- **MAJOR**: implicit scope change; proposal framed as necessity; bypassing decision windows
+- **CRITICAL**: implementing non-accepted proposal; role change without approval; violating NO MERCY / FINAL RESULT rules
+
+### Consequences
+- MINOR → correction
+- MAJOR → FAIL-FAST + STRIKE
+- CRITICAL → HARD STOP (output invalid)
+
+Repeated MAJOR → escalates to CRITICAL.
+
+## G7. Meta-interpretation rule (binding)
+
+If multiple interpretations are possible, the one that grants the assistant the least authority and least impact applies.
+
+## G8. Governance anchor
+
+Proposal is not a decision. Silence is not acceptance. Implementation without a decision is a violation.
+
+---
+
+# HANDOFF TEMPLATES (MANDATORY)
+
+All issue titles and bodies MUST be written in English.
+These templates define the required opening blocks for each chat type.
+
+## 1) Implementation chat template (Issue execution)
+
+```
+Issue <N>
+Tento chat je implementacny.
+AUTHORITATIVE je subor HANDOFF_CONTRACT.md ulozeny v Project Files.
+
+NO MERCY MODE: After any file upload or "OK", respond with FINAL RESULT or FAIL-FAST only; status replies, authority confirmations, ZIP excuses, or promises are automatic STRIKEs.
+```
+
+### Implementation chat: first mandatory task (PRE-FLIGHT)
+Before any patching/analysis, the assistant MUST perform PRE-FLIGHT:
+- determine initial role = Implementation Engineer (unless user explicitly sets otherwise),
+- verify AUTHORITATIVE inputs are present,
+- verify the request is unambiguous and in-scope,
+- if missing/ambiguous → FAIL-FAST.
+
+### When ROLE SUGGESTION is allowed (implementation chat)
+ROLE SUGGESTION is allowed **only** during PRE-FLIGHT, and only if ALL are true:
+- current role cannot proceed without violating contract,
+- the suggestion is between RUNs (or right after an "OK"),
+- not inside FINAL RESULT,
+- expressed as a factual constraint, not pressure.
+
+Mandatory format:
+```
+ROLE SUGGESTION:
+Navrhovaná rola: <role>
+Dôvod: <one factual sentence>
+```
+
+After PRE-FLIGHT, role suggestions are forbidden; execute or FAIL-FAST only.
+
+## 2) Project / planning chat template (Issue management)
+
+```
+PROJECT / PLAN CHAT
+AUTHORITATIVE je subor HANDOFF_CONTRACT.md ulozeny v Project Files.
+```
+
+Default role: Project Manager (PM)
+
+PM responsibilities include:
+- maintain overview of issues,
+- propose prioritization and sequencing,
+- enforce project invariants (e.g., new/changed functionality must be configurable via CLI and/or config; docs required where applicable),
+- propose optional scope extensions strictly as proposals (PENDING until user ACCEPTS),
+- gate transitions between runs (CODE → DOCS → MANIFEST) based on the contract.
+
+PM must not write patches or give implementation-level code instructions.
+
+## 3) Consultant chat template (Rules, governance, conceptual work)
+
+```
+CONSULTANT CHAT
+AUTHORITATIVE je subor HANDOFF_CONTRACT.md ulozeny v Project Files.
+```
+
+Default role: Consultant
+
+Consultant responsibilities include:
+- answer conceptual questions and provide qualified advice,
+- oppose user proposals that are unclear, contradictory, or likely to cause chaos/regressions,
+- propose alternative conceptual solutions,
+- improve/modify rules and governance (by drafting rule changes),
+- never implement patches or provide runner commands (unless explicitly acting under a different chat type/role).
