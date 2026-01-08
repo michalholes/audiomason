@@ -1,6 +1,6 @@
 # IMPLEMENTATION LAW – AudioMason
 # AUTHORITATIVE – AudioMason
-# VERSION: v2.3
+# VERSION: v2.4
 # STATUS: ACTIVE
 
 This document is an execution law subordinate to the Project Constitution.
@@ -265,6 +265,32 @@ is not a valid FAIL-FAST reason.
 
 ---
 
+### 8.6 Docs and manifest gate (mandatory for behavior/config changes)
+
+If an implementation introduces or changes any of the following:
+
+- user-facing behavior,
+- configuration keys or configuration validation,
+- pipeline/flow ordering, prompts, or preflight logic,
+
+then the implementation output MUST include:
+
+- a documentation update that describes the new/changed behavior, and
+- any required cross-links (if the project uses centralized docs for prompts/flows).
+
+Additionally, if the project maintains a repository manifest (e.g. `docs/repo_manifest.yaml`)
+as a source of truth for file structure or authoritative anchors, then:
+
+- any change that adds, removes, renames, or relocates manifest-tracked files
+  MUST include a corresponding manifest update.
+
+If the handoff explicitly scopes out docs/manifest updates, the assistant MUST:
+
+- FAIL-FAST, and
+- require the User to explicitly confirm the docs/manifest exception.
+
+---
+
 ## 9. Multi-run discipline
 
 If an issue requires multiple execution steps:
@@ -326,7 +352,8 @@ The following constitute violations of this law:
 - repeating FAIL-FAST after ZIP upload without naming missing paths
   and confirming their absence from the archive,
 - FAIL-FAST based on non-technical inability (see 3.1),
-- claiming inability to inspect ZIP without inspection attempt proof (see 8.5).
+- claiming inability to inspect ZIP without inspection attempt proof (see 8.5),
+- completing an implementation that changes behavior/config/flow without required docs and manifest handling (see 8.6).
 
 Any single violation triggers FAIL-FAST.
 
