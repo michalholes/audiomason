@@ -35,6 +35,74 @@ PREFLIGHT_DISABLE_KEYS = {
     'cover',
 }
 
+# Issue #66: configurable preflight question order (deterministic, validated)
+PREFLIGHT_STEP_KEYS = [
+    # stage reuse / answers
+    'reuse_stage',
+    'use_manifest_answers',
+    # selection / resume
+    'choose_books',
+    'skip_processed_books',
+    # global decisions
+    'publish',
+    'wipe_id3',
+    'clean_stage',
+    # source + per-book
+    'source_author',
+    'book_title',
+    'cover',
+    'overwrite_destination',
+]
+
+def _resolved_preflight_steps(cfg: dict) -> list[str]:
+    cached = cfg.get('_preflight_steps_list')
+    if isinstance(cached, list) and all(isinstance(x, str) for x in cached):
+        return cached
+
+    raw = cfg.get('preflight_steps', None)
+    if raw is None:
+        cfg['_preflight_steps_list'] = list(PREFLIGHT_STEP_KEYS)
+        return cfg['_preflight_steps_list']
+    if not isinstance(raw, list):
+        raise AmConfigError('Invalid config: preflight_steps must be a list of step keys')
+
+    out_list: list[str] = []
+    seen: set[str] = set()
+    for x in raw:
+        k = str(x).strip()
+        if not k:
+            continue
+        if k in seen:
+            raise AmConfigError(f'Invalid config: duplicate preflight_steps key: {k}')
+        if k not in PREFLIGHT_STEP_KEYS:
+            raise AmConfigError(f'Invalid config: unknown preflight_steps key: {k}')
+        seen.add(k)
+        out_list.append(k)
+
+    missing = [k for k in PREFLIGHT_STEP_KEYS if k not in seen]
+    if missing:
+        raise AmConfigError('Invalid config: missing required preflight_steps key(s): ' + ', '.join(missing))
+
+    # Hard dependency validation (deterministic; no heuristics)
+    pos = {k: i for i, k in enumerate(out_list)}
+    def _req(a: str, b: str) -> None:
+        if pos[a] > pos[b]:
+            raise AmConfigError(f'Invalid config: preflight_steps order requires {a} before {b}')
+
+    _req('reuse_stage', 'use_manifest_answers')
+    _req('reuse_stage', 'choose_books')
+    _req('use_manifest_answers', 'choose_books')
+    _req('choose_books', 'skip_processed_books')
+    _req('source_author', 'book_title')
+    _req('book_title', 'cover')
+    _req('cover', 'overwrite_destination')
+    _req('choose_books', 'book_title')
+    _req('choose_books', 'cover')
+    _req('choose_books', 'overwrite_destination')
+
+    cfg['_preflight_steps_list'] = out_list
+    return out_list
+
 def _resolved_preflight_disable(cfg: dict) -> set[str]:
     # Cache the resolved set on cfg to avoid repeated parsing.
     cached = cfg.get('_preflight_disable_set')
@@ -724,6 +792,8 @@ def _stage_cover_from_raw(cfg: dict, raw: str, group_root: Path) -> Path | None:
     return dst
 
 def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
+    # validate preflight_steps early (fail fast, before FS touch)
+    _resolved_preflight_steps(cfg)
     # validate pipeline_steps early (fail fast, before FS touch)
     # validate preflight_disable early (fail fast, before FS touch)
     _resolved_preflight_disable(cfg)
@@ -996,14 +1066,22 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                                 return
 
                 # publish/wipe (skip when allowed, otherwise prompt with defaults)
-                default_publish = bool(dec.get("publish")) if isinstance(dec, dict) and "publish" in dec else False
-                default_wipe = bool(dec.get("wipe_id3")) if isinstance(dec, dict) and "wipe_id3" in dec else False
+                # Issue #66: configurable preflight question order (deterministic)
+                preflight_order = _resolved_preflight_steps(cfg)
+                _done: set[str] = set()
 
-                if reuse_stage and use_manifest_answers and isinstance(dec, dict) and ("publish" in dec) and ("wipe_id3" in dec):
-                    publish = bool(dec.get("publish"))
-                    wipe = bool(dec.get("wipe_id3"))
-                else:
-                    # honor CLI overrides
+                publish: bool | None = None
+                wipe: bool | None = None
+                clean_stage: bool | None = None
+
+                def _do_publish_wipe() -> None:
+                    nonlocal publish, wipe
+                    default_publish = bool(dec.get("publish")) if isinstance(dec, dict) and "publish" in dec else False
+                    default_wipe = bool(dec.get("wipe_id3")) if isinstance(dec, dict) and "wipe_id3" in dec else False
+                    if reuse_stage and use_manifest_answers and isinstance(dec, dict) and ("publish" in dec) and ("wipe_id3" in dec):
+                        publish = bool(dec.get("publish"))
+                        wipe = bool(dec.get("wipe_id3"))
+                        return
                     if state.OPTS.publish is None:
                         publish = _pf_prompt_yes_no(cfg, "publish", "Publish after import?", default_no=(not default_publish))
                     else:
@@ -1012,54 +1090,64 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                         wipe = _pf_prompt_yes_no(cfg, "wipe_id3", "Full wipe ID3 tags before tagging?", default_no=(not default_wipe))
                     else:
                         wipe = bool(state.OPTS.wipe_id3)
+                    update_manifest(stage_run, {"decisions": {"publish": bool(publish), "wipe_id3": bool(wipe)}})
 
-                update_manifest(stage_run, {"decisions": {"publish": bool(publish), "wipe_id3": bool(wipe)}})
-                # FEATURE #26: stage cleanup decision (manifest-backed)
-                default_clean = bool(dec.get("clean_stage")) if isinstance(dec, dict) and ("clean_stage" in dec) else False
-                if reuse_stage and use_manifest_answers and isinstance(dec, dict) and ("clean_stage" in dec):
-                    clean_stage = bool(dec.get("clean_stage"))
-                else:
+                def _do_clean_stage() -> None:
+                    nonlocal clean_stage
+                    default_clean = bool(dec.get("clean_stage")) if isinstance(dec, dict) and ("clean_stage" in dec) else False
+                    if reuse_stage and use_manifest_answers and isinstance(dec, dict) and ("clean_stage" in dec):
+                        clean_stage = bool(dec.get("clean_stage"))
+                        return
                     clean_stage = _pf_prompt_yes_no(cfg, "clean_stage", "Clean stage after successful import?", default_no=(not default_clean))
 
-                # FEATURE #65: inbox cleanup decision is RUN-level (prompt must never occur mid-PROCESS)
-                preflight_clean_inbox = bool(run_clean_inbox)
-
-                update_manifest(stage_run, {"decisions": {"clean_stage": bool(clean_stage), "clean_inbox": bool(preflight_clean_inbox)}})
-                # [issue_86] Always PROCESS into output_root; final publish (copy to archive_root) happens at end.
-                dest_root = output_root
-
-                # AUTHOR is per-source (not per-book)
-                default_author = src.name if src.is_dir() else src.stem
-                default_author2 = str(dec.get("author") or default_author) if isinstance(dec, dict) else default_author
-
-                if reuse_stage and use_manifest_answers and isinstance(dec, dict) and str(dec.get("author") or "").strip():
-                    author = str(dec.get("author") or "").strip()
-                else:
-                    if _prompt_disabled(cfg, 'source_author'):
-                        author = default_author2.strip()
+                for sk in preflight_order:
+                    if sk in {"publish", "wipe_id3"}:
+                        if "publish" not in _done or "wipe_id3" not in _done:
+                            _do_publish_wipe()
+                            _done.add("publish")
+                            _done.add("wipe_id3")
+                    elif sk == "clean_stage":
+                        _do_clean_stage(); _done.add(sk)
                     else:
-                        author = prompt("[source] Author", default_author2).strip()
+                        # Other step keys are handled elsewhere in existing flow.
+                        _done.add(sk)
+
+                if publish is None or wipe is None:
+                    die("Internal error: missing required preflight decisions (publish/wipe_id3)")
+                if clean_stage is None:
+                    # keep original behavior: clean_stage is required decision
+                    _do_clean_stage()
+
+                # Issue #66: resolve source author (required for OpenLibrary validate_book)
+                default_author = str(dec.get('author') or '').strip() if isinstance(dec, dict) else ''
+                if reuse_stage and use_manifest_answers and default_author:
+                    author = default_author
+                else:
+                    dflt_author = default_author or str(getattr(src, 'name', '') or '').strip() or src.name
+                    author = _pf_prompt(cfg, 'source_author', '[source] Author', dflt_author).strip()
                     na = normalize_name(author)
                     if na != author:
                         out(f"[name] author suggestion: '{author}' -> '{na}'")
-                        if _pf_prompt_yes_no(cfg, 'normalize_author', "Apply suggested author name?", default_no=True):
+                        if _pf_prompt_yes_no(cfg, 'normalize_author', 'Apply suggested author?', default_no=True):
                             author = na
-
-                    # OpenLibrary suggestion (author) — must run after final author decision
                     if _ol_enabled(cfg):
-                        if getattr(state, "DEBUG", False):
-                            out(f"[ol] validate author: '{author}'")
+                        if getattr(state, 'DEBUG', False):
+                            out(f"[ol] validate author: author='{author}'")
                         ar = validate_author(author)
-                        if (not getattr(ar, 'ok', False)) and (not getattr(ar, 'top', None)):
-                            out(f"[ol] author not found: '{author}'")
-                        if getattr(state, "DEBUG", False):
+                        if getattr(state, 'DEBUG', False):
                             out(f"[ol] author result: ok={getattr(ar,'ok',None)} status={getattr(ar,'status',None)!r} hits={getattr(ar,'hits',None)} top={getattr(ar,'top',None)!r}")
                         author = _ol_offer_top('author', author, ar, cfg=cfg, key='normalize_author')
                 if not author:
-                    die("Author is required")
-                update_manifest(stage_run, {"decisions": {"author": author}})
+                    die('Author is required')
+                update_manifest(stage_run, {'decisions': {'author': author}})
 
                 out("[phase] PREPARE")
+
+                # Issue #66: resolve destination roots (work vs final)
+                # publish=True => process into output_root, then (optionally) publish to archive_root at end
+                # publish=False => process directly into chosen final root
+                _publish = bool(publish)
+                _work_root_default = output_root if _publish else None
 
                 # preflight per-book metadata (must happen before touching output)
                 # ISSUE #12: unify decisions upfront (title + cover choice). Processing must not prompt.
@@ -1224,11 +1312,15 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                         m_dest_kind = ""
                         m_out_title = ""
 
-                    dest_root2 = dest_root
+                    # Determine FINAL root (where the book should end up).
+                    final_root2 = archive_root
                     if m_dest_kind == "output":
-                        dest_root2 = output_root
+                        final_root2 = output_root
                     elif m_dest_kind == "archive":
-                        dest_root2 = archive_root
+                        final_root2 = archive_root
+
+                    # Determine WORK root (where PROCESS writes). If publishing, we always work in output_root.
+                    dest_root2 = (_work_root_default if _publish else final_root2)
 
                     out_title = m_out_title or title
                     overwrite = m_overwrite
@@ -1254,7 +1346,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
 
                     # persist
                     dest_kind = "archive" if dest_root2 == archive_root else "output"
-                    meta.append((b, title, cover_mode, dest_root2, out_title, overwrite, dest_root2))  # [issue_86] include final_root
+                    meta.append((b, title, cover_mode, dest_root2, out_title, overwrite, final_root2))  # [issue_86] include final_root
                     update_manifest(stage_run, {"book_meta": {b.label: {"title": title, "cover_mode": cover_mode, "cover_src": cover_src, "dest_kind": dest_kind, "out_title": out_title, "overwrite": bool(overwrite)}}})
 
                 if not do_process:
