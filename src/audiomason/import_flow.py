@@ -15,7 +15,7 @@ import audiomason.state as state
 from audiomason.pipeline_steps import resolve_pipeline_steps
 from audiomason.paths import get_drop_root, get_stage_root, get_output_root, get_archive_root, ARCHIVE_EXTS
 from audiomason.util import out, die, ensure_dir, slug, prompt, prompt_yes_no, AmConfigError
-from audiomason.preflight_registry import DEFAULT_PREFLIGHT_STEPS
+from audiomason.preflight_registry import DEFAULT_PREFLIGHT_STEPS, validate_steps_list
 
 
 # FEATURE #67: disable selected preflight prompts (skip prompts deterministically)
@@ -52,39 +52,19 @@ def _resolved_preflight_steps(cfg: dict) -> list[str]:
     if not isinstance(raw, list):
         raise AmConfigError('Invalid config: preflight_steps must be a list of step keys')
 
-    out_list: list[str] = []
-    seen: set[str] = set()
-    for x in raw:
-        k = str(x).strip()
-        if not k:
-            continue
-        if k in seen:
-            raise AmConfigError(f'Invalid config: duplicate preflight_steps key: {k}')
-        if k not in PREFLIGHT_STEP_KEYS:
-            raise AmConfigError(f'Invalid config: unknown preflight_steps key: {k}')
-        seen.add(k)
-        out_list.append(k)
-
-    missing = [k for k in PREFLIGHT_STEP_KEYS if k not in seen]
-    if missing:
-        raise AmConfigError('Invalid config: missing required preflight_steps key(s): ' + ', '.join(missing))
-
-    # Hard dependency validation (deterministic; no heuristics)
-    pos = {k: i for i, k in enumerate(out_list)}
-    def _req(a: str, b: str) -> None:
-        if pos[a] > pos[b]:
-            raise AmConfigError(f'Invalid config: preflight_steps order requires {a} before {b}')
-
-    _req('reuse_stage', 'use_manifest_answers')
-    _req('reuse_stage', 'choose_books')
-    _req('use_manifest_answers', 'choose_books')
-    _req('choose_books', 'skip_processed_books')
-    _req('source_author', 'book_title')
-    _req('book_title', 'cover')
-    _req('cover', 'overwrite_destination')
-    _req('choose_books', 'book_title')
-    _req('choose_books', 'cover')
-    _req('choose_books', 'overwrite_destination')
+    try:
+        out_list = validate_steps_list(raw)
+    except Exception as e:
+        msg = str(e).strip()
+        if msg.startswith('duplicate preflight step key: '):
+            raise AmConfigError('Invalid config: duplicate preflight_steps key: ' + msg.split(': ', 1)[1])
+        if msg.startswith('unknown preflight step key: '):
+            raise AmConfigError('Invalid config: unknown preflight_steps key: ' + msg.split(': ', 1)[1])
+        if msg.startswith('missing required preflight step key(s): '):
+            raise AmConfigError('Invalid config: missing required preflight_steps key(s): ' + msg.split(': ', 1)[1])
+        if msg.startswith('order requires '):
+            raise AmConfigError('Invalid config: preflight_steps order requires ' + msg[len('order requires '):])
+        raise AmConfigError('Invalid config: ' + msg)
 
     cfg['_preflight_steps_list'] = out_list
     return out_list

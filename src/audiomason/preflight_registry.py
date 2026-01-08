@@ -5,6 +5,17 @@ from dataclasses import dataclass
 from typing import Callable, Optional
 
 
+# One-list ordering model (Design #92):
+# - preflight_steps is a single linear list
+# - choose_source + choose_books are NON-MOVABLE
+# - everything else is MOVABLE
+#
+# Registry owns:
+# - canonical step keys
+# - default ordering baseline (NO-CONFIG = NO-CHANGE)
+# - deterministic validation (unknown/dup/missing + required hard deps)
+
+
 MIN_CONTEXT_NONE = "none"
 MIN_CONTEXT_SOURCE = "source_selected"
 MIN_CONTEXT_BOOKS = "books_selected"
@@ -19,14 +30,16 @@ class PreflightStepMeta:
     condition: Optional[Callable[[dict], bool]] = None
 
 
-# Canonical default ordering baseline (NO-CONFIG = NO-CHANGE in RUN1).
-# (Design #92 adds choose_source as NON-MOVABLE, but wiring is introduced in later runs.)
+# Canonical default ordering baseline (NO-CONFIG = NO-CHANGE).
+# NOTE: choose_source is included but NON-MOVABLE (it is never offered as movable).
 DEFAULT_PREFLIGHT_STEPS: list[str] = [
     # stage reuse / answers
     "reuse_stage",
     "use_manifest_answers",
-    # selection / resume
+    # selection (NON-MOVABLE)
+    "choose_source",
     "choose_books",
+    # selection / resume
     "skip_processed_books",
     # global decisions
     "publish",
@@ -40,8 +53,6 @@ DEFAULT_PREFLIGHT_STEPS: list[str] = [
 ]
 
 
-# Registry includes all known step keys for subsequent dispatcher refactor.
-# NON-MOVABLE steps are present even if not executed via dispatcher yet (RUN1 scaffolding).
 REGISTRY: dict[str, PreflightStepMeta] = {
     "reuse_stage": PreflightStepMeta(
         key="reuse_stage",
@@ -120,3 +131,44 @@ REGISTRY: dict[str, PreflightStepMeta] = {
 
 def default_steps() -> list[str]:
     return list(DEFAULT_PREFLIGHT_STEPS)
+
+
+def validate_steps_list(order: list[str]) -> list[str]:
+    # Deterministic fail-fast validation (unknown/dup/missing + required hard deps).
+    seen: set[str] = set()
+    out: list[str] = []
+    for x in order:
+        k = str(x).strip()
+        if not k:
+            continue
+        if k in seen:
+            raise ValueError(f"duplicate preflight step key: {k}")
+        if k not in REGISTRY:
+            raise ValueError(f"unknown preflight step key: {k}")
+        seen.add(k)
+        out.append(k)
+
+    missing = [k for k in DEFAULT_PREFLIGHT_STEPS if k not in seen]
+    if missing:
+        raise ValueError("missing required preflight step key(s): " + ", ".join(missing))
+
+    pos = {k: i for i, k in enumerate(out)}
+
+    def _req(a: str, b: str) -> None:
+        if pos[a] > pos[b]:
+            raise ValueError(f"order requires {a} before {b}")
+
+    # ordering constraints (deterministic)
+    _req("reuse_stage", "use_manifest_answers")
+    _req("reuse_stage", "choose_books")
+    _req("use_manifest_answers", "choose_books")
+    _req("choose_source", "choose_books")
+    _req("choose_books", "skip_processed_books")
+    _req("source_author", "book_title")
+    _req("book_title", "cover")
+    _req("cover", "overwrite_destination")
+    _req("choose_books", "book_title")
+    _req("choose_books", "cover")
+    _req("choose_books", "overwrite_destination")
+
+    return out

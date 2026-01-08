@@ -36,6 +36,7 @@ def test_preflight_steps_default_is_canonical_order():
     assert steps == [
         "reuse_stage",
         "use_manifest_answers",
+        "choose_source",
         "choose_books",
         "skip_processed_books",
         "publish",
