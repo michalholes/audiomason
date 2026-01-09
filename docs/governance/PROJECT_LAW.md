@@ -1,6 +1,6 @@
 # PROJECT LAW – AudioMason
 # AUTHORITATIVE – AudioMason
-# Version: v2.6
+# Version: v2.7
 # Status: active
 
 This document is a project governance law subordinate to the Project Constitution.
@@ -197,3 +197,23 @@ Continuing outside Project scope
 constitutes a role violation.
 
 END OF DOCUMENT
+
+## Governance Version Synchronization (MANDATORY)
+
+Any change to a governance document that introduces:
+- new mandatory workflows,
+- new enforcement mechanisms,
+- new authoritative tools,
+- or changes cross-document behavior,
+
+MUST trigger a synchronized version bump across all governance documents:
+
+- PROJECT_LAW.md
+- IMPLEMENTATION_LAW.md
+- CONSULTANT_LAW.md
+- PROJECT_CONSTITUTION.md
+
+Rules:
+1. Version bumps MAY be alignment-only bumps (no semantic change).
+2. The intent MUST be stated in the commit message (e.g. “governance sync bump”).
+3. Governance documents MUST NOT drift across version epochs.
