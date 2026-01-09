@@ -1,6 +1,6 @@
 # PROJECT LAW – AudioMason
 # AUTHORITATIVE – AudioMason
-# Version: 2.7
+# Version: 2.8
 # Status: active
 
 This document is a project governance law subordinate to the Project Constitution.
@@ -200,20 +200,41 @@ END OF DOCUMENT
 
 ## Governance Version Synchronization (MANDATORY)
 
-Any change to a governance document that introduces:
-- new mandatory workflows,
-- new enforcement mechanisms,
-- new authoritative tools,
-- or changes cross-document behavior,
+All governance documents located in `docs/governance/` constitute a single Governance Set.
 
-MUST trigger a synchronized version bump across all governance documents:
+### Rules
 
-- PROJECT_LAW.md
-- IMPLEMENTATION_LAW.md
-- CONSULTANT_LAW.md
-- PROJECT_CONSTITUTION.md
+1. Any change to **any** governance document that introduces:
+   - new mandatory workflows,
+   - new enforcement mechanisms,
+   - new authoritative tools,
+   - or changes cross-document behavior,
 
-Rules:
-1. Version bumps MAY be alignment-only bumps (no semantic change).
-2. The intent MUST be stated in the commit message (e.g. “governance sync bump”).
-3. Governance documents MUST NOT drift across version epochs.
+   MUST be accompanied by a synchronized governance version update.
+
+2. Governance version synchronization MUST be performed **exclusively** using the official tool:
+
+   ```bash
+   scripts/gov_versions.py --set-version <X.Y>
+   ```
+
+   Manual editing of version headers in governance documents is **strictly prohibited**.
+
+3. Verification MUST be performed using:
+
+   ```bash
+   scripts/gov_versions.py --check
+   ```
+
+   A governance change is invalid unless verification succeeds.
+
+4. Version updates MAY be alignment-only (no semantic change),
+   but MUST represent a single governance epoch across:
+   - PROJECT_CONSTITUTION.md
+   - PROJECT_LAW.md
+   - IMPLEMENTATION_LAW.md
+   - CONSULTANT_LAW.md
+
+5. Any governance change that bypasses the tool,
+   or results in version drift,
+   constitutes a governance violation.
