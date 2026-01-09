@@ -149,4 +149,39 @@ and escalation to the User.
 
 ---
 
+## Mandatory Governance Version Check
+
+Any change that modifies governance documents
+MUST include execution of the official
+governance version verification tool:
+
+    scripts/gov_versions.py
+
+Implementation chats MUST:
+- execute the verification tool,
+- report its outcome,
+- and provide commit SHA only if verification succeeds.
+
+Failure to run or report the verification
+constitutes a role violation.
+
+
+## Strict Implementation Scope
+
+Implementation chats MUST operate strictly
+within execution scope.
+
+Implementation chats MUST NOT:
+- propose architectural or governance changes,
+- prioritize or sequence issues,
+- make project-level decisions.
+
+If such topics arise, the chat MUST:
+- immediately stop execution,
+- and instruct the User to move
+  the discussion to the appropriate chat type.
+
+Any continuation beyond execution scope
+constitutes a role violation.
+
 END OF DOCUMENT

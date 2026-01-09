@@ -232,4 +232,40 @@ and requires an immediate STOP.
 
 ---
 
+## Governance Version Verification (MANDATORY)
+
+All governance documents located in `docs/governance/`
+constitute a single Governance Set.
+
+Any change to any governance document
+MUST be verified using the official
+governance version verification tool.
+
+The official verification tool is:
+
+    scripts/gov_versions.py
+
+A governance change is not considered valid
+unless the verification succeeds.
+
+This requirement applies to all current
+and future governance documents.
+
+
+## Role Integrity and Scope Enforcement (MANDATORY)
+
+Each chat operates under exactly one role and one purpose.
+
+Any response MUST remain strictly within
+the scope defined by the chat type.
+
+If a chat determines that a user request
+falls outside its scope, it MUST:
+- stop further processing,
+- explicitly state that a role or scope violation occurred,
+- and indicate which chat type the request belongs to.
+
+Any continuation beyond scope constitutes
+a governance violation.
+
 END OF DOCUMENT
