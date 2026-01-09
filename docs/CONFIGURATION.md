@@ -54,13 +54,15 @@ Recommended practices:
 
 ## Global prompt disable: `prompts.disable`
 
-AudioMason supports a **global prompt-disable list** to make imports fully deterministic / unattended.
+AudioMason supports two related mechanisms for running **fully unattended**:
 
-Config key:
+### 1) Global prompt disable: `prompts.disable`
+
+Disables **all** interactive prompts (preflight + non-preflight).
 
 ```yaml
 prompts:
-  disable: ["*"]   # disable ALL prompts (preflight + non-preflight)
+  disable: ["*"]   # disable EVERYTHING
 ```
 
 Selective disable:
@@ -74,17 +76,74 @@ prompts:
 ```
 
 Rules (fail-fast validation):
+
 - `prompts.disable` must be a **list**
 - unknown keys are an error
 - duplicates are an error
 - `"*"` must not be combined with other keys
 
 Behavior when a prompt is disabled:
+
 - use the **existing deterministic default** (same behavior as pressing Enter)
 - if there is no deterministic default for the situation, AudioMason **fails fast**
+
+### 2) Preflight-only disable: `preflight_disable`
+
+Disables only **preflight steps** (those governed by the preflight registry/orchestrator).
+
+```yaml
+preflight_disable:
+  - publish
+  - wipe_id3
+  - cover
+```
+
+Rules are the same (list / unknown / duplicates / `"*"` exclusivity), and behavior is identical:
+use the deterministic default or fail-fast if no default exists.
+
+> Guardrail: preflight prompts must route through the preflight wrappers/dispatcher.
+> Issue #94 adds a test to prevent reintroducing legacy bypasses.
 
 ## Related docs
 
 - docs/WORKFLOW.md
 - docs/PIPELINE.md
 - docs/MAINTENANCE.md\n\n## Preflight step order (Issue #66)\n\nYou can configure the **deterministic order** of preflight questions using `preflight_steps`.\n\nExample:\n\n```yaml\npreflight_steps:\n  - reuse_stage\n  - use_manifest_answers\n  - choose_books\n  - skip_processed_books\n  - publish\n  - wipe_id3\n  - clean_stage\n  - source_author\n  - book_title\n  - cover\n  - overwrite_destination\n```\n\nValidation (fail-fast, before staging / disk writes):\n\n* unknown `step_key` → error\n* duplicate `step_key` → error\n* missing required step → error\n\nIf `preflight_steps` is not set, AudioMason uses the built-in default order.\n
+
+## Preflight step order
+
+You can configure the **deterministic order** of preflight decisions using `preflight_steps`.
+
+Example:
+
+```yaml
+preflight_steps:
+  - reuse_stage
+  - use_manifest_answers
+  - choose_source
+  - choose_books
+  - skip_processed_books
+  - publish
+  - wipe_id3
+  - clean_stage
+  - source_author
+  - book_title
+  - cover
+  - overwrite_destination
+```
+
+Validation (fail-fast, before staging / disk writes):
+
+- unknown `step_key` → error
+- duplicate `step_key` → error
+- missing required step → error
+- required relative ordering constraints → error
+
+Notes (post-Issue #93):
+
+- Ordering is a **single linear list**. There are no user-visible run/source/book groups.
+- `choose_source` and `choose_books` are **structural steps**:
+  they must exist in the list, are validated, and are not offered as movable options in interactive selection.
+- All preflight prompts are executed via the **preflight registry + orchestrator/dispatcher**.
+  Direct ad-hoc prompts in `import_flow.py` are treated as regressions.
+

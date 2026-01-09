@@ -101,8 +101,17 @@ The orchestration system guarantees:
 
 ---
 
-## 8. Summary
+## Implementation guardrails (Issue #94)
 
+- Preflight steps are registered in the preflight registry.
+- Execution is performed by the orchestrator/dispatcher.
+- `import_flow.py` must route all preflight questions through the preflight wrappers
+  (no direct `prompt()` / `prompt_yes_no()` for preflight decisions).
+
+Issue #94 adds a guard test to make this hard to regress accidentally.
+
+
+## 8. Summary
 Issue #93 establishes a foundation for:
 
 - fully deterministic preflight execution,
