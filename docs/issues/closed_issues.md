@@ -1,5 +1,60 @@
 # Closed Issues
 
+## #91 – Enhancement: preflight_steps does not fully control all preflight prompts
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-08T20:51:51Z
+- Updated: 2026-01-09T18:07:20Z
+- Closed: 2026-01-09T18:07:20Z
+
+Issue #66 introduced preflight_steps with deterministic ordering and fail-fast validation.
+During implementation, several architectural limitations were identified.
+
+Issue #66 is correctly implemented and closed.
+This issue tracks known design gaps discovered during that work.
+
+## Problem statement
+
+preflight_steps currently does not fully control all preflight prompts.
+
+Key gaps:
+- Not all preflight prompts are modeled as steps (run-level, inline prompts)
+- Some step_keys are evaluated as blocks, not individually ordered
+- Side-effect driven prompts weaken ordering guarantees
+- State-dependent steps may never trigger
+- Normalizations and suggestion prompts are not first-class steps
+
+## Goal
+
+Define and implement a fully preflight-driven orchestration model with:
+- canonical step registry,
+- explicit run/source/book execution levels,
+- precise ordering guarantees,
+- complete and truthful preflight_steps control surface.
+
+## Non-goals
+
+- No changes to Issue #66 behavior
+- No breaking changes without explicit migration
+- No UI / API work
+
+## Acceptance criteria
+
+- All preflight prompts are either canonical steps or explicitly documented exceptions
+- Clear execution-level separation
+- Deterministic model is documented
+- Tests cover ordering and conditional execution
+
+## References
+
+- Issue #66
+- dd7b455 (code + tests)
+- 1cd69c7 (docs + repo_manifest)
+
+---
+
 ## #92 – Design: canonical preflight orchestration (step registry + run/source/book levels) (Follow-up to #91)
 - State: **CLOSED**
 - Labels: —
