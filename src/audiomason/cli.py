@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 from typing import Any, Dict
 
 from audiomason.version import __version__
+
+SUPPORT_URL = "https://buymeacoffee.com/audiomason"
+SUPPORT_LINE = f"Support AudioMason: {SUPPORT_URL}"
 from audiomason.config import load_config, _validate_prompts_disable
 import audiomason.state as state
 from audiomason.state import Opts
@@ -70,6 +74,7 @@ def _parse_args(cfg: Dict[str, Any] | None = None) -> argparse.Namespace:
         parents=[parent],
     )
     ap.add_argument("--version", action="store_true", help="show version and exit")
+    ap.add_argument("--support", action="store_true", help="show support link and exit")
 
     sub = ap.add_subparsers(dest="cmd")
     imp = sub.add_parser("import", help="import audiobooks from inbox", parents=[parent])
@@ -132,8 +137,13 @@ def _parse_args(cfg: Dict[str, Any] | None = None) -> argparse.Namespace:
         ns.verbose = True
         ns.quiet = False
 
+    if ns.support:
+        print(SUPPORT_LINE)
+        raise SystemExit(0)
+
     if ns.version:
         print(_version_kv_line())
+        print(SUPPORT_LINE)
         raise SystemExit(0)
 
     if not ns.cmd:
@@ -328,6 +338,9 @@ def main() -> int:
                 cfg['preflight_disable'] = list(_d) if isinstance(_d, list) else []
 
             run_import(cfg, getattr(ns, "path", None))
+            if (os.getenv("AUDIOMASON_SUPPORT") or "").lower() in {"1", "true", "yes"}:
+                if (not state.OPTS.quiet) and (not bool(getattr(state.OPTS, "json", False))):
+                    print(SUPPORT_LINE)
             return 0
         except KeyboardInterrupt as e:
             raise AmAbort("cancelled by user") from e

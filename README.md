@@ -167,3 +167,15 @@ MIT
 
 Michal Holeš  
 https://github.com/michalholes
+
+## Support AudioMason
+
+If you find AudioMason useful, you can support its development here:
+
+- https://buymeacoffee.com/audiomason
+
+Support is fully optional and never enabled by default.
+
+- `audiomason --support` prints the support link and exits.
+- `audiomason --version` includes the support link.
+- Set `AUDIOMASON_SUPPORT=1` to show the support link after a successful run (never enabled by default).
