@@ -1,6 +1,6 @@
 # PROJECT LAW – AudioMason
 # AUTHORITATIVE – AudioMason
-# VERSION: v1.3
+# Version: v2.6
 # Status: active
 
 This document is a project governance law subordinate to the Project Constitution.

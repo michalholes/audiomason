@@ -1,6 +1,6 @@
 # IMPLEMENTATION LAW – AudioMason
 # AUTHORITATIVE – AudioMason
-# VERSION: v2.5
+Version: v2.6
 # STATUS: ACTIVE
 
 This document is an execution law subordinate to the Project Constitution.

@@ -2,7 +2,7 @@
 
 AUTHORITATIVE – AudioMason  
 Status: active  
-Version: v1.0  
+Version: v2.6  
 
 This document is the highest governance document of the AudioMason project.
 It has absolute precedence over all other documents, laws, and chats.
@@ -167,6 +167,27 @@ has passed successfully.
 
 
 ---
+
+
+## Mandatory Governance Basis Declaration (GLOBAL)
+
+Every Consultant, Project, and Implementation chat MUST begin with
+an explicit declaration of the governance versions it follows.
+
+Required format:
+
+GOVERNANCE BASIS:
+- PROJECT_CONSTITUTION v2.6
+- PROJECT_LAW v2.6
+- CONSULTANT_LAW v2.6
+- IMPLEMENTATION_LAW v2.6
+
+If this declaration is missing or inconsistent,
+the chat MUST FAIL-FAST immediately.
+
+This rule exists to prevent parallel chats from
+operating under divergent governance versions.
+
 
 ## 11. Mandatory version declaration
 
