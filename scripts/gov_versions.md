@@ -1,165 +1,85 @@
-# Governance Version Sync Script
+# gov_versions.py
 
-This document describes the **helper script**:
+Helper tool for verifying and updating **Governance Set** versions for the AudioMason repository.
 
-```
-scripts/gov_versions.py
-```
+This tool is intentionally **local-only** (no network) and **deterministic** (stable ordering).
 
----
+## Discovery
 
-## Status
+- The tool discovers governance documents dynamically by scanning:
 
-This is a **helper / maintenance tool**.
+  `docs/governance/*.md`
 
-It is **NOT** part of AudioMason runtime behavior, CLI commands, or import pipeline.
-Running or not running this script has **no effect** on AudioMason functionality
-unless governance documents themselves are modified.
+- Ordering is deterministic: files are processed in lexicographic order by path.
 
----
+Any new governance document added to `docs/governance/` (including future laws) is automatically included in:
 
-## Scope
+- `--list`
+- `--check`
+- `--set-version`
 
-The script operates **only** on governance documents located in:
+## Version line rules
 
-```
-docs/governance/*.md
-```
+The tool recognizes version declarations case-insensitively, with optional leading `#`:
 
-No other files or directories are touched.
+- `Version: <value>`
+- `# VERSION: <value>`
 
----
+### Header-only parsing (important)
 
-## Supported version formats
+To avoid false positives from examples in document bodies (e.g. `Version: vX.Y` shown in documentation),
+the tool scans **only the document header** (first `HEADER_SCAN_LINES = 60` lines) when reading or validating
+the version line.
 
-The script detects versions in a **case-insensitive** manner and supports both formats:
+Implications:
 
-```
-Version: vX.Y
-# VERSION: vX.Y
-```
+- A document may contain example snippets later in the file without causing ambiguity.
+- Ambiguity is raised only if **multiple version lines exist within the header region**.
 
-When updating versions, the script **preserves the original format**:
-- keeps or omits `#` as originally present,
-- keeps original key casing,
-- updates **only the version value**.
+## Commands
 
----
+### List versions
 
-## Capabilities
-
-### `--list`
-
-Print a table of governance files and their detected versions.
-
-Missing versions are shown as `MISSING`.
-
-```
-python3 scripts/gov_versions.py --list
+```bash
+python scripts/gov_versions.py --list
 ```
 
----
+Output shows one row per governance doc and prints the count of discovered documents.
 
-### `--check`
+### Validate versions
 
-Validate governance documents.
-
-Default mode: **lockstep**
-
-- all governance documents must define a version,
-- all versions must be identical.
-
-```
-python3 scripts/gov_versions.py --check
+```bash
+python scripts/gov_versions.py --check
 ```
 
----
+Default mode is `lockstep`, meaning all governance documents must share the same version.
 
-### `--check --mode independent`
+To check only presence (no lockstep constraint):
 
-- all governance documents must define a version,
-- versions may differ.
-
-```
-python3 scripts/gov_versions.py --check --mode independent
+```bash
+python scripts/gov_versions.py --check --mode independent
 ```
 
----
+### Set version (write mode)
 
-### `--set-version X.Y`
+```bash
+python scripts/gov_versions.py --set-version vX.Y
+```
 
-**Write mode.**
+Dry-run:
 
-Update the existing version line in all governance documents.
+```bash
+python scripts/gov_versions.py --set-version vX.Y --dry-run
+```
 
 Rules:
-- only existing version lines are modified,
-- the rest of each file remains unchanged,
-- fails if any file has a missing or ambiguous version.
 
-```
-python3 scripts/gov_versions.py --set-version v3.0
-```
-
----
-
-### `--dry-run`
-
-Valid only together with `--set-version`.
-
-Shows planned changes without writing files.
-
-```
-python3 scripts/gov_versions.py --set-version v3.0 --dry-run
-```
-
----
-
-### `--repo-root PATH`
-
-Explicitly specify repository root.
-If omitted, the script auto-detects the repository root
-by locating `pyproject.toml`.
-
----
-
-## Determinism & safety
-
-- deterministic ordering (sorted file paths),
-- fail-fast on ambiguity or missing data,
-- local filesystem only,
-- no network access,
-- no side effects unless `--set-version` is used.
-
----
+- If a file has no version line in the header: **error**.
+- If a file has multiple version lines in the header: **error**.
+- Only the first matching version line in the file is updated (count=1).
 
 ## Exit codes
 
-| Code | Meaning |
-|-----:|--------|
-| 0 | success |
-| 2 | validation or usage error |
-| 3 | filesystem / I/O error |
-
----
-
-## Intended workflow
-
-Typical usage:
-
-```
-python3 scripts/gov_versions.py --list
-python3 scripts/gov_versions.py --check --mode independent
-python3 scripts/gov_versions.py --set-version v3.0 --dry-run
-```
-
-Actual writes should be performed **only after explicit governance approval**.
-
----
-
-## Governance note
-
-This script is a **tool**, not a **rule**.
-
-Whether it must be executed, and when, is defined by governance documents
-(Project Constitution / Laws), not by this script.
+- `0` success
+- `2` validation error (missing/ambiguous version, inconsistent versions, bad args)
+- `3` filesystem error (unexpected IO)

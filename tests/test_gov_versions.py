@@ -54,3 +54,20 @@ def test_set_version_makes_lockstep(tmp_path: Path) -> None:
     r3 = _run(repo_root, ["--check"])
     assert r3.returncode == 0
     assert r3.stdout.strip().endswith("OK")
+
+
+def test_future_law_included(tmp_path: Path):
+    repo_root = tmp_path
+
+    # Ensure the tool exists in the tmp repo (tests must not depend on the real working tree).
+    (repo_root / "scripts").mkdir(parents=True, exist_ok=True)
+    src_repo = Path(__file__).resolve().parents[1]
+    src_tool = src_repo / "scripts" / "gov_versions.py"
+    assert src_tool.is_file(), f"missing source tool: {src_tool}"
+    (repo_root / "scripts" / "gov_versions.py").write_text(src_tool.read_text(encoding="utf-8"), encoding="utf-8")
+
+    _write(repo_root / "docs" / "governance" / "NEW_LAW.md", "Version: 1.0\n")
+    r = _run(repo_root, ["--list"])
+    assert "NEW_LAW.md" in r.stdout
+
+
