@@ -311,10 +311,8 @@ def _choose_source(cfg: dict, sources: list[Path]) -> list[Path]:
     out("[inbox] sources:")
     for i, p in enumerate(sources, 1):
         out(f"  {i}) {p.name}")
-    if _prompt_disabled(cfg, 'choose_source'):
-        ans = "1"
     else:
-        ans = prompt("Choose source number, or 'a' for all", "1").strip().lower()
+        ans = _pf_prompt(cfg, 'choose_source', "Choose source number, or 'a' for all", "1").strip().lower()
     if ans == "a":
         return sources
     try:
@@ -400,31 +398,14 @@ def _detect_books(stage_src: Path) -> list[BookGroup]:
         die("No books found in source (no mp3/m4a in any directory)")
     return books
 
-def _choose_books_disabled(books: list[BookGroup], default_ans: str = "1") -> list[BookGroup]:
-    if len(books) == 1:
-        return books
-    ans = default_ans.strip().lower()
-    if ans == "a":
-        return books
-    try:
-        n = int(ans)
-        if 1 <= n <= len(books):
-            return [books[n - 1]]
-    except Exception:
-        pass
-    die("Invalid book selection")
-    return []
-
 def _choose_books(cfg: dict, books: list[BookGroup], default_ans: str = "1") -> list[BookGroup]:
     # Issue #76: allow disabling choose_books prompt deterministically.
-    if _prompt_disabled(cfg, 'choose_books'):
-        return _choose_books_disabled(books, default_ans=default_ans)
     if len(books) == 1:
         return books
     out(f"[books] found {len(books)}:")
     for i, b in enumerate(books, 1):
         out(f"  {i}) {b.label}")
-    ans = prompt("Choose book number, or 'a' for all", default_ans).strip().lower()
+    ans = _pf_prompt(cfg, "choose_books", "Choose book number, or 'a' for all", default_ans).strip().lower()
     if ans == "a":
         return books
     try:
@@ -441,7 +422,7 @@ def _choose_books(cfg: dict, books: list[BookGroup], default_ans: str = "1") -> 
     out(f"[books] found {len(books)}:")
     for i, b in enumerate(books, 1):
         out(f"  {i}) {b.label}")
-    ans = prompt("Choose book number, or 'a' for all", default_ans).strip().lower()
+    ans = _pf_prompt(cfg, "choose_books", "Choose book number, or 'a' for all", default_ans).strip().lower()
     if ans == "a":
         return books
     try:
@@ -1026,7 +1007,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     already = [x for x in before if x in done]
                     if already:
                         out(f"[books] resume: already processed: {', '.join(already)}")
-                        if (False if _prompt_disabled(cfg, 'skip_processed_books') else prompt_yes_no("Skip already processed books?", default_no=True)):
+                        if _pf_prompt_yes_no(cfg, 'skip_processed_books', "Skip already processed books?", default_no=True):
                             picked_books = [b for b in picked_books if b.label not in done]
                             if not picked_books:
                                 out("[books] resume: nothing left to process")
@@ -1306,7 +1287,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                         # 1) offer overwrite (interactive only)
                         if not (state.OPTS and state.OPTS.yes):
                             out(f"[dest] exists: {outdir}")
-                            overwrite = (False if _prompt_disabled(cfg, 'overwrite_destination') else prompt_yes_no("Destination exists. Overwrite?", default_no=True))
+                            overwrite = _pf_prompt_yes_no(cfg, 'overwrite_destination', "Destination exists. Overwrite?", default_no=True)
                         else:
                             overwrite = False
 
