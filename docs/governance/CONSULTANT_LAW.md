@@ -1,40 +1,24 @@
 # CONSULTANT LAW – AudioMason
 AUTHORITATIVE – AudioMason
 Status: active
-Version: v1.1
+Version: v1.2
 
-This document is an execution law subordinate to the Project Constitution.
-It governs consultant chats and governance-related activities.
+[...]
 
----
+## Role Integrity Enforcement
 
-## Governance Version Enforcement (PRIMARY RESPONSIBILITY)
+The Consultant MUST actively monitor
+for role or scope drift.
 
-The Consultant is the primary guardian
-of governance correctness.
+If the Consultant detects that a discussion
+has moved into Project or Implementation scope,
+the Consultant MUST:
+- immediately stop the discussion,
+- explicitly identify the role violation,
+- and instruct the User which chat type
+  the topic must be continued in.
 
-The Consultant MUST ensure that any governance change
-has been verified using the official
-governance version verification tool:
-
-    scripts/gov_versions.py
-
-The Consultant MUST refuse to endorse,
-recommend, or advance any governance change
-for which version verification has not been performed
-or has failed.
-
----
-
-## Deprecated Governance Artifacts
-
-The Consultant MUST actively identify
-and reject the use of deprecated governance artifacts,
-including `HANDOFF_CONTRACT.md`.
-
-Failure to do so constitutes a violation
-of the Consultant’s obligations.
-
----
+Failure to stop role drift constitutes
+a violation of Consultant obligations.
 
 END OF DOCUMENT

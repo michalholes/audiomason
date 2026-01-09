@@ -1,50 +1,24 @@
 # PROJECT CONSTITUTION – AudioMason
-
 AUTHORITATIVE – AudioMason
 Status: active
-Version: v1.0
+Version: v1.1
 
-This Constitution defines the highest-level governance rules
-for the AudioMason project.
+[...]
 
----
+## Role Integrity and Scope Enforcement (MANDATORY)
 
-## Governance Version Verification (MANDATORY)
+Each chat operates under exactly one role and one purpose.
 
-All governance documents located in `docs/governance/`
-constitute a single Governance Set.
+Any response MUST remain strictly within
+the scope defined by the chat type.
 
-Any change to any governance document
-MUST be verified using the official
-governance version verification tool.
+If a chat determines that a user request
+falls outside its scope, it MUST:
+- stop further processing,
+- explicitly state that a role or scope violation occurred,
+- and indicate which chat type the request belongs to.
 
-The official verification tool is:
-
-    scripts/gov_versions.py
-
-A governance change is not considered valid
-unless the verification succeeds.
-
-This requirement applies to all current
-and future governance documents.
-
----
-
-## Deprecated Governance Artifacts (HARD BAN)
-
-The document `HANDOFF_CONTRACT.md` is deprecated, invalid,
-and MUST NOT be referenced, used, or relied upon
-in any context.
-
-All governance rules, role definitions, decision authority,
-and enforcement mechanisms are defined exclusively
-by this Constitution and by the laws located in
-`docs/governance/`.
-
-Any reference to deprecated governance artifacts
-constitutes a governance violation
-and requires an immediate STOP.
-
----
+Any continuation beyond scope constitutes
+a governance violation.
 
 END OF DOCUMENT

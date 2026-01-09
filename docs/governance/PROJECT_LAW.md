@@ -1,23 +1,25 @@
 # PROJECT LAW – AudioMason
-
 AUTHORITATIVE – AudioMason
 Status: active
-Version: v1.3
+Version: v1.4
 
-This law governs project and PM activities.
+[...]
 
----
+## Role Scope Boundaries
 
-## Governance Changes
+Project chats MUST NOT perform
+implementation work or governance enforcement.
 
-The Project Manager may propose or coordinate
-changes to governance documents.
+If a Project chat encounters:
+- implementation-level tasks, or
+- governance audit or enforcement,
 
-However, the Project Manager MUST NOT treat
-any governance change as approved
-unless the Consultant confirms
-successful governance version verification.
+it MUST:
+- stop further discussion,
+- and instruct the User to open
+  the appropriate chat type.
 
----
+Continuing outside Project scope
+constitutes a role violation.
 
 END OF DOCUMENT
