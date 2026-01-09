@@ -2288,3 +2288,17 @@ Verdict:
 Design from #92 implemented. Unified one-list preflight ordering + pending decisions + dispatcher enforcement.
 Docs + repo_manifest updated.
 ================================================================================
+
+================================================================================
+ISSUE #94 – Cleanup: align docs + repo_manifest + remove legacy preflight codepaths
+CLOSED AT: 2026-01-09
+
+Final commit:
+- b084ad2
+
+Verdict:
+Post-refactor cleanup after #93 completed.
+Legacy preflight codepaths removed, guardrails enforced, documentation aligned,
+repo_manifest repaired and validated.
+No behavior change introduced.
+================================================================================
