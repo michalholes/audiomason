@@ -1,5 +1,96 @@
 # Closed Issues
 
+## #90 – Feat: add Buy Me a Coffee support (non-intrusive monetization)
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-08T00:06:57Z
+- Updated: 2026-01-09T21:17:57Z
+- Closed: 2026-01-09T21:17:57Z
+
+## Goal
+
+Enable optional, non-intrusive financial support for AudioMason via Buy Me a Coffee,
+without introducing paywalls, prompts, or behavior changes.
+
+AudioMason remains 100% open-source and fully functional without support.
+
+---
+
+## Scope
+
+This issue introduces *visibility only*:
+- no feature gating
+- no interactive prompts
+- no conditional behavior
+
+---
+
+## Tasks
+
+### 1. README.md
+- Add a short **Support AudioMason** section
+- Include a single Buy Me a Coffee link
+- Tone: technical, respectful, no guilt-tripping
+
+Example copy (may be adjusted):
+
+AudioMason is free and open-source.
+If it saves you time or frustration, consider supporting development:
+https://buymeacoffee.com/audiomason
+
+---
+
+### 2. CLI output (non-interactive)
+- Print **one informational line** per run
+- No prompts, no input required
+- Must respect unattended / non-interactive runs
+
+Example:
+
+☕ Enjoying AudioMason?  
+Support development: https://buymeacoffee.com/audiomason
+
+Placement:
+- startup or final summary
+- printed exactly once per invocation
+
+---
+
+### 3. Documentation
+- Add a short support note at the end of user-facing docs
+- Explain that support helps maintenance and long-term quality
+- No mention of money needs or personal finance
+
+---
+
+## Non-goals (explicitly out of scope)
+
+- No paywalled features
+- No supporter-only functionality
+- No ads or banners
+- No additional prompts
+- No behavior changes based on support status
+
+---
+
+## Acceptance criteria
+
+- AudioMason behavior remains unchanged
+- CLI remains fully non-interactive
+- Support link is visible but unobtrusive
+- Documentation updated accordingly
+
+---
+
+## Notes
+
+Buy Me a Coffee page already exists:
+https://buymeacoffee.com/audiomason
+
+---
+
 ## #91 – Enhancement: preflight_steps does not fully control all preflight prompts
 - State: **CLOSED**
 - Labels: —
