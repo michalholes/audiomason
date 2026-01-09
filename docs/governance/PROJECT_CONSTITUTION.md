@@ -141,6 +141,33 @@ The Constitution:
 
 ---
 
+## Governance Versioning (MANDATORY)
+
+All governance documents located in `docs/governance/`
+constitute a single Governance Set and MUST share
+the same version number.
+
+The canonical version format is:
+
+Version: vX.Y
+
+Any change to any governance document requires:
+- updating the Governance Set version,
+- successful execution of the official governance
+  version verification procedure.
+
+Any future law that introduces binding rules,
+obligations, or enforcement mechanisms
+is considered a governance document
+and is subject to these versioning rules.
+
+No governance change is considered complete
+until the version verification procedure
+has passed successfully.
+
+
+---
+
 ## 11. Mandatory version declaration
 
 Each chat must:

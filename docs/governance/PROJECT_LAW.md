@@ -65,6 +65,21 @@ Changes to this law:
 
 ---
 
+## Governance Changes – Version Enforcement
+
+Any change to governance documents
+MUST be validated using the official
+governance version verification procedure.
+
+A governance change MUST NOT be considered complete
+if the version verification fails.
+
+Failure of the version verification
+constitutes a hard stop.
+
+
+---
+
 ## 6. Mandatory command and update delivery format
 
 All operational instructions and updates provided in project, implementation,

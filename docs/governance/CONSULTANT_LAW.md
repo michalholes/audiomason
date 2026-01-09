@@ -53,6 +53,19 @@ Changes to governance documents:
 
 ---
 
+## Governance Proposals – Version Discipline
+
+Any governance change proposal prepared,
+reviewed, or recommended in a consultant chat
+MUST respect the lockstep governance versioning rules.
+
+A proposal MUST NOT be considered ready
+unless it passes the official governance
+version verification procedure.
+
+
+---
+
 ## 5. Conflict resolution
 
 In case of conflict, the following precedence applies:
