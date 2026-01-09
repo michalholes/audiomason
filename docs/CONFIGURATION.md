@@ -54,6 +54,40 @@ Recommended practices:
 
 ## Global prompt disable: `prompts.disable`
 
+
+## Support banner (Buy Me a Coffee)
+
+After every successful `import`, AudioMason prints a short support link:
+
+`Support AudioMason: https://buymeacoffee.com/audiomason`
+
+The banner is suppressed automatically in machine/silent modes:
+
+- `--quiet`
+- `--json`
+
+You can disable the banner explicitly:
+
+### Disable via CLI
+
+Use `--no-support` on the `import` subcommand:
+
+- `audiomason import --no-support ...`
+
+### Disable via configuration
+
+Add this to your configuration:
+
+```yaml
+support:
+  enabled: false
+```
+
+Notes:
+
+- Default is `support.enabled: true` (banner shown after successful import).
+- The `audiomason --support` flag prints the link and exits with code 0.
+
 AudioMason supports two related mechanisms for running **fully unattended**:
 
 ### 1) Global prompt disable: `prompts.disable`

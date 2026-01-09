@@ -113,7 +113,7 @@ files:
   domains:
   - audio
   - cli
-  file_sha1: 78de7ecf0fca6769055ab36df0d24a92113c5627
+  file_sha1: fec62eec24fb46fa0792a30abdccde56fbd0e6d7
   anchors:
   - anchor: def _version_kv_line(
     first_line: 18
@@ -1220,7 +1220,7 @@ files:
 - path: docs/CONFIGURATION.md
   domains:
   - docs
-  file_sha1: a7b0ef1ec74fca43c4976bfc98305fcca29d5490
+  file_sha1: b6727b852bd632c5fcfbce3ac4d7cb0c3cc5a3c5
 - path: docs/design/preflight_orchestration.md
   domains:
   - docs
@@ -1256,4 +1256,16 @@ files:
   domains:
   - docs
   file_sha1: 5c775da84b9851cfbfab3abf92f4d44dd7d2e96d
+  anchors: null
+- path: tests/test_cli_support.py
+  domains: []
+  file_sha1: ba286fe5e5da9e837e7261643816668ff96ea7ae
+  anchors: null
+- path: README.md
+  domains: []
+  file_sha1: c971f1c28d7e35a4f739a4ad4eb3aae8f947fd85
+  anchors: null
+- path: docs/repo_manifest.yaml
+  domains: []
+  file_sha1: 7d286f0cf922565cb14aa436b783db9377b13629
   anchors: null
