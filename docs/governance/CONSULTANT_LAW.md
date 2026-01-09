@@ -103,5 +103,16 @@ governing consultant chats in the AudioMason project.
 
 ---
 
+## Deprecated Governance Artifacts
+
+The Consultant MUST actively identify
+and reject the use of deprecated governance artifacts,
+including `HANDOFF_CONTRACT.md`.
+
+Failure to do so constitutes a violation
+of the Consultant’s obligations.
+
+---
+
 END OF DOCUMENT
 

@@ -136,4 +136,17 @@ and informal contracts.
 
 ---
 
+## Deprecated Governance Artifacts
+
+Implementation chats MUST NOT reference
+deprecated governance artifacts,
+including `HANDOFF_CONTRACT.md`.
+
+Any such reference constitutes a role violation
+and requires an immediate STOP
+and escalation to the User.
+
+
+---
+
 END OF DOCUMENT

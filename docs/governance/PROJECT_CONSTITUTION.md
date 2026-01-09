@@ -215,4 +215,21 @@ for the AudioMason project.
 
 ---
 
+## Deprecated Governance Artifacts (HARD BAN)
+
+The document `HANDOFF_CONTRACT.md` is deprecated, invalid,
+and MUST NOT be referenced, used, or relied upon
+in any context.
+
+All governance rules, role definitions, decision authority,
+and enforcement mechanisms are defined exclusively
+by this Constitution and by the laws located in
+`docs/governance/`.
+
+Any reference to deprecated governance artifacts
+constitutes a governance violation
+and requires an immediate STOP.
+
+---
+
 END OF DOCUMENT
