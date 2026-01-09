@@ -2,6 +2,7 @@
 
 AUTHORITATIVE – AudioMason  
 Status: active  
+Version: v1.0  
 
 This document is an execution law subordinate to the Project Constitution.
 It governs consultant chats and governance-related activities.
