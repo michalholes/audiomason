@@ -1236,3 +1236,24 @@ files:
   domains: []
   file_sha1: 5b7cc5467499eaf19868aa6a48c309d6a6d7c5b2
   anchors: null
+- path: scripts/sync_issues_archive.py
+  domains:
+  - pipeline
+  file_sha1: 731a2c966e6a884ca8e4b33067111f7a9f07cdc8
+{1a2c966e6a884ca8e4b33067111f7a9f07cdc8
+  anchors: null
+- path: tests/test_sync_issues_archive.py
+  domains:
+  - tests
+  file_sha1: 6d1e7965af7bef0a03d0f958a8eaca49a9c1d9e3
+  anchors: null
+- path: docs/issues/open_issues.md
+  domains:
+  - docs
+  file_sha1: 8c5c83e00ff1fa2cc7257150f253d4d0900ec7e5
+  anchors: null
+- path: docs/issues/closed_issues.md
+  domains:
+  - docs
+  file_sha1: 5c775da84b9851cfbfab3abf92f4d44dd7d2e96d
+  anchors: null
