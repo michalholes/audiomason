@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Governance Version Sync Script
 
-Scans docs/governance/*.md and reads the first matching line of:
+Scans docs/governance/*.md and reads the first matching line of either:
   Version: <value>
-(case-insensitive for the key 'Version').
+  # VERSION: <value>
+(case-insensitive; optional leading '#').
 
 Capabilities:
 - --list: print a table file -> version (or MISSING)
@@ -32,7 +33,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-VERSION_RE = re.compile(r"^(?P<prefix>\s*)version\s*:\s*(?P<val>\S+)\s*$", re.IGNORECASE | re.MULTILINE)
+VERSION_RE = re.compile(
+    r"^(?P<prefix>\s*(?:#\s*)?)version\s*:\s*(?P<val>\S+)\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
 
 @dataclass(frozen=True)
 class DocVersion:
@@ -55,7 +59,6 @@ def list_governance_files(repo_root: Path) -> List[Path]:
     return files
 
 def read_version_line(text: str) -> Tuple[Optional[str], int]:
-    """Return (version, count_matches). If count_matches > 1 -> ambiguous."""
     matches = [m for m in VERSION_RE.finditer(text)]
     if not matches:
         return (None, 0)
@@ -180,7 +183,6 @@ def run(argv: List[str]) -> int:
         if ns.check:
             validate(versions, ns.mode)
             print("OK")
-
 
         return 0
     except GovVersionError as e:
