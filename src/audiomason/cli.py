@@ -114,6 +114,15 @@ def _parse_args(cfg: Dict[str, Any] | None = None) -> argparse.Namespace:
         help="disable prompts (repeatable, comma-separated keys; supports '*')",
     )
 
+    # Issue #90 (amended): support banner after successful import (default on)
+    imp.add_argument(
+        "--no-support",
+        dest="no_support",
+        action="store_true",
+        default=False,
+        help="disable support banner after successful import",
+    )
+
     v = sub.add_parser("verify", help="verify audiobook library", parents=[parent])
     v.add_argument("root", nargs="?", type=Path, default=None)
 
@@ -336,11 +345,20 @@ def main() -> int:
             else:
                 _d = cfg.get('preflight_disable', [])
                 cfg['preflight_disable'] = list(_d) if isinstance(_d, list) else []
-
             run_import(cfg, getattr(ns, "path", None))
-            if (os.getenv("AUDIOMASON_SUPPORT") or "").lower() in {"1", "true", "yes"}:
-                if (not state.OPTS.quiet) and (not bool(getattr(state.OPTS, "json", False))):
-                    print(SUPPORT_LINE)
+
+            # Issue #90 (amended): banner shows by default after successful import.
+            # Disabled in machine/silent modes (--quiet / --json) and when user disables via CLI or config.
+            support_enabled = True
+            if bool(getattr(state.OPTS, "quiet", False)) or bool(getattr(state.OPTS, "json", False)):
+                support_enabled = False
+            if bool(getattr(ns, "no_support", False)):
+                support_enabled = False
+            sup_cfg = cfg.get("support", {}) if isinstance(cfg.get("support", {}), dict) else {}
+            if sup_cfg.get("enabled", True) is False:
+                support_enabled = False
+            if support_enabled:
+                print(SUPPORT_LINE)
             return 0
         except KeyboardInterrupt as e:
             raise AmAbort("cancelled by user") from e

@@ -179,3 +179,14 @@ Support is fully optional and never enabled by default.
 - `audiomason --support` prints the support link and exits.
 - `audiomason --version` includes the support link.
 - Set `AUDIOMASON_SUPPORT=1` to show the support link after a successful run (never enabled by default).
+
+### Support banner behavior
+
+- After a successful `import`, AudioMason prints the support link by default.
+- The banner is suppressed automatically in `--quiet` and `--json` modes.
+- Disable it explicitly with `import --no-support` or in config:
+
+  ```yaml
+  support:
+    enabled: false
+  ```

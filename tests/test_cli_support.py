@@ -4,9 +4,15 @@ import sys
 import pytest
 
 
-def _write_min_config(tmp_path, *, banner: bool) -> str:
-    # IMPORTANT: quote YAML yes/no to avoid YAML 1.1 bool coercion (no->False),
-    # which would break --clean-inbox defaulting and leak into global OPTS across tests.
+def _write_config(tmp_path, *, banner: bool, support_enabled: bool | None = None) -> str:
+    # IMPORTANT: quote YAML yes/no to avoid YAML 1.1 bool coercion (no->False).
+    support_block = ""
+    if support_enabled is not None:
+        support_block = (
+            "support:\n"
+            f"  enabled: {str(support_enabled).lower()}\n"
+        )
+
     cfgp = tmp_path / "configuration.yaml"
     cfgp.write_text(
         (
@@ -20,6 +26,7 @@ def _write_min_config(tmp_path, *, banner: bool) -> str:
             f"  ready: {tmp_path / 'abooks_ready'}\n"
             f"  archive: {tmp_path / 'abooks_archive'}\n"
             f"  cache: {tmp_path / 'am_cache'}\n"
+            + support_block
         ),
         encoding="utf-8",
     )
@@ -38,7 +45,7 @@ def _make_contract_dirs(tmp_path) -> None:
 def test_cli_support_flag_prints_link_and_exits(monkeypatch, tmp_path, capsys):
     monkeypatch.setenv("AUDIOMASON_ROOT", str(tmp_path))
     _make_contract_dirs(tmp_path)
-    cfg = _write_min_config(tmp_path, banner=False)
+    cfg = _write_config(tmp_path, banner=False)
 
     from audiomason import cli
     monkeypatch.setattr(sys, "argv", ["am", "--support", "--config", cfg])
@@ -54,7 +61,7 @@ def test_cli_support_flag_prints_link_and_exits(monkeypatch, tmp_path, capsys):
 def test_cli_version_includes_support_link(monkeypatch, tmp_path, capsys):
     monkeypatch.setenv("AUDIOMASON_ROOT", str(tmp_path))
     _make_contract_dirs(tmp_path)
-    cfg = _write_min_config(tmp_path, banner=False)
+    cfg = _write_config(tmp_path, banner=False)
 
     from audiomason import cli
     monkeypatch.setattr(sys, "argv", ["am", "--version", "--config", cfg])
@@ -68,18 +75,14 @@ def test_cli_version_includes_support_link(monkeypatch, tmp_path, capsys):
     assert "buymeacoffee.com/audiomason" in out
 
 
-def test_env_opt_in_banner_prints_after_success(monkeypatch, tmp_path, capsys):
+def test_default_banner_prints_after_successful_import(monkeypatch, tmp_path, capsys):
     monkeypatch.setenv("AUDIOMASON_ROOT", str(tmp_path))
-    monkeypatch.setenv("AUDIOMASON_SUPPORT", "1")
     _make_contract_dirs(tmp_path)
-    cfg = _write_min_config(tmp_path, banner=False)
+    cfg = _write_config(tmp_path, banner=False)
 
     from audiomason import cli
 
-    captured = {}
-
     def _fake_run_import(cfg_obj, path=None):
-        captured["called"] = True
         return None
 
     monkeypatch.setattr(cli, "run_import", _fake_run_import)
@@ -89,5 +92,84 @@ def test_env_opt_in_banner_prints_after_success(monkeypatch, tmp_path, capsys):
     out = capsys.readouterr().out
 
     assert rc == 0
-    assert captured.get("called") is True
     assert "buymeacoffee.com/audiomason" in out
+
+
+def test_cli_no_support_disables_banner(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("AUDIOMASON_ROOT", str(tmp_path))
+    _make_contract_dirs(tmp_path)
+    cfg = _write_config(tmp_path, banner=False)
+
+    from audiomason import cli
+
+    def _fake_run_import(cfg_obj, path=None):
+        return None
+
+    monkeypatch.setattr(cli, "run_import", _fake_run_import)
+    monkeypatch.setattr(sys, "argv", ["am", "--config", cfg, "import", "--yes", "--no-support"])
+
+    rc = cli.main()
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    assert "buymeacoffee.com/audiomason" not in out
+
+
+def test_config_support_enabled_false_disables_banner(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("AUDIOMASON_ROOT", str(tmp_path))
+    _make_contract_dirs(tmp_path)
+    cfg = _write_config(tmp_path, banner=False, support_enabled=False)
+
+    from audiomason import cli
+
+    def _fake_run_import(cfg_obj, path=None):
+        return None
+
+    monkeypatch.setattr(cli, "run_import", _fake_run_import)
+    monkeypatch.setattr(sys, "argv", ["am", "--config", cfg, "import", "--yes"])
+
+    rc = cli.main()
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    assert "buymeacoffee.com/audiomason" not in out
+
+
+def test_quiet_suppresses_banner(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("AUDIOMASON_ROOT", str(tmp_path))
+    _make_contract_dirs(tmp_path)
+    cfg = _write_config(tmp_path, banner=False)
+
+    from audiomason import cli
+
+    def _fake_run_import(cfg_obj, path=None):
+        return None
+
+    monkeypatch.setattr(cli, "run_import", _fake_run_import)
+    monkeypatch.setattr(sys, "argv", ["am", "--quiet", "--config", cfg, "import", "--yes"])
+
+    rc = cli.main()
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    assert "buymeacoffee.com/audiomason" not in out
+
+
+def test_json_suppresses_banner(monkeypatch, tmp_path, capsys):
+    monkeypatch.setenv("AUDIOMASON_ROOT", str(tmp_path))
+    _make_contract_dirs(tmp_path)
+    cfg = _write_config(tmp_path, banner=False)
+
+    from audiomason import cli
+
+    def _fake_run_import(cfg_obj, path=None):
+        return None
+
+    monkeypatch.setattr(cli, "run_import", _fake_run_import)
+    monkeypatch.setattr(sys, "argv", ["am", "--json", "--config", cfg, "import", "--yes"])
+
+    rc = cli.main()
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    assert "buymeacoffee.com/audiomason" not in out
