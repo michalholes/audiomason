@@ -1,89 +1,203 @@
-# OPEN ISSUES – AudioMason (AUTHORITATIVE PROJECT SNAPSHOT)
+# Open Issues
 
-Applies to: PROJECT / PLAN chats  
-Maintained by: PROJECT chat (PM + Project Owner)  
-Source of truth for execution: GitHub Issues  
-This file is the planning/audit snapshot (full bodies + PM status/priority).
+## #58 – Feat: add AM Remote API service (FastAPI) foundation
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-03T08:55:22Z
+- Updated: 2026-01-03T08:55:22Z
 
-Last updated: 2026-01-08 (Europe/Bratislava)
-
----
-
-## Index (OPEN)
-
-- #66 – Feat: configurable preflight question order (deterministic, validated)
-- #68 – Feat: configurable default answers for binary preflight questions (y/n)
-- #69 – Feat: configurable handling of non-binary preflight questions (deterministic)
-- #78 – Feat: preflight stage creation toggle per source (disable-able via config/CLI)
-- #87 – Feat: overlap staging copy with preflight prompts when selecting all sources
-- #77 – Feat: allow selecting multiple sources or books by index list (e.g. "1 4 15")
-- #79 – CLI enable + config-hide support for all Opts flags
-- #58 – Feat: add AM Remote API service (FastAPI) foundation
-- #60 – Feat: run registry + status/report persistence for remote runs
-- #61 – Feat: remote run logs + progress endpoints (polling MVP)
-- #62 – Security: Remote API auth (bearer token, opt-in, redacted logs)
-- #59 – Feat: non-interactive import request (GUI-driven, fail-fast)
-- #63 – Feat: Web GUI MVP (runs list, run detail, start import)
-- #64 – Ops: systemd service for AM Remote API
-- #90 – Feat: add Buy Me a Coffee support (non-intrusive monetization)
-
----
-
-## Canonical priority buckets (non-binding, from PROJECT_GUARD_RAILS)
-
-- P1 (Preflight determinism): #66, #68, #69
-- P2 (Workflow / performance): #78, #87
-- P3 (CLI UX): #77, #79
-- P4 (Remote API / GUI): #58, #60, #61, #62, #59, #63, #64
-- P5 (Non-intrusive monetization): #90
-
----
-
-================================================================================
-ISSUE #66 – Feat: configurable preflight question order (deterministic, validated)
-PM Status: OPEN
-Priority: P1
-Decision points: none
-================================================================================
-
-Feat: Configurable preflight question order
+Build: AM Remote API service (FastAPI) as stable server-side wrapper
 
 Goal
-- Allow deterministic configuration of the order in which preflight questions are asked.
-
-Problem
-- Preflight currently asks questions in a fixed, code-defined order.
-- For CLI power users and future GUI integration, the order must be:
-  - configurable
-  - deterministic
-  - validated fail-fast
+- Introduce a new HTTP service that wraps AudioMason functionality for remote control (GUI client).
 
 Scope
-- Introduce a configurable list (e.g. `preflight_steps`) defining question order.
-- Each step represents one logical preflight decision (source, book, id3 wipe, cover, publish, cleanup, etc.).
-- Validate configuration at startup:
-  - unknown step -> error
-  - missing required step -> error
-  - duplicate steps -> error
-- CLI behavior must strictly follow configured order.
-- Default configuration preserves current behavior exactly.
+- New package/module: src/audiomason/remote_api/ (or similar)
+- Provide a minimal FastAPI app with health/version endpoint
+- Provide a consistent run-id concept for server-triggered executions
 
 Acceptance criteria
-- User can define preflight question order via config (and optionally CLI override if appropriate).
-- Order is enforced deterministically.
-- Invalid configuration fails fast with a clear error.
-- Fully covered by tests.
-- No change to default behavior unless explicitly configured.
+- `GET /health` returns ok + version
+- Service can be started locally (dev) and returns responses deterministically
+- No interactive prompts over HTTP (this issue only lays foundation)
 
 Notes
-- This is a prerequisite for GUI-driven and non-interactive preflight flows.
+- Assume access over Tailscale (no public exposure) for MVP.
 
-================================================================================
-ISSUE #68 – Feat: configurable default answers for binary preflight questions (y/n)
-PM Status: OPEN
-Priority: P1
-Decision points: none
-================================================================================
+
+---
+
+## #59 – Feat: non-interactive import request (GUI-driven, fail-fast)
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-03T08:55:23Z
+- Updated: 2026-01-03T08:55:23Z
+
+Feat: Non-interactive import request model (no prompts)
+
+Goal
+- Make server-triggered imports fully non-interactive so the GUI can drive them.
+
+Scope
+- Define a strict JSON request schema for an import job (source selection, config overrides, decisions)
+- Add a codepath that runs import using provided answers (fail-fast if required answers missing)
+- Keep output deterministic for same request
+
+Acceptance criteria
+- API can start an import run without any stdin prompts
+- Missing required decision -> 4xx error with machine-readable list of missing fields
+- Existing CLI behavior stays unchanged
+
+
+---
+
+## #60 – Feat: run registry + status/report persistence for remote runs
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-03T08:55:24Z
+- Updated: 2026-01-03T08:55:24Z
+
+Feat: Runs registry (run-id, status, JSON report persistence)
+
+Goal
+- Track each server-triggered run so the GUI can list runs and open details.
+
+Scope
+- Introduce a runs registry under an app-controlled state directory (deterministic structure)
+- Store:
+  - run metadata (request, timestamps)
+  - current status (queued/running/succeeded/failed/canceled)
+  - final JSON report (reuse existing JSON report mode if available)
+  - path to log file for the run
+
+Acceptance criteria
+- `GET /runs` lists recent runs with status
+- `GET /runs/{id}` returns run details + links/paths to artifacts (log/report)
+- Data survives service restart
+
+
+---
+
+## #61 – Feat: remote run logs + progress endpoints (polling MVP)
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-03T08:55:26Z
+- Updated: 2026-01-03T08:55:26Z
+
+Feat: Log and progress streaming endpoints (polling-first MVP)
+
+Goal
+- Allow GUI to show live logs and a basic progress indicator.
+
+Scope
+- Add endpoints:
+  - `GET /runs/{id}/log` (tail with offset/limit; polling-friendly)
+  - optional: `GET /runs/{id}/events` (SSE) if easy; otherwise stick to polling MVP
+- Ensure deterministic log formatting where possible (no random ordering)
+
+Acceptance criteria
+- GUI can poll log tail without re-downloading whole file
+- Offset-based log reads are correct and stable
+- Clear handling when run is finished (EOF)
+
+
+---
+
+## #62 – Security: Remote API auth (bearer token, opt-in, redacted logs)
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-03T08:55:27Z
+- Updated: 2026-01-03T08:55:27Z
+
+Security: Authentication for Remote API (Tailscale-first, token-based)
+
+Goal
+- Prevent accidental access even on trusted networks.
+
+Scope
+- Implement a simple bearer token auth (env var or config entry)
+- Deny by default if token not configured (explicit opt-in)
+- Add request logging with redaction (no token leakage)
+
+Acceptance criteria
+- All non-health endpoints require valid token
+- Invalid/missing token -> 401
+- Token never appears in logs
+
+
+---
+
+## #63 – Feat: Web GUI MVP (runs list, run detail, start import)
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-03T08:55:29Z
+- Updated: 2026-01-03T08:55:29Z
+
+Feat: Minimal Web GUI (MVP) for iPhone Safari
+
+Goal
+- Provide a tiny web UI to drive imports and monitor runs from iPhone (Safari).
+
+Scope
+- Web pages:
+  - Runs list
+  - Run detail (status + log tail + link to JSON report)
+  - Start import form (very small; uses non-interactive request schema)
+- Prefer server-rendered HTML or minimal JS (keep dependencies low)
+
+Acceptance criteria
+- Works in iPhone Safari
+- Can start an import and follow logs to completion
+- No complex styling; function > form
+
+
+---
+
+## #64 – Ops: systemd service for AM Remote API
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-03T08:55:30Z
+- Updated: 2026-01-03T08:55:30Z
+
+Ops: Systemd service for AM Remote API (deployable on Debian/Ubuntu)
+
+Goal
+- Make the Remote API run as a managed service on the server.
+
+Scope
+- Add systemd unit file (and install path decisions aligned with .deb packaging)
+- Define environment/config loading for token + bind address/port
+- Ensure log location is deterministic and writable
+
+Acceptance criteria
+- `systemctl start audiomason-remote` works
+- Service restarts cleanly
+- Runs registry/logs persist across restarts
+
+
+---
+
+## #68 – Feat: configurable default answers for binary preflight questions (y/n)
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-03T09:19:55Z
+- Updated: 2026-01-03T09:19:55Z
 
 Feat: Configurable default answers for binary (y/n) preflight questions
 
@@ -125,12 +239,16 @@ Notes
   - disabling preflight questions
 - Required for GUI-driven and Remote API workflows.
 
-================================================================================
-ISSUE #69 – Feat: configurable handling of non-binary preflight questions (deterministic)
-PM Status: OPEN
-Priority: P1
-Decision points: none
-================================================================================
+
+---
+
+## #69 – Feat: configurable handling of non-binary preflight questions (deterministic)
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-03T09:23:03Z
+- Updated: 2026-01-03T09:23:03Z
 
 Feat: Configurable handling of non-binary preflight questions
 
@@ -178,12 +296,96 @@ Notes
   - configurable defaults for binary questions
 - Required for full GUI-driven and Remote API-based workflows.
 
-================================================================================
-ISSUE #78 – Feat: preflight stage creation toggle per source (disable-able via config/CLI)
-PM Status: OPEN
-Priority: P2
-Decision points: none
-================================================================================
+
+---
+
+## #77 – Feat: allow selecting multiple sources or books by index list (e.g. "1 4 15")
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-04T08:10:00Z
+- Updated: 2026-01-04T08:10:00Z
+
+Feat: allow selecting multiple sources or books by explicit index list (e.g. "1 4 15")
+
+Problem
+- Today, selection prompts only support:
+  - a single index (e.g. "1")
+  - or "a" for all
+- There is no way to select an explicit subset (e.g. authors 1, 4, and 15),
+  which makes batch processing of specific items unnecessarily slow and repetitive.
+
+Affected prompts (examples)
+- Source selection:
+  "Choose source number, or a for all"
+- Book selection:
+  "Choose book number, or a for all"
+
+Goal (authoritative)
+- Extend selection prompts to support **explicit multi-selection** using index lists.
+
+Desired UX
+- User can enter:
+  - space-separated list: "1 4 15"
+  - (optionally later) comma-separated list: "1,4,15" (not required for MVP)
+- Result:
+  - Only the selected sources / books are processed
+  - In the order specified by the user (or normalized deterministically)
+
+Rules / behavior
+- Supported inputs:
+  - single number (existing behavior)
+  - "a" (existing behavior: all)
+  - multi-number list (new behavior)
+- Validation (fail-fast):
+  - non-numeric token (except "a") -> error
+  - index out of range -> error
+  - duplicates -> error
+  - mixing "a" with numbers -> error
+- Default behavior with empty input stays unchanged.
+
+Scope
+- Implement only for:
+  - source selection
+  - book selection
+- No changes to preflight logic itself.
+- No changes to discovery logic.
+- No documentation changes in this issue.
+
+Implementation notes (guidance, not mandate)
+- Centralize parsing logic:
+  - helper like `_parse_index_selection(input: str, max_n: int) -> list[int]`
+- Reuse helper for both source and book selection.
+- Deterministic ordering must be guaranteed.
+
+Acceptance criteria
+- User can select multiple sources via e.g. "1 4 15"
+- User can select multiple books via e.g. "2 3 5"
+- Existing behaviors (single index, "a") remain unchanged.
+- Invalid input fails fast with a clear error message.
+- Covered by tests:
+  - valid multi-select
+  - invalid token
+  - duplicate index
+  - out-of-range index
+  - mixing "a" with numbers
+
+Notes
+- This feature complements (but does not replace):
+  - "a" (select all)
+  - future global prompt disable / non-interactive modes.
+
+
+---
+
+## #78 – Feat: preflight stage creation toggle per source (disable-able via config/CLI)
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-04T13:14:36Z
+- Updated: 2026-01-04T13:14:36Z
 
 Feat: preflight question to control stage creation per source (disable-able via config/CLI)
 
@@ -249,129 +451,16 @@ Acceptance criteria
 Notes
 - This feature enables faster workflows without unnecessary data duplication.
 
-================================================================================
-ISSUE #87 – Feat: overlap staging copy with preflight prompts when selecting all sources
-PM Status: OPEN
-Priority: P2
-Decision points:
-- Confirm the opt-in mechanism (CLI flag, config key, or both).
-- Confirm how progress/output is kept readable (no garbled output).
-================================================================================
 
-Problem
-When selecting all sources (input 'a'), AudioMason currently stages (copies) data first and only then asks preflight questions.
-This creates idle time where the user waits for I/O-heavy staging to finish before answering prompts.
+---
 
-Goal
-Allow the user to answer preflight questions while staging copy is still running.
-This should work per source, and especially for batch runs when selecting all sources.
-
-Proposed behavior
-- For each selected source, start staging copy in the background.
-- While staging is running, ask preflight prompts in the foreground (interactive).
-- Start PROCESS for that source only after BOTH:
-  (1) staging copy completed successfully
-  (2) preflight decisions are completed.
-
-Constraints (strict)
-- Must remain deterministic.
-- Must not break non-interactive / prompt-disable modes.
-- No changes to default behavior unless the feature is enabled.
-- Interactive I/O must remain stable (no garbled output).
-
-Configuration / CLI
-- Feature should be opt-in via CLI and/or config.
-- If enabled, it applies when multiple sources are selected (e.g. 'a').
-
-Acceptance criteria
-- User can answer preflight questions while staging copy runs.
-- No PROCESS begins before staging is finished.
-- Errors in staging are handled cleanly and fail-fast.
-- Existing tests pass; add a regression test if feasible.
-
-================================================================================
-ISSUE #77 – Feat: allow selecting multiple sources or books by index list (e.g. "1 4 15")
-PM Status: OPEN
-Priority: P3
-Decision points: none
-================================================================================
-
-Feat: allow selecting multiple sources or books by explicit index list (e.g. "1 4 15")
-
-Problem
-- Today, selection prompts only support:
-  - a single index (e.g. "1")
-  - or "a" for all
-- There is no way to select an explicit subset (e.g. authors 1, 4, and 15),
-  which makes batch processing of specific items unnecessarily slow and repetitive.
-
-Affected prompts (examples)
-- Source selection:
-  "Choose source number, or a for all"
-- Book selection:
-  "Choose book number, or a for all"
-
-Goal (authoritative)
-- Extend selection prompts to support explicit multi-selection using index lists.
-
-Desired UX
-- User can enter:
-  - space-separated list: "1 4 15"
-  - (optionally later) comma-separated list: "1,4,15" (not required for MVP)
-- Result:
-  - Only the selected sources / books are processed
-  - In the order specified by the user (or normalized deterministically)
-
-Rules / behavior
-- Supported inputs:
-  - single number (existing behavior)
-  - "a" (existing behavior: all)
-  - multi-number list (new behavior)
-- Validation (fail-fast):
-  - non-numeric token (except "a") -> error
-  - index out of range -> error
-  - duplicates -> error
-  - mixing "a" with numbers -> error
-- Default behavior with empty input stays unchanged.
-
-Scope
-- Implement only for:
-  - source selection
-  - book selection
-- No changes to preflight logic itself.
-- No changes to discovery logic.
-- No documentation changes in this issue.
-
-Implementation notes (guidance, not mandate)
-- Centralize parsing logic:
-  - helper like `_parse_index_selection(input: str, max_n: int) -> list[int]`
-- Reuse helper for both source and book selection.
-- Deterministic ordering must be guaranteed.
-
-Acceptance criteria
-- User can select multiple sources via e.g. "1 4 15"
-- User can select multiple books via e.g. "2 3 5"
-- Existing behaviors (single index, "a") remain unchanged.
-- Invalid input fails fast with a clear error message.
-- Covered by tests:
-  - valid multi-select
-  - invalid token
-  - duplicate index
-  - out-of-range index
-  - mixing "a" with numbers
-
-Notes
-- This feature complements (but does not replace):
-  - "a" (select all)
-  - future global prompt disable / non-interactive modes.
-
-================================================================================
-ISSUE #79 – CLI enable + config-hide support for all Opts flags
-PM Status: OPEN
-Priority: P3
-Decision points:
-- Recommend split: (A) loudnorm preflight + wiring; (B) "all Opts flags" consistency sweep.
-================================================================================
+## #79 –  CLI enable + config-hide support for all Opts flags
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-04T23:00:23Z
+- Updated: 2026-01-04T23:37:58Z
 
 Feat/Bug: expose loudnorm in preflight (default No) with CLI control and disable-able prompt
 
@@ -420,7 +509,7 @@ Notes
 
 Additional requirement: CLI enable + config-hide support for all Opts flags
 
-Not only loudnorm: the same capability is required for all current Opts fields.
+Not only loudnorm: the same capability is required for *all* current Opts fields.
 
 Requirement
 - For every Opts field listed below:
@@ -454,176 +543,57 @@ Notes
 - Some fields may already have CLI flags; for those, the requirement is to ensure consistency and test coverage.
 - Fields that are not interactive prompts today should still follow the rule: if a prompt exists or is introduced, it must be suppressible via config and controllable via CLI.
 
-================================================================================
-ISSUE #58 – Feat: add AM Remote API service (FastAPI) foundation
-PM Status: OPEN
-Priority: P4
-Decision points:
-- Remote API/GUI direction is explicitly deferred (keep foundation minimal).
-================================================================================
 
-Build: AM Remote API service (FastAPI) as stable server-side wrapper
+---
 
-Goal
-- Introduce a new HTTP service that wraps AudioMason functionality for remote control (GUI client).
+## #87 – Feat: overlap staging copy with preflight prompts when selecting all sources
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-07T02:05:42Z
+- Updated: 2026-01-07T02:05:42Z
 
-Scope
-- New package/module: src/audiomason/remote_api/ (or similar)
-- Provide a minimal FastAPI app with health/version endpoint
-- Provide a consistent run-id concept for server-triggered executions
-
-Acceptance criteria
-- `GET /health` returns ok + version
-- Service can be started locally (dev) and returns responses deterministically
-- No interactive prompts over HTTP (this issue only lays foundation)
-
-Notes
-- Assume access over Tailscale (no public exposure) for MVP.
-
-================================================================================
-ISSUE #60 – Feat: run registry + status/report persistence for remote runs
-PM Status: OPEN
-Priority: P4
-Decision points: none
-================================================================================
-
-Feat: Runs registry (run-id, status, JSON report persistence)
+Problem
+When selecting all sources (input 'a'), AudioMason currently stages (copies) data first and only then asks preflight questions.
+This creates idle time where the user waits for I/O-heavy staging to finish before answering prompts.
 
 Goal
-- Track each server-triggered run so the GUI can list runs and open details.
+Allow the user to answer preflight questions while staging copy is still running.
+This should work per source, and especially for batch runs when selecting all sources.
 
-Scope
-- Introduce a runs registry under an app-controlled state directory (deterministic structure)
-- Store:
-  - run metadata (request, timestamps)
-  - current status (queued/running/succeeded/failed/canceled)
-  - final JSON report (reuse existing JSON report mode if available)
-  - path to log file for the run
+Proposed behavior
+- For each selected source, start staging copy in the background.
+- While staging is running, ask preflight prompts in the foreground (interactive).
+- Start PROCESS for that source only after BOTH:
+  (1) staging copy completed successfully
+  (2) preflight decisions are completed.
 
-Acceptance criteria
-- `GET /runs` lists recent runs with status
-- `GET /runs/{id}` returns run details + links/paths to artifacts (log/report)
-- Data survives service restart
+Constraints (strict)
+- Must remain deterministic.
+- Must not break non-interactive / prompt-disable modes.
+- No changes to default behavior unless the feature is enabled.
+- Interactive I/O must remain stable (no garbled output).
 
-================================================================================
-ISSUE #61 – Feat: remote run logs + progress endpoints (polling MVP)
-PM Status: OPEN
-Priority: P4
-Decision points: none
-================================================================================
-
-Feat: Log and progress streaming endpoints (polling-first MVP)
-
-Goal
-- Allow GUI to show live logs and a basic progress indicator.
-
-Scope
-- Add endpoints:
-  - `GET /runs/{id}/log` (tail with offset/limit; polling-friendly)
-  - optional: `GET /runs/{id}/events` (SSE) if easy; otherwise stick to polling MVP
-- Ensure deterministic log formatting where possible (no random ordering)
+Configuration / CLI
+- Feature should be opt-in via CLI and/or config.
+- If enabled, it applies when multiple sources are selected (e.g. 'a').
 
 Acceptance criteria
-- GUI can poll log tail without re-downloading whole file
-- Offset-based log reads are correct and stable
-- Clear handling when run is finished (EOF)
+- User can answer preflight questions while staging copy runs.
+- No PROCESS begins before staging is finished.
+- Errors in staging are handled cleanly and fail-fast.
+- Existing tests pass; add a regression test if feasible.
 
-================================================================================
-ISSUE #62 – Security: Remote API auth (bearer token, opt-in, redacted logs)
-PM Status: OPEN
-Priority: P4
-Decision points: none
-================================================================================
+---
 
-Security: Authentication for Remote API (Tailscale-first, token-based)
-
-Goal
-- Prevent accidental access even on trusted networks.
-
-Scope
-- Implement a simple bearer token auth (env var or config entry)
-- Deny by default if token not configured (explicit opt-in)
-- Add request logging with redaction (no token leakage)
-
-Acceptance criteria
-- All non-health endpoints require valid token
-- Invalid/missing token -> 401
-- Token never appears in logs
-
-================================================================================
-ISSUE #59 – Feat: non-interactive import request (GUI-driven, fail-fast)
-PM Status: OPEN
-Priority: P4
-Decision points: none
-================================================================================
-
-Feat: Non-interactive import request model (no prompts)
-
-Goal
-- Make server-triggered imports fully non-interactive so the GUI can drive them.
-
-Scope
-- Define a strict JSON request schema for an import job (source selection, config overrides, decisions)
-- Add a codepath that runs import using provided answers (fail-fast if required answers missing)
-- Keep output deterministic for same request
-
-Acceptance criteria
-- API can start an import run without any stdin prompts
-- Missing required decision -> 4xx error with machine-readable list of missing fields
-- Existing CLI behavior stays unchanged
-
-================================================================================
-ISSUE #63 – Feat: Web GUI MVP (runs list, run detail, start import)
-PM Status: OPEN
-Priority: P4
-Decision points: none
-================================================================================
-
-Feat: Minimal Web GUI (MVP) for iPhone Safari
-
-Goal
-- Provide a tiny web UI to drive imports and monitor runs from iPhone (Safari).
-
-Scope
-- Web pages:
-  - Runs list
-  - Run detail (status + log tail + link to JSON report)
-  - Start import form (very small; uses non-interactive request schema)
-- Prefer server-rendered HTML or minimal JS (keep dependencies low)
-
-Acceptance criteria
-- Works in iPhone Safari
-- Can start an import and follow logs to completion
-- No complex styling; function > form
-
-================================================================================
-ISSUE #64 – Ops: systemd service for AM Remote API
-PM Status: OPEN
-Priority: P4
-Decision points: none
-================================================================================
-
-Ops: Systemd service for AM Remote API (deployable on Debian/Ubuntu)
-
-Goal
-- Make the Remote API run as a managed service on the server.
-
-Scope
-- Add systemd unit file (and install path decisions aligned with .deb packaging)
-- Define environment/config loading for token + bind address/port
-- Ensure log location is deterministic and writable
-
-Acceptance criteria
-- `systemctl start audiomason-remote` works
-- Service restarts cleanly
-- Runs registry/logs persist across restarts
-
-================================================================================
-ISSUE #90 – Feat: add Buy Me a Coffee support (non-intrusive monetization)
-PM Status: OPEN
-Priority: P5
-Decision points: none
-================================================================================
+## #90 – Feat: add Buy Me a Coffee support (non-intrusive monetization)
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-08T00:06:57Z
+- Updated: 2026-01-08T00:06:57Z
 
 ## Goal
 
@@ -636,7 +606,7 @@ AudioMason remains 100% open-source and fully functional without support.
 
 ## Scope
 
-This issue introduces visibility only:
+This issue introduces *visibility only*:
 - no feature gating
 - no interactive prompts
 - no conditional behavior
@@ -646,7 +616,7 @@ This issue introduces visibility only:
 ## Tasks
 
 ### 1. README.md
-- Add a short Support AudioMason section
+- Add a short **Support AudioMason** section
 - Include a single Buy Me a Coffee link
 - Tone: technical, respectful, no guilt-tripping
 
@@ -659,13 +629,13 @@ https://buymeacoffee.com/audiomason
 ---
 
 ### 2. CLI output (non-interactive)
-- Print one informational line per run
+- Print **one informational line** per run
 - No prompts, no input required
 - Must respect unattended / non-interactive runs
 
 Example:
 
-☕ Enjoying AudioMason?
+☕ Enjoying AudioMason?  
 Support development: https://buymeacoffee.com/audiomason
 
 Placement:
@@ -705,3 +675,227 @@ Placement:
 Buy Me a Coffee page already exists:
 https://buymeacoffee.com/audiomason
 
+---
+
+## #91 – Enhancement: preflight_steps does not fully control all preflight prompts
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-08T20:51:51Z
+- Updated: 2026-01-08T20:54:47Z
+
+Issue #66 introduced preflight_steps with deterministic ordering and fail-fast validation.
+During implementation, several architectural limitations were identified.
+
+Issue #66 is correctly implemented and closed.
+This issue tracks known design gaps discovered during that work.
+
+## Problem statement
+
+preflight_steps currently does not fully control all preflight prompts.
+
+Key gaps:
+- Not all preflight prompts are modeled as steps (run-level, inline prompts)
+- Some step_keys are evaluated as blocks, not individually ordered
+- Side-effect driven prompts weaken ordering guarantees
+- State-dependent steps may never trigger
+- Normalizations and suggestion prompts are not first-class steps
+
+## Goal
+
+Define and implement a fully preflight-driven orchestration model with:
+- canonical step registry,
+- explicit run/source/book execution levels,
+- precise ordering guarantees,
+- complete and truthful preflight_steps control surface.
+
+## Non-goals
+
+- No changes to Issue #66 behavior
+- No breaking changes without explicit migration
+- No UI / API work
+
+## Acceptance criteria
+
+- All preflight prompts are either canonical steps or explicitly documented exceptions
+- Clear execution-level separation
+- Deterministic model is documented
+- Tests cover ordering and conditional execution
+
+## References
+
+- Issue #66
+- dd7b455 (code + tests)
+- 1cd69c7 (docs + repo_manifest)
+
+---
+
+## #92 – Design: canonical preflight orchestration (step registry + run/source/book levels) (Follow-up to #91)
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-08T20:53:50Z
+- Updated: 2026-01-08T21:47:19Z
+
+Parent: #91
+
+## Goal
+Define the target architecture for fully preflight-driven orchestration:
+- canonical step registry (all prompts as steps or explicitly documented exceptions)
+- explicit execution levels: run / source / book
+- deterministic ordering guarantees and how they are enforced
+- rules for conditional (state-dependent) steps
+- rules for sub-prompts (normalizations/suggestions) as first-class steps vs. nested prompts
+
+## Deliverables
+- Design doc (in-repo) describing:
+  - step registry API (data model, keys, metadata: level, dependencies, default order)
+  - orchestration algorithm (how steps are executed and skipped)
+  - migration plan from current flow to registry-driven flow
+  - what remains intentionally outside steps (if anything) + rationale
+- Test strategy for ordering and conditional execution
+
+## Acceptance criteria
+- Design doc merged
+- Clear, implementable plan for refactor and cleanup work (scoped into follow-up issues)
+
+---
+
+## #96 – Tooling: sync GitHub issues to open_issues.md + closed_issues.md (full bodies)
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-09T13:48:41Z
+- Updated: 2026-01-09T13:59:44Z
+
+## Problem
+We maintain two authoritative archive files in the repository:
+
+- `docs/contracts/projects/open_issues.md`
+- `docs/contracts/projects/closed_issues.md`
+
+These files must reflect the **current state of GitHub issues**, including their **full bodies**.
+Today, this synchronization is manual and error-prone, which leads to drift.
+
+## Goal
+Create a **standalone helper tool** that:
+
+1. Fetches issues from GitHub (open + closed)
+2. Renders them into a deterministic markdown archive format
+3. Updates `open_issues.md` and `closed_issues.md`
+4. Commits and pushes changes **only if a real diff exists**
+
+This tool is intended to be run **immediately after** `gh issue open` or `gh issue close`
+as the next command in the workflow.
+
+## Non-goals
+- This tool is **NOT** part of AudioMason runtime or CLI.
+- No UI, no daemon, no long-running service.
+- No issue creation, editing, or closing.
+- No GitHub project or milestone management.
+
+## Requirements (must)
+
+### 1. Tool nature
+- Must be a **standalone helper script**, e.g. under `scripts/`
+- Must NOT import or depend on AudioMason code
+- Must be safe to run repeatedly (idempotent)
+
+### 2. Data source
+- GitHub is the **only source of truth**
+- Must fetch **full issue bodies**, not just titles
+- For each issue, archive must include:
+  - Issue number + title
+  - State (OPEN / CLOSED)
+  - Labels (if any)
+  - Assignees (if any)
+  - Milestone (if any)
+  - Created timestamp
+  - Updated timestamp
+  - Closed timestamp (for closed issues)
+  - Full issue body (verbatim, markdown preserved)
+
+### 3. Output files
+Only these two files may be modified:
+- `docs/contracts/projects/open_issues.md`
+- `docs/contracts/projects/closed_issues.md`
+
+Ordering rules:
+- Open issues: ascending by issue number
+- Closed issues: descending by closed date, tie-break by issue number
+
+Rendering rules:
+- Stable headings and delimiters per issue
+- No “generated at now” timestamps
+- Output must be byte-stable across runs if issues did not change
+
+### 4. Execution & safety
+- Non-interactive by default (no prompts)
+- Must FAIL-FAST with clear error if:
+  - GitHub auth is missing or invalid
+  - Rate limit prevents fetching
+  - Target files are missing
+  - Working tree is dirty (unless explicitly overridden)
+
+### 5. Git behavior
+- Must not commit if there is no diff
+- Deterministic commit message:
+  - `Docs: sync GitHub issues archive (open/closed)`
+- Default behavior:
+  - write files
+  - commit if diff exists
+  - push to default remote branch
+- Flags must allow:
+  - `--dry-run`
+  - `--no-commit`
+  - `--no-push`
+  - optional override for dirty working tree
+
+### 6. CLI
+Canonical invocation:
+```bash
+python3 scripts/sync_issues_archive.py
+```
+
+Required flags:
+- `--repo <owner/name>` (default: auto-detect from git remote if possible)
+- `--dry-run`
+- `--no-commit`
+- `--no-push`
+
+### 7. Workflow intent (explicit)
+This tool is designed to be used as a **natural follow-up command**:
+
+```bash
+gh issue open …
+python3 scripts/sync_issues_archive.py
+```
+
+```bash
+gh issue close …
+python3 scripts/sync_issues_archive.py
+```
+
+The tool itself must not require chaining or interaction.
+
+## Acceptance criteria
+- Archives fully match GitHub issues (including full bodies)
+- Ordering and rendering are deterministic
+- Re-running with no issue changes produces no diff and no commit
+- With changes present, files are updated, committed, and pushed
+- Unit tests cover:
+  - ordering rules
+  - rendering stability
+  - no-diff → no commit behavior
+  - correct open/closed split
+- `docs/repo_manifest.yaml` is updated if new scripts or tests are added
+
+## Notes
+- This is a project/tooling issue.
+- Implementation must follow Implementation Law for patch delivery and execution.
+
+
+---
