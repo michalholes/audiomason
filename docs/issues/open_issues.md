@@ -802,3 +802,29 @@ ACCEPTANCE CRITERIA
 
 
 ---
+
+## #117 – Refactor: split import_flow.py monolith (address E501 structurally)
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T23:58:24Z
+- Updated: 2026-01-10T23:58:24Z
+
+Goal: Refactor-only. Split src/audiomason/import_flow.py into smaller modules and eliminate E501 structurally.
+
+Scope:
+- No behavior change / no feature change.
+- Keep public entrypoints stable (e.g., run_import(cfg)).
+- Work in small patches; keep pytest green.
+
+Definition of done:
+- ruff check src/audiomason/import_flow.py has no E501
+- pytest -q passes (101)
+- import_flow responsibilities are separated into cohesive modules.
+
+Notes:
+- Avoid sweeping mechanical wrapping.
+- Prefer helper vars/functions + module extraction.
+
+---
