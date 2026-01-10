@@ -1,6 +1,6 @@
 # PROJECT LAW – AudioMason
 # AUTHORITATIVE – AudioMason
-# Version: 2.9
+Version: v2.9
 # Status: active
 
 This document is a project governance law subordinate to the Project Constitution.
@@ -196,7 +196,6 @@ it MUST:
 Continuing outside Project scope
 constitutes a role violation.
 
-END OF DOCUMENT
 
 ## Governance Version Synchronization (MANDATORY)
 
@@ -286,8 +285,9 @@ CHAT TYPE: IMPLEMENTATION
 
 GOVERNANCE BASIS (MUST PRINT IN EVERY IC RESPONSE):
 - PROJECT_CONSTITUTION vX.Y
-- IMPLEMENTATION_LAW vX.Y
 - PROJECT_LAW vX.Y
+- CONSULTANT_LAW vX.Y
+- IMPLEMENTATION_LAW vX.Y
 - This handoff
 
 ARTIFACT DIRECTORY (CANONICAL):
@@ -320,3 +320,4 @@ DELIVERABLE (STRICT):
   B) NOT COMPLETE / FAIL-FAST (explicit missing items, repo-relative paths)
 ```
 
+END OF DOCUMENT

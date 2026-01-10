@@ -2,7 +2,7 @@
 
 AUTHORITATIVE – AudioMason  
 Status: active  
-Version: 2.9
+Version: v2.9
 This document is an execution law subordinate to the Project Constitution.
 It governs consultant chats and governance-related activities.
 
@@ -121,6 +121,42 @@ The consultant MUST NOT assume implicit knowledge of implementation rules.
 Failure to provide explicit implementation instructions constitutes a consultant role violation.
 
 ---
+
+### §8.1 Governance Change Finalization Sequence
+
+When a consultant chat results in an ACCEPTED change to governance documents,
+the consultant MUST provide a canonical finalization sequence.
+
+This sequence MUST:
+- explicitly consume governance patch files using `mv` (not `cp`),
+- execute the official governance versioning tool (`scripts/gov_versions.py`),
+- perform verification via the same tool,
+- conclude with a single commit and push.
+
+The sequence MUST be presented as a single, copy-paste-ready command block.
+
+Failure to provide this sequence constitutes a consultant role violation.
+
+---
+
+### §8.2 Artifact Download Location
+
+All files provided by the consultant for execution
+(including patches, governance documents, scripts, or supporting artifacts)
+MUST be delivered with the explicit instruction that they are to be downloaded into:
+
+    /home/pi/apps/patches
+
+The consultant MUST NOT:
+- assume default download locations,
+- reference “Downloads” or user-specific folders,
+- omit the target directory for artifacts.
+
+Failure to specify the canonical artifact directory
+constitutes a consultant role violation.
+
+---
+
 ## Deprecated Governance Artifacts
 
 The Consultant MUST actively identify
