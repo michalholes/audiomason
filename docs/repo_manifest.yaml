@@ -1248,7 +1248,6 @@ files:
   domains:
   - pipeline
   file_sha1: 731a2c966e6a884ca8e4b33067111f7a9f07cdc8
-{1a2c966e6a884ca8e4b33067111f7a9f07cdc8
   anchors: null
 - path: tests/test_sync_issues_archive.py
   domains:
