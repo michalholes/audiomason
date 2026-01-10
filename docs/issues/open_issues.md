@@ -628,31 +628,6 @@ Acceptance criteria:
 
 ---
 
-## #105 – Refactor: CLI arg parsing must not require config load (lazy-load config)
-- State: **OPEN**
-- Labels: —
-- Assignees: —
-- Milestone: —
-- Created: 2026-01-10T11:14:39Z
-- Updated: 2026-01-10T11:14:39Z
-
-Decision: Variant A (lazy-load config).
-
-Problem:
-- CLI currently loads config during argument parsing, which breaks clean environments and makes tests brittle.
-
-Scope:
-- _parse_args() must not call load_config().
-- Parse args first, then load config as part of command execution.
-
-Acceptance criteria:
-- `audiomason --help` and `audiomason --version` work without /etc config or user config.
-- `audiomason import ...` can be invoked in a clean env (unless config is truly required for that path).
-- Add/adjust tests to cover running without /etc/audiomason/config.yaml.
-- If `--config` is provided, it must be honored without requiring the default config file to exist.
-
----
-
 ## #106 – Dev tooling: add ruff + mypy (CI + local workflow)
 - State: **OPEN**
 - Labels: —
