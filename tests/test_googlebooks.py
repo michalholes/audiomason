@@ -7,13 +7,7 @@ def test_googlebooks_pick_best_strong_match_cs():
     entered_title = "Stoparuv pruvodce galaxii"
     author = "Douglas Adams"
     items = [
-        {
-            "volumeInfo": {
-                "title": "The Hitch Hiker's Guide to the Galaxy",
-                "authors": ["Douglas Adams"],
-                "language": "en",
-            }
-        },
+        {"volumeInfo": {"title": "The Hitch Hiker's Guide to the Galaxy", "authors": ["Douglas Adams"], "language": "en"}},
         {"volumeInfo": {"title": "Stopařův průvodce po Galaxii", "authors": ["Douglas Adams"], "language": "cs"}},
         {"volumeInfo": {"title": "Stoparuv pruvodce po galaxii", "authors": ["Douglas Adams"], "language": "cs"}},
     ]
