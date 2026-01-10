@@ -5,9 +5,9 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
 from audiomason.preflight_registry import (
+    MIN_CONTEXT_BOOKS,
     MIN_CONTEXT_NONE,
     MIN_CONTEXT_SOURCE,
-    MIN_CONTEXT_BOOKS,
     REGISTRY,
     default_steps,
     validate_steps_list,

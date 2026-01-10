@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import shutil
-import subprocess
 from pathlib import Path
 
-from audiomason.util import run_cmd, die, ensure_dir
+from audiomason.util import die, ensure_dir, run_cmd
 
 
 def _require_tool(name: str) -> None:

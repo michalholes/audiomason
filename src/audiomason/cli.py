@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from pathlib import Path
 from typing import Any, Dict
@@ -10,13 +9,13 @@ from audiomason.version import __version__
 
 SUPPORT_URL = "https://buymeacoffee.com/audiomason"
 SUPPORT_LINE = f"Support AudioMason: {SUPPORT_URL}"
-from audiomason.config import load_config, _validate_prompts_disable
 import audiomason.state as state
-from audiomason.state import Opts
+from audiomason.config import _validate_prompts_disable, load_config
 from audiomason.import_flow import run_import
+from audiomason.paths import get_output_root, validate_paths_contract
+from audiomason.state import Opts
+from audiomason.util import AmAbort, AmConfigError, AmExit, out
 from audiomason.verify import verify_library
-from audiomason.paths import validate_paths_contract, get_output_root
-from audiomason.util import out, AmExit, AmAbort, AmConfigError
 
 
 def _version_kv_line() -> str:

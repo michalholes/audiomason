@@ -1,23 +1,21 @@
 from __future__ import annotations
 
-import json
 import io
-import sys
-from audiomason.openlibrary import validate_author, validate_book
-from audiomason.naming import normalize_name, normalize_sentence
-
+import json
 import shutil
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
 import audiomason.state as state
+from audiomason.naming import normalize_name, normalize_sentence
+from audiomason.openlibrary import validate_author, validate_book
+from audiomason.paths import ARCHIVE_EXTS, get_archive_root, get_drop_root, get_output_root, get_stage_root
 from audiomason.pipeline_steps import resolve_pipeline_steps
-from audiomason.paths import get_drop_root, get_stage_root, get_output_root, get_archive_root, ARCHIVE_EXTS
-from audiomason.util import out, die, ensure_dir, slug, prompt, prompt_yes_no, AmConfigError
+from audiomason.preflight_orchestrator import PreflightContext, PreflightOrchestrator
 from audiomason.preflight_registry import DEFAULT_PREFLIGHT_STEPS, validate_steps_list
-from audiomason.preflight_orchestrator import PreflightOrchestrator, PreflightContext
-
+from audiomason.util import AmConfigError, die, ensure_dir, out, prompt, prompt_yes_no, slug
 
 # FEATURE #67: disable selected preflight prompts (skip prompts deterministically)
 
@@ -148,13 +146,14 @@ def _pf_prompt(cfg: dict, key: str, question: str, default: str) -> str:
             out(f"[TRACE] [preflight] disabled: {key} -> default: {default}")
         return default
     return prompt(question, default)
-from audiomason.ignore import load_ignore, add_ignore
 from audiomason.archives import unpack
 from audiomason.audio import convert_m4a_in_place, convert_opus_in_place
+from audiomason.covers import choose_cover, cover_from_input, extract_embedded_cover_from_mp3, find_file_cover
+from audiomason.ignore import add_ignore, load_ignore
+from audiomason.manifest import load_manifest, source_fingerprint, update_manifest
 from audiomason.rename import natural_sort, rename_sequential
-from audiomason.covers import choose_cover, find_file_cover, extract_embedded_cover_from_mp3, cover_from_input
-from audiomason.tags import wipe_id3, write_tags, write_cover, write_cover
-from audiomason.manifest import update_manifest, load_manifest, source_fingerprint
+from audiomason.tags import wipe_id3, write_cover, write_tags
+
 _AUDIO_EXTS = {".mp3", ".m4a", ".opus"}
 
 # Issue #75: prefix destination with source name when importing all sources ('a')
@@ -250,7 +249,7 @@ def _ol_offer_top(kind: str, entered: str, res, *, cfg: dict, key: str) -> str:
     e = (entered or "").strip()
     if top.casefold() == e.casefold():
         return entered
-    from audiomason.util import out, prompt_yes_no
+    from audiomason.util import out
     out(f"[ol] {kind} suggestion: '{e}' -> '{top}'")
     if _pf_prompt_yes_no(cfg, key, f"Use suggested {kind} '{top}'?", default_no=True):
         return top
@@ -259,8 +258,9 @@ def _ol_offer_top(kind: str, entered: str, res, *, cfg: dict, key: str) -> str:
 def _list_sources(drop_root: Path) -> list[Path]:
     # Filter ignored sources here so they never appear in the prompt list.
     import unicodedata
-    from audiomason.util import slug
+
     from audiomason.ignore import load_ignore
+    from audiomason.util import slug
 
     def _norm(s: str) -> str:
         return unicodedata.normalize("NFKC", s).strip().casefold()
@@ -711,7 +711,6 @@ def _resolve_source_arg(drop_root: Path, src_path: Path) -> Path:
 
 def _resolved_pipeline_steps(cfg: dict) -> list[str]:
     # single source of truth for pipeline order
-    from audiomason.pipeline_steps import resolve_pipeline_steps
     return resolve_pipeline_steps(cfg)
 
 

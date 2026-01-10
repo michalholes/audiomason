@@ -99,9 +99,10 @@ def test_clean_inbox_noninteractive_ask_fails_fast(monkeypatch, tmp_path: Path):
     src.mkdir()
     (src / '01.mp3').write_bytes(b'x')
 
+    import pytest
+
     import audiomason.import_flow as imp
     from audiomason.util import AmExit
-    import pytest
 
     monkeypatch.setattr(imp, 'get_drop_root', lambda cfg: drop_root)
     monkeypatch.setattr(imp, 'get_stage_root', lambda cfg: stage_root)

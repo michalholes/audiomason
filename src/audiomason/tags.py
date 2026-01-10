@@ -4,14 +4,14 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 from mutagen.id3 import (
+    APIC,
     ID3,
-    ID3NoHeaderError,
-    TIT2,
     TALB,
+    TCON,
+    TIT2,
     TPE1,
     TRCK,
-    TCON,
-    APIC,
+    ID3NoHeaderError,
 )
 
 from audiomason.paths import GENRE

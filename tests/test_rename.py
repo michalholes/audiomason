@@ -1,5 +1,5 @@
-from pathlib import Path
 from audiomason.rename import extract_track_num, natural_sort
+
 
 def test_extract_track_num():
     assert extract_track_num("01.mp3") == 1

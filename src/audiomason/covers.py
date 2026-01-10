@@ -2,15 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import shutil
-import subprocess
 from pathlib import Path
 from typing import Optional, Tuple
 
-from mutagen.id3 import ID3, ID3NoHeaderError, APIC
+from mutagen.id3 import APIC, ID3, ID3NoHeaderError
 
-from audiomason.paths import COVER_NAME, get_cache_root
 import audiomason.state as state
-from audiomason.util import run_cmd, out, die, ensure_dir, is_url, prompt
+from audiomason.paths import COVER_NAME, get_cache_root
+from audiomason.util import die, ensure_dir, is_url, out, prompt, run_cmd
 
 
 def extract_embedded_cover_from_mp3(mp3: Path) -> Optional[Tuple[bytes, str]]:

@@ -8,1292 +8,1264 @@ rules:
   fail_fast_on_missing_file: true
 files:
 - path: src/audiomason/__init__.py
-  domains:
-  - audio
-  file_sha1: bd38f401c097a02af233a12333e72ed91d4fae77
-  anchors: null
+  domains: ['audio']
+  file_sha1: "bd38f401c097a02af233a12333e72ed91d4fae77"
+  anchors:
 - path: src/audiomason/__main__.py
-  domains:
-  - audio
-  file_sha1: ee68b89a8db40e218db53d92892064a78972211f
-  anchors: null
+  domains: ['audio']
+  file_sha1: "ee68b89a8db40e218db53d92892064a78972211f"
+  anchors:
 - path: src/audiomason/archives.py
-  domains:
-  - audio
-  file_sha1: 85810fcbe7144860710b0ad03d053a9cb8fdb945
+  domains: ['audio']
+  file_sha1: "40b03e5ec1fd6100fe689c7619065fb8248d6778"
   anchors:
-  - anchor: def _require_tool(
-    first_line: 10
-    count: 1
-    context_before: ''
-    context_after: 'if not shutil.which(name):'
-  - anchor: def unpack(
-    first_line: 15
-    count: 1
-    context_before: ''
-    context_after: ensure_dir(outdir)
+    - anchor: "def _require_tool("
+      first_line: 9
+      count: 1
+      context_before: ""
+      context_after: "if not shutil.which(name):"
+    - anchor: "def unpack("
+      first_line: 14
+      count: 1
+      context_before: ""
+      context_after: "ensure_dir(outdir)"
 - path: src/audiomason/args.py
-  domains:
-  - audio
-  file_sha1: 3c4f8a1f6433423fa90cedd11501b1c69f8b586a
-  anchors: null
+  domains: ['audio']
+  file_sha1: "3c4f8a1f6433423fa90cedd11501b1c69f8b586a"
+  anchors:
 - path: src/audiomason/audio.py
-  domains:
-  - audio
-  file_sha1: 93323aec156e4311f3a86f8f1a9ac60821df014a
+  domains: ['audio']
+  file_sha1: "7af1a98f57233fcbbf6598d0d8cb9d0f80f01f50"
   anchors:
-  - anchor: def ffprobe_json(
-    first_line: 12
-    count: 1
-    context_before: ''
-    context_after: 'if not shutil.which(\"ffprobe\"):'
-  - anchor: def m4a_chapters(
-    first_line: 31
-    count: 1
-    context_before: ''
-    context_after: data = ffprobe_json(path)
-  - anchor: def ffmpeg_common_input(
-    first_line: 38
-    count: 1
-    context_before: ''
-    context_after: import os
-  - anchor: def opus_to_mp3_single(
-    first_line: 46
-    count: 1
-    context_before: ''
-    context_after: 'if not shutil.which(\"ffmpeg\"):'
-  - anchor: def m4a_to_mp3_single(
-    first_line: 59
-    count: 1
-    context_before: ''
-    context_after: 'if not shutil.which(\"ffmpeg\"):'
-  - anchor: def m4a_split_by_chapters(
-    first_line: 72
-    count: 1
-    context_before: ''
-    context_after: ch = m4a_chapters(src)
-  - anchor: def convert_opus_in_place(
-    first_line: 139
-    count: 1
-    context_before: ''
-    context_after: 'opuses = sorted((stage.rglob(\"*.opus\") if recursive else stage.glob(\"*.opus\")),
-      key=lambda p: p.as_posix().lower())'
-  - anchor: def convert_m4a_in_place(
-    first_line: 158
-    count: 1
-    context_before: ''
-    context_after: 'm4as = sorted((stage.rglob(\"*.m4a\") if recursive else stage.glob(\"*.m4a\")),
-      key=lambda p: p.as_posix().lower())'
+    - anchor: "def ffprobe_json("
+      first_line: 12
+      count: 1
+      context_before: ""
+      context_after: "if not shutil.which(\"ffprobe\"):"
+    - anchor: "def m4a_chapters("
+      first_line: 31
+      count: 1
+      context_before: ""
+      context_after: "data = ffprobe_json(path)"
+    - anchor: "def ffmpeg_common_input("
+      first_line: 38
+      count: 1
+      context_before: ""
+      context_after: "import os"
+    - anchor: "def opus_to_mp3_single("
+      first_line: 46
+      count: 1
+      context_before: ""
+      context_after: "if not shutil.which(\"ffmpeg\"):"
+    - anchor: "def m4a_to_mp3_single("
+      first_line: 59
+      count: 1
+      context_before: ""
+      context_after: "if not shutil.which(\"ffmpeg\"):"
+    - anchor: "def m4a_split_by_chapters("
+      first_line: 72
+      count: 1
+      context_before: ""
+      context_after: "ch = m4a_chapters(src)"
+    - anchor: "def convert_opus_in_place("
+      first_line: 139
+      count: 1
+      context_before: ""
+      context_after: "opuses = sorted((stage.rglob(\"*.opus\") if recursive else stage.glob(\"*.opus\")), key=lambda p: p.as_posix().lower())"
+    - anchor: "def convert_m4a_in_place("
+      first_line: 158
+      count: 1
+      context_before: ""
+      context_after: "m4as = sorted((stage.rglob(\"*.m4a\") if recursive else stage.glob(\"*.m4a\")), key=lambda p: p.as_posix().lower())"
 - path: src/audiomason/cache_gc.py
-  domains:
-  - audio
-  file_sha1: 3a94d07f33ee7e324586980e8e7a37e0093ef5e3
+  domains: ['audio']
+  file_sha1: "1cc986ba29360e782ebd6ebca57c8a7795238502"
   anchors:
-  - anchor: def _is_known_cache_file(
-    first_line: 15
-    count: 1
-    context_before: ''
-    context_after: 'if p.suffix.lower() not in KNOWN_EXTS:'
-  - anchor: class CacheEntry
-    first_line: 29
-    count: 1
-    context_before: '@dataclass(frozen=True)'
-    context_after: 'path: Path'
-  - anchor: def _iter_entries(
-    first_line: 35
-    count: 1
-    context_before: ''
-    context_after: 'if not cache_root.exists() or not cache_root.is_dir():'
-  - anchor: def cache_gc(
-    first_line: 52
-    count: 1
-    context_before: ''
-    context_after: cache_root = get_cache_root(cfg).expanduser().resolve()
+    - anchor: "def _is_known_cache_file("
+      first_line: 14
+      count: 1
+      context_before: ""
+      context_after: "if p.suffix.lower() not in KNOWN_EXTS:"
+    - anchor: "class CacheEntry"
+      first_line: 28
+      count: 1
+      context_before: "@dataclass(frozen=True)"
+      context_after: "path: Path"
+    - anchor: "def _iter_entries("
+      first_line: 34
+      count: 1
+      context_before: ""
+      context_after: "if not cache_root.exists() or not cache_root.is_dir():"
+    - anchor: "def cache_gc("
+      first_line: 51
+      count: 1
+      context_before: ""
+      context_after: "cache_root = get_cache_root(cfg).expanduser().resolve()"
 - path: src/audiomason/cli.py
-  domains:
-  - audio
-  - cli
-  file_sha1: 07500a6a1795eb08255eeae9b96744c472786a95
+  domains: ['audio', 'cli']
+  file_sha1: "92d6db4ea1835ea8f66e8e2a578eeb5e877a8e98"
   anchors:
-  - anchor: "def _version_kv_line("
-    first_line: 22
-    count: 1
-    context_before: ""
-    context_after: "# Stable, machine-readable version line (Feature #72)"
-  - anchor: "def _parent_parser("
-    first_line: 25
-    count: 1
-    context_before: "return f\"audiomason_version={__version__}\""
-    context_after: "# IMPORTANT (Issue #105):"
-  - anchor: "def _parse_args("
-    first_line: 68
-    count: 1
-    context_before: ""
-    context_after: "parent = _parent_parser()"
-  - anchor: "def _cmd_requires_config("
-    first_line: 167
-    count: 1
-    context_before: ""
-    context_after: "# Commands that can run without config:"
-  - anchor: "def _apply_config_defaults("
-    first_line: 183
-    count: 1
-    context_before: ""
-    context_after: "ffmpeg = cfg.get(\"ffmpeg\", {}) if isinstance(cfg.get(\"ffmpeg\", {}), dict) else {}"
-  - anchor: "def _argv_config_path("
-    first_line: 217
-    count: 1
-    context_before: ""
-    context_after: "_argv = list(sys.argv[1:])"
-  - anchor: "def _apply_builtin_defaults("
-    first_line: 227
-    count: 1
-    context_before: ""
-    context_after: "# Fallback defaults used when config is intentionally not loaded."
-  - anchor: "def _ns_to_opts("
-    first_line: 243
-    count: 1
-    context_before: ""
-    context_after: "publish_key = getattr(ns, \"publish\", None) or \"ask\""
-  - anchor: "def main("
-    first_line: 266
-    count: 1
-    context_before: ""
-    context_after: "try:"
-  - anchor: "add_argument"
-    first_line: 32
-    count: 33
-    context_before: "pp = argparse.ArgumentParser(add_help=False)"
-    context_after: "pp.add_argument(\"--dry-run\", action=\"store_true\", help=\"do not modify anything\")"
-  - anchor: "--yes"
-    first_line: 32
-    count: 1
-    context_before: "pp = argparse.ArgumentParser(add_help=False)"
-    context_after: "pp.add_argument(\"--dry-run\", action=\"store_true\", help=\"do not modify anything\")"
-  - anchor: "--dry-run"
-    first_line: 33
-    count: 1
-    context_before: "pp.add_argument(\"--yes\", action=\"store_true\", help=\"non-interactive\")"
-    context_after: "pp.add_argument(\"--quiet\", action=\"store_true\", help=\"less output\")"
-  - anchor: "--quiet"
-    first_line: 34
-    count: 4
-    context_before: "pp.add_argument(\"--dry-run\", action=\"store_true\", help=\"do not modify anything\")"
-    context_after: "pp.add_argument(\"--verbose\", action=\"store_true\", help=\"more output (overrides --quiet)\")"
-  - anchor: "--verbose"
-    first_line: 35
-    count: 2
-    context_before: "pp.add_argument(\"--quiet\", action=\"store_true\", help=\"less output\")"
-    context_after: "pp.add_argument(\"--debug\", action=\"store_true\", help=\"prefix every out() line with [TRACE]\")"
-  - anchor: "--debug"
-    first_line: 36
-    count: 2
-    context_before: "pp.add_argument(\"--verbose\", action=\"store_true\", help=\"more output (overrides --quiet)\")"
-    context_after: "pp.add_argument(\"--json\", action=\"store_true\", help=\"print machine-readable JSON report at end\")"
-  - anchor: "--json"
-    first_line: 37
-    count: 4
-    context_before: "pp.add_argument(\"--debug\", action=\"store_true\", help=\"prefix every out() line with [TRACE]\")"
-    context_after: "pp.add_argument(\"--config\", type=Path, help=\"explicit configuration.yaml path\")"
-  - anchor: "--config"
-    first_line: 38
-    count: 4
-    context_before: "pp.add_argument(\"--json\", action=\"store_true\", help=\"print machine-readable JSON report at end\")"
-    context_after: "pp.add_argument(\"--verify\", action=\"store_true\", help=\"verify library after import\")"
-  - anchor: "--verify"
-    first_line: 39
-    count: 4
-    context_before: "pp.add_argument(\"--config\", type=Path, help=\"explicit configuration.yaml path\")"
-    context_after: ""
-  - anchor: "--verify-root"
-    first_line: 41
-    count: 3
-    context_before: ""
-    context_after: ""
-  - anchor: "--lookup"
-    first_line: 44
-    count: 2
-    context_before: "g2 = pp.add_mutually_exclusive_group()"
-    context_after: "g2.add_argument(\"--no-lookup\", dest=\"lookup\", action=\"store_false\", help=\"disable OpenLibrary validation\")"
-  - anchor: "--no-lookup"
-    first_line: 45
-    count: 2
-    context_before: "g2.add_argument(\"--lookup\", dest=\"lookup\", action=\"store_true\", default=True, help=\"enable OpenLibrary validation\")"
-    context_after: ""
-  - anchor: "--publish"
-    first_line: 47
-    count: 1
-    context_before: ""
-    context_after: ""
-  - anchor: "--clean-inbox"
-    first_line: 50
-    count: 2
-    context_before: "# FEATURE #65: inbox cleanup control (delete processed source under DROP_ROOT)"
-    context_after: ""
-  - anchor: "--wipe-id3"
-    first_line: 53
-    count: 1
-    context_before: "g = pp.add_mutually_exclusive_group()"
-    context_after: "g.add_argument(\"--no-wipe-id3\", dest=\"wipe_id3\", action=\"store_false\", help=\"do not wipe ID3 tags (default)\")"
-  - anchor: "--no-wipe-id3"
-    first_line: 54
-    count: 1
-    context_before: "g.add_argument(\"--wipe-id3\", dest=\"wipe_id3\", action=\"store_true\", default=None, help=\"full wipe ID3 tags before writing new tags\")"
-    context_after: ""
-  - anchor: "--loudnorm"
-    first_line: 56
-    count: 1
-    context_before: ""
-    context_after: "pp.add_argument(\"--q-a\", default=None, help=\"lame VBR quality (2=high)\")"
-  - anchor: "--q-a"
-    first_line: 57
-    count: 1
-    context_before: "pp.add_argument(\"--loudnorm\", action=\"store_true\", default=None)"
-    context_after: ""
-  - anchor: "--split-chapters"
-    first_line: 59
-    count: 1
-    context_before: ""
-    context_after: "pp.add_argument(\"--no-split-chapters\", dest=\"split_chapters\", action=\"store_false\")"
-  - anchor: "--no-split-chapters"
-    first_line: 60
-    count: 1
-    context_before: "pp.add_argument(\"--split-chapters\", dest=\"split_chapters\", action=\"store_true\", default=None)"
-    context_after: ""
-  - anchor: "--cpu-cores"
-    first_line: 62
-    count: 1
-    context_before: ""
-    context_after: "pp.add_argument(\"--ff-loglevel\", choices=[\"info\", \"warning\", \"error\"], default=None)"
-  - anchor: "--ff-loglevel"
-    first_line: 63
-    count: 1
-    context_before: "pp.add_argument(\"--cpu-cores\", type=int, default=None, help=\"override CPU core count for perf tuning\")"
-    context_after: "return pp"
-  - anchor: "--version"
-    first_line: 76
-    count: 2
-    context_before: ")"
-    context_after: "ap.add_argument(\"--support\", action=\"store_true\", help=\"show support link and exit\")"
-  - anchor: "--support"
-    first_line: 77
-    count: 2
-    context_before: "ap.add_argument(\"--version\", action=\"store_true\", help=\"show version and exit\")"
-    context_after: ""
-  - anchor: "--processing-log"
-    first_line: 86
-    count: 3
-    context_before: "gpl.add_argument("
-    context_after: "dest=\"processing_log\","
-  - anchor: "--processing-log-path"
-    first_line: 93
-    count: 1
-    context_before: "gpl.add_argument("
-    context_after: "dest=\"processing_log_path\","
-  - anchor: "--preflight-disable"
-    first_line: 101
-    count: 1
-    context_before: "imp.add_argument("
-    context_after: "dest=\"preflight_disable\","
-  - anchor: "--disable-prompt"
-    first_line: 110
-    count: 2
-    context_before: "imp.add_argument("
-    context_after: "dest=\"disable_prompt\","
-  - anchor: "--no-support"
-    first_line: 119
-    count: 1
-    context_before: "imp.add_argument("
-    context_after: "dest=\"no_support\","
-  - anchor: "--days"
-    first_line: 135
-    count: 1
-    context_before: "gc = csub.add_parser(\"gc\", help=\"prune cover disk cache\", parents=[parent])"
-    context_after: "gc.add_argument(\"--max-mb\", type=int, default=None, help=\"keep cache size under M megabytes (prune oldest)\")"
-  - anchor: "--max-mb"
-    first_line: 136
-    count: 1
-    context_before: "gc.add_argument(\"--days\", type=int, default=None, help=\"remove cache files older than N days\")"
-    context_after: ""
-  - anchor: "--config="
-    first_line: 222
-    count: 1
-    context_before: "return Path(_argv[_i + 1])"
-    context_after: "return Path(_a.split(\"=\", 1)[1])"
-
+    - anchor: "def _version_kv_line("
+      first_line: 21
+      count: 1
+      context_before: ""
+      context_after: "# Stable, machine-readable version line (Feature #72)"
+    - anchor: "def _parent_parser("
+      first_line: 24
+      count: 1
+      context_before: "return f\"audiomason_version={__version__}\""
+      context_after: "# IMPORTANT (Issue #105):"
+    - anchor: "def _parse_args("
+      first_line: 67
+      count: 1
+      context_before: ""
+      context_after: "parent = _parent_parser()"
+    - anchor: "def _cmd_requires_config("
+      first_line: 166
+      count: 1
+      context_before: ""
+      context_after: "# Commands that can run without config:"
+    - anchor: "def _apply_config_defaults("
+      first_line: 182
+      count: 1
+      context_before: ""
+      context_after: "ffmpeg = cfg.get(\"ffmpeg\", {}) if isinstance(cfg.get(\"ffmpeg\", {}), dict) else {}"
+    - anchor: "def _argv_config_path("
+      first_line: 216
+      count: 1
+      context_before: ""
+      context_after: "_argv = list(sys.argv[1:])"
+    - anchor: "def _apply_builtin_defaults("
+      first_line: 226
+      count: 1
+      context_before: ""
+      context_after: "# Fallback defaults used when config is intentionally not loaded."
+    - anchor: "def _ns_to_opts("
+      first_line: 242
+      count: 1
+      context_before: ""
+      context_after: "publish_key = getattr(ns, \"publish\", None) or \"ask\""
+    - anchor: "def main("
+      first_line: 265
+      count: 1
+      context_before: ""
+      context_after: "try:"
+    - anchor: "add_argument"
+      first_line: 31
+      count: 33
+      context_before: "pp = argparse.ArgumentParser(add_help=False)"
+      context_after: "pp.add_argument(\"--dry-run\", action=\"store_true\", help=\"do not modify anything\")"
+    - anchor: "--yes"
+      first_line: 31
+      count: 1
+      context_before: "pp = argparse.ArgumentParser(add_help=False)"
+      context_after: "pp.add_argument(\"--dry-run\", action=\"store_true\", help=\"do not modify anything\")"
+    - anchor: "--dry-run"
+      first_line: 32
+      count: 1
+      context_before: "pp.add_argument(\"--yes\", action=\"store_true\", help=\"non-interactive\")"
+      context_after: "pp.add_argument(\"--quiet\", action=\"store_true\", help=\"less output\")"
+    - anchor: "--quiet"
+      first_line: 33
+      count: 4
+      context_before: "pp.add_argument(\"--dry-run\", action=\"store_true\", help=\"do not modify anything\")"
+      context_after: "pp.add_argument(\"--verbose\", action=\"store_true\", help=\"more output (overrides --quiet)\")"
+    - anchor: "--verbose"
+      first_line: 34
+      count: 2
+      context_before: "pp.add_argument(\"--quiet\", action=\"store_true\", help=\"less output\")"
+      context_after: "pp.add_argument(\"--debug\", action=\"store_true\", help=\"prefix every out() line with [TRACE]\")"
+    - anchor: "--debug"
+      first_line: 35
+      count: 2
+      context_before: "pp.add_argument(\"--verbose\", action=\"store_true\", help=\"more output (overrides --quiet)\")"
+      context_after: "pp.add_argument(\"--json\", action=\"store_true\", help=\"print machine-readable JSON report at end\")"
+    - anchor: "--json"
+      first_line: 36
+      count: 4
+      context_before: "pp.add_argument(\"--debug\", action=\"store_true\", help=\"prefix every out() line with [TRACE]\")"
+      context_after: "pp.add_argument(\"--config\", type=Path, help=\"explicit configuration.yaml path\")"
+    - anchor: "--config"
+      first_line: 37
+      count: 4
+      context_before: "pp.add_argument(\"--json\", action=\"store_true\", help=\"print machine-readable JSON report at end\")"
+      context_after: "pp.add_argument(\"--verify\", action=\"store_true\", help=\"verify library after import\")"
+    - anchor: "--verify"
+      first_line: 38
+      count: 4
+      context_before: "pp.add_argument(\"--config\", type=Path, help=\"explicit configuration.yaml path\")"
+      context_after: ""
+    - anchor: "--verify-root"
+      first_line: 40
+      count: 3
+      context_before: ""
+      context_after: ""
+    - anchor: "--lookup"
+      first_line: 43
+      count: 2
+      context_before: "g2 = pp.add_mutually_exclusive_group()"
+      context_after: "g2.add_argument(\"--no-lookup\", dest=\"lookup\", action=\"store_false\", help=\"disable OpenLibrary validation\")"
+    - anchor: "--no-lookup"
+      first_line: 44
+      count: 2
+      context_before: "g2.add_argument(\"--lookup\", dest=\"lookup\", action=\"store_true\", default=True, help=\"enable OpenLibrary validation\")"
+      context_after: ""
+    - anchor: "--publish"
+      first_line: 46
+      count: 1
+      context_before: ""
+      context_after: ""
+    - anchor: "--clean-inbox"
+      first_line: 49
+      count: 2
+      context_before: "# FEATURE #65: inbox cleanup control (delete processed source under DROP_ROOT)"
+      context_after: ""
+    - anchor: "--wipe-id3"
+      first_line: 52
+      count: 1
+      context_before: "g = pp.add_mutually_exclusive_group()"
+      context_after: "g.add_argument(\"--no-wipe-id3\", dest=\"wipe_id3\", action=\"store_false\", help=\"do not wipe ID3 tags (default)\")"
+    - anchor: "--no-wipe-id3"
+      first_line: 53
+      count: 1
+      context_before: "g.add_argument(\"--wipe-id3\", dest=\"wipe_id3\", action=\"store_true\", default=None, help=\"full wipe ID3 tags before writing new tags\")"
+      context_after: ""
+    - anchor: "--loudnorm"
+      first_line: 55
+      count: 1
+      context_before: ""
+      context_after: "pp.add_argument(\"--q-a\", default=None, help=\"lame VBR quality (2=high)\")"
+    - anchor: "--q-a"
+      first_line: 56
+      count: 1
+      context_before: "pp.add_argument(\"--loudnorm\", action=\"store_true\", default=None)"
+      context_after: ""
+    - anchor: "--split-chapters"
+      first_line: 58
+      count: 1
+      context_before: ""
+      context_after: "pp.add_argument(\"--no-split-chapters\", dest=\"split_chapters\", action=\"store_false\")"
+    - anchor: "--no-split-chapters"
+      first_line: 59
+      count: 1
+      context_before: "pp.add_argument(\"--split-chapters\", dest=\"split_chapters\", action=\"store_true\", default=None)"
+      context_after: ""
+    - anchor: "--cpu-cores"
+      first_line: 61
+      count: 1
+      context_before: ""
+      context_after: "pp.add_argument(\"--ff-loglevel\", choices=[\"info\", \"warning\", \"error\"], default=None)"
+    - anchor: "--ff-loglevel"
+      first_line: 62
+      count: 1
+      context_before: "pp.add_argument(\"--cpu-cores\", type=int, default=None, help=\"override CPU core count for perf tuning\")"
+      context_after: "return pp"
+    - anchor: "--version"
+      first_line: 75
+      count: 2
+      context_before: ")"
+      context_after: "ap.add_argument(\"--support\", action=\"store_true\", help=\"show support link and exit\")"
+    - anchor: "--support"
+      first_line: 76
+      count: 2
+      context_before: "ap.add_argument(\"--version\", action=\"store_true\", help=\"show version and exit\")"
+      context_after: ""
+    - anchor: "--processing-log"
+      first_line: 85
+      count: 3
+      context_before: "gpl.add_argument("
+      context_after: "dest=\"processing_log\","
+    - anchor: "--processing-log-path"
+      first_line: 92
+      count: 1
+      context_before: "gpl.add_argument("
+      context_after: "dest=\"processing_log_path\","
+    - anchor: "--preflight-disable"
+      first_line: 100
+      count: 1
+      context_before: "imp.add_argument("
+      context_after: "dest=\"preflight_disable\","
+    - anchor: "--disable-prompt"
+      first_line: 109
+      count: 2
+      context_before: "imp.add_argument("
+      context_after: "dest=\"disable_prompt\","
+    - anchor: "--no-support"
+      first_line: 118
+      count: 1
+      context_before: "imp.add_argument("
+      context_after: "dest=\"no_support\","
+    - anchor: "--days"
+      first_line: 134
+      count: 1
+      context_before: "gc = csub.add_parser(\"gc\", help=\"prune cover disk cache\", parents=[parent])"
+      context_after: "gc.add_argument(\"--max-mb\", type=int, default=None, help=\"keep cache size under M megabytes (prune oldest)\")"
+    - anchor: "--max-mb"
+      first_line: 135
+      count: 1
+      context_before: "gc.add_argument(\"--days\", type=int, default=None, help=\"remove cache files older than N days\")"
+      context_after: ""
+    - anchor: "--config="
+      first_line: 221
+      count: 1
+      context_before: "return Path(_argv[_i + 1])"
+      context_after: "return Path(_a.split(\"=\", 1)[1])"
 - path: src/audiomason/config.py
-  domains:
-  - audio
-  - config
-  file_sha1: 1ea0bf29415cf175c78a78e525cb26c78658202b
+  domains: ['audio', 'config']
+  file_sha1: "b33f6dcb6caeea6c35e8cee0c890ea54fa686df7"
   anchors:
-  - anchor: def _deep_merge(
-    first_line: 34
-    count: 1
-    context_before: ''
-    context_after: out = dict(a)
-  - anchor: def _load_yaml(
-    first_line: 43
-    count: 1
-    context_before: ''
-    context_after: 'if not p.exists():'
-  - anchor: def user_config_path(
-    first_line: 55
-    count: 1
-    context_before: SYSTEM_CONFIG_PATH = Path(\"/etc/audiomason/config.yaml\")
-    context_after: \"\"\"Deterministic user-space config path (XDG preferred).\"\"\"
-  - anchor: def load_config(
-    first_line: 62
-    count: 1
-    context_before: ''
-    context_after: 'tried: list[Path] = []'
-  - anchor: DEFAULTS
-    first_line: 9
-    count: 2
-    context_before: ''
-    context_after: '\"pipeline_steps\": None,'
+    - anchor: "def _deep_merge("
+      first_line: 36
+      count: 1
+      context_before: ""
+      context_after: "out = dict(a)"
+    - anchor: "def _load_yaml("
+      first_line: 45
+      count: 1
+      context_before: ""
+      context_after: "if not p.exists():"
+    - anchor: "def user_config_path("
+      first_line: 57
+      count: 1
+      context_before: "SYSTEM_CONFIG_PATH = Path(\"/etc/audiomason/config.yaml\")"
+      context_after: "\"\"\"Deterministic user-space config path (XDG preferred).\"\"\""
+    - anchor: "def _validate_prompts_disable("
+      first_line: 85
+      count: 1
+      context_before: ""
+      context_after: "prm = cfg.get(\"prompts\", {})"
+    - anchor: "def load_config("
+      first_line: 111
+      count: 1
+      context_before: ""
+      context_after: "tried: list[Path] = []"
+    - anchor: "DEFAULTS"
+      first_line: 11
+      count: 2
+      context_before: ""
+      context_after: "\"pipeline_steps\": None,"
 - path: src/audiomason/covers.py
-  domains:
-  - audio
-  file_sha1: 2d650b054a0e377dfaa4f3d75832de056458126c
+  domains: ['audio']
+  file_sha1: "8f1ce26dcac04fb517648957c27ae21c1bacef7a"
   anchors:
-  - anchor: def extract_embedded_cover_from_mp3(
-    first_line: 16
-    count: 1
-    context_before: ''
-    context_after: 'try:'
-  - anchor: def convert_image_to_jpg(
-    first_line: 27
-    count: 1
-    context_before: ''
-    context_after: 'if not shutil.which(\"ffmpeg\"):'
-  - anchor: def _sha1(
-    first_line: 49
-    count: 1
-    context_before: ''
-    context_after: return hashlib.sha1(s.encode(\"utf-8\", errors=\"ignore\")).hexdigest()
-  - anchor: def _sniff_image_ext(
-    first_line: 54
-    count: 1
-    context_before: ''
-    context_after: '# Detect image type from magic bytes (no external deps)'
-  - anchor: def download_url(
-    first_line: 63
-    count: 1
-    context_before: return (\"img\", \"application/octet-stream\")
-    context_after: ensure_dir(outpath.parent)
-  - anchor: def cover_from_input(
-    first_line: 77
-    count: 1
-    context_before: ''
-    context_after: raw = raw.strip()
-  - anchor: def find_file_cover(
-    first_line: 120
-    count: 1
-    context_before: ''
-    context_after: 'for ext in [\".avif\", \".jpg\", \".jpeg\", \".png\", \".webp\"]:'
-  - anchor: def extract_cover_from_m4a(
-    first_line: 128
-    count: 1
-    context_before: ''
-    context_after: 'if not shutil.which(\"ffmpeg\"):'
-  - anchor: def choose_cover(
-    first_line: 159
-    count: 1
-    context_before: ''
-    context_after: 'cfg: dict,'
+    - anchor: "def extract_embedded_cover_from_mp3("
+      first_line: 15
+      count: 1
+      context_before: ""
+      context_after: "try:"
+    - anchor: "def convert_image_to_jpg("
+      first_line: 26
+      count: 1
+      context_before: ""
+      context_after: "if not shutil.which(\"ffmpeg\"):"
+    - anchor: "def _sha1("
+      first_line: 48
+      count: 1
+      context_before: ""
+      context_after: "return hashlib.sha1(s.encode(\"utf-8\", errors=\"ignore\")).hexdigest()"
+    - anchor: "def _sniff_image_ext("
+      first_line: 53
+      count: 1
+      context_before: ""
+      context_after: "# Detect image type from magic bytes (no external deps)"
+    - anchor: "def download_url("
+      first_line: 62
+      count: 1
+      context_before: "return (\"img\", \"application/octet-stream\")"
+      context_after: "ensure_dir(outpath.parent)"
+    - anchor: "def cover_from_input("
+      first_line: 76
+      count: 1
+      context_before: ""
+      context_after: "raw = raw.strip()"
+    - anchor: "def find_file_cover("
+      first_line: 119
+      count: 1
+      context_before: ""
+      context_after: "for ext in [\".avif\", \".jpg\", \".jpeg\", \".png\", \".webp\"]:"
+    - anchor: "def extract_cover_from_m4a("
+      first_line: 127
+      count: 1
+      context_before: ""
+      context_after: "if not shutil.which(\"ffmpeg\"):"
+    - anchor: "def choose_cover("
+      first_line: 158
+      count: 1
+      context_before: ""
+      context_after: "cfg: dict,"
 - path: src/audiomason/googlebooks.py
-  domains:
-  - audio
-  file_sha1: 2b9988e97f53b0ad833d84f0075040397a1c82d5
+  domains: ['audio']
+  file_sha1: "fd35cf80c3a8a65e349344ddfa29672da8039019"
   anchors:
-  - anchor: def _dry_run(
-    first_line: 18
-    count: 1
-    context_before: ''
-    context_after: 'try:'
-  - anchor: def _norm(
-    first_line: 26
-    count: 1
-    context_before: ''
-    context_after: s = (s or \"\").strip()
-  - anchor: def _author_match(
-    first_line: 38
-    count: 1
-    context_before: ''
-    context_after: a = _norm(author)
-  - anchor: def _get_json(
-    first_line: 58
-    count: 1
-    context_before: ''
-    context_after: qs = urlencode(params)
-  - anchor: def _pick_best(
-    first_line: 67
-    count: 1
-    context_before: ''
-    context_after: t0 = _norm(entered_title)
-  - anchor: def suggest_title(
-    first_line: 110
-    count: 1
-    context_before: ''
-    context_after: '# No network calls in --dry-run'
-  - anchor: def _dia_score(
-    first_line: 101
-    count: 1
-    context_before: 'if len(top) >= 2:'
-    context_after: non_ascii = sum(1 for ch in x if ord(ch) > 127)
+    - anchor: "def _dry_run("
+      first_line: 16
+      count: 1
+      context_before: ""
+      context_after: "try:"
+    - anchor: "def _norm("
+      first_line: 24
+      count: 1
+      context_before: ""
+      context_after: "s = (s or \"\").strip()"
+    - anchor: "def _author_match("
+      first_line: 36
+      count: 1
+      context_before: ""
+      context_after: "a = _norm(author)"
+    - anchor: "def _get_json("
+      first_line: 56
+      count: 1
+      context_before: ""
+      context_after: "qs = urlencode(params)"
+    - anchor: "def _pick_best("
+      first_line: 65
+      count: 1
+      context_before: ""
+      context_after: "t0 = _norm(entered_title)"
+    - anchor: "def suggest_title("
+      first_line: 108
+      count: 1
+      context_before: ""
+      context_after: "# No network calls in --dry-run"
+    - anchor: "def _dia_score("
+      first_line: 99
+      count: 1
+      context_before: "if len(top) >= 2:"
+      context_after: "non_ascii = sum(1 for ch in x if ord(ch) > 127)"
 - path: src/audiomason/guess.py
-  domains:
-  - audio
-  file_sha1: 21a80c8a2731457a3394f4feaf7e816328c3a983
+  domains: ['audio']
+  file_sha1: "21a80c8a2731457a3394f4feaf7e816328c3a983"
   anchors:
-  - anchor: def guess_author_book(
-    first_line: 6
-    count: 1
-    context_before: ''
-    context_after: '\"\"\"Heuristic: ''Author - Title'' -> (''Surname.GivenNames'',
-      ''Title''); otherwise (None, ''Title'').\"\"\"'
+    - anchor: "def guess_author_book("
+      first_line: 6
+      count: 1
+      context_before: ""
+      context_after: "\"\"\"Heuristic: 'Author - Title' -> ('Surname.GivenNames', 'Title'); otherwise (None, 'Title').\"\"\""
 - path: src/audiomason/ignore.py
-  domains:
-  - audio
-  file_sha1: d6c67cfb31908690bbc1eccdf6df02d8b8b9332d
+  domains: ['audio']
+  file_sha1: "d6c67cfb31908690bbc1eccdf6df02d8b8b9332d"
   anchors:
-  - anchor: def _resolve_ignore_file(
-    first_line: 12
-    count: 1
-    context_before: ''
-    context_after: '# Legacy/global behavior: if path is None, use IGNORE_FILE (paths.py)'
-  - anchor: def load_ignore(
-    first_line: 23
-    count: 1
-    context_before: ''
-    context_after: 'keys: set[str] = set()'
-  - anchor: def add_ignore(
-    first_line: 35
-    count: 1
-    context_before: return keys
-    context_after: '# Back-compat:'
+    - anchor: "def _resolve_ignore_file("
+      first_line: 12
+      count: 1
+      context_before: ""
+      context_after: "# Legacy/global behavior: if path is None, use IGNORE_FILE (paths.py)"
+    - anchor: "def load_ignore("
+      first_line: 23
+      count: 1
+      context_before: ""
+      context_after: "keys: set[str] = set()"
+    - anchor: "def add_ignore("
+      first_line: 35
+      count: 1
+      context_before: "return keys"
+      context_after: "# Back-compat:"
 - path: src/audiomason/import_flow.py
-  domains:
-  - audio
-  - pipeline
-  - prompts
-  - publish
-  file_sha1: cb6b5b706e59cf02fae35f8932010c90ba3c7207
+  domains: ['audio', 'pipeline', 'prompts', 'publish']
+  file_sha1: "87bd42dc6f68febee075f044455672e3743725e6"
   anchors:
-  - anchor: def _ol_enabled(
-    first_line: 23
-    count: 1
-    context_before: '# Issue #82: OpenLibrary master switch'
-    context_after: return bool(cfg.get('_openlibrary_enabled', True))
-  - anchor: def _resolved_preflight_disable(
-    first_line: 38
-    count: 1
-    context_before: ''
-    context_after: '# Cache the resolved set on cfg to avoid repeated parsing.'
-  - anchor: def _pf_disabled(
-    first_line: 59
-    count: 1
-    context_before: ''
-    context_after: return key in _resolved_preflight_disable(cfg)
-  - anchor: def _pf_prompt_yes_no(
-    first_line: 62
-    count: 1
-    context_before: ''
-    context_after: '# Disabled => behave like pressing Enter (use existing defaults).'
-  - anchor: def _pf_prompt(
-    first_line: 71
-    count: 1
-    context_before: ''
-    context_after: '# Disabled => behave like pressing Enter (use default argument).'
-  - anchor: class BookGroup
-    first_line: 92
-    count: 1
-    context_before: '@dataclass(frozen=True)'
-    context_after: 'label: str'
-  - anchor: def _build_json_report(
-    first_line: 99
-    count: 1
-    context_before: ''
-    context_after: '# Deterministic: derived from manifest.json only'
-  - anchor: def _ol_offer_top(
-    first_line: 169
-    count: 1
-    context_before: ''
-    context_after: 'if not _ol_enabled(cfg):'
-  - anchor: def _list_sources(
-    first_line: 186
-    count: 1
-    context_before: ''
-    context_after: '# Filter ignored sources here so they never appear in the prompt
-      list.'
-  - anchor: def _choose_source(
-    first_line: 234
-    count: 1
-    context_before: ''
-    context_after: 'if not sources:'
-  - anchor: def _reset_dir(
-    first_line: 254
-    count: 1
-    context_before: ''
-    context_after: 'if p.exists():'
-  - anchor: def _stage_source(
-    first_line: 260
-    count: 1
-    context_before: ''
-    context_after: _reset_dir(stage_src)
-  - anchor: def _has_audio_files_here(
-    first_line: 281
-    count: 1
-    context_before: ''
-    context_after: 'for f in p.iterdir():'
-  - anchor: def _find_first_m4a(
-    first_line: 288
-    count: 1
-    context_before: ''
-    context_after: 'for f in sorted(p.rglob("*.m4a"), key=lambda x: x.as_posix().lower()):'
-  - anchor: def _detect_books(
-    first_line: 296
-    count: 1
-    context_before: '# [issue_75] _detect_books'
-    context_after: 'books: list[BookGroup] = []'
-  - anchor: def _choose_books(
-    first_line: 327
-    count: 1
-    context_before: ''
-    context_after: 'if len(books) == 1:'
-  - anchor: def _collect_audio_files(
-    first_line: 347
-    count: 1
-    context_before: '# [issue_75] _collect_audio_files'
-    context_after: 'mp3s = sorted([p for p in group_root.iterdir() if p.is_file()
-      and p.suffix.lower() == ".mp3"], key=lambda p: p.name.casefold())'
-  - anchor: def _preflight_global(
-    first_line: 352
-    count: 1
-    context_before: return mp3s + m4as + opuses
-    context_after: '# publish (placeholder, but must be decided before processing)'
-  - anchor: def _preflight_book(
-    first_line: 369
-    count: 1
-    context_before: ''
-    context_after: 'out(f"[book-meta] {i}/{n}: {b.label}")'
-  - anchor: def _is_dir_nonempty(
-    first_line: 383
-    count: 1
-    context_before: ''
-    context_after: return p.exists() and p.is_dir() and any(p.iterdir())
-  - anchor: def _next_available_title(
-    first_line: 386
-    count: 1
-    context_before: ''
-    context_after: '# Deterministic: Title, Title (2), Title (3), ...'
-  - anchor: def _output_dir(
-    first_line: 401
-    count: 1
-    context_before: '# [issue_75_v4] _output_dir'
-    context_after: '# Strict mapping: archive_root / author / title'
-  - anchor: def _copy_audio_to_out_no_rename(
-    first_line: 420
-    count: 1
-    context_before: ''
-    context_after: ensure_dir(outdir)
-  - anchor: def _copy_audio_to_out_raw(
-    first_line: 433
-    count: 1
-    context_before: ''
-    context_after: ensure_dir(outdir)
-  - anchor: def _copy_audio_to_out(
-    first_line: 446
-    count: 1
-    context_before: ''
-    context_after: copied = _copy_audio_to_out_raw(group_root, outdir)
-  - anchor: def _apply_book_steps(
-    first_line: 449
-    count: 1
-    context_before: return rename_sequential(outdir, copied)
-    context_after: '*,'
-  - anchor: def _write_dry_run_summary(
-    first_line: 492
-    count: 1
-    context_before: ''
-    context_after: name = f"{author} - {title}.dryrun.txt"
-  - anchor: def _process_book(
-    first_line: 501
-    count: 1
-    context_before: ''
-    context_after: 'out(f"[book] {i}/{n}: {b.label}")'
-  - anchor: def _resolve_source_arg(
-    first_line: 587
-    count: 1
-    context_before: ''
-    context_after: p = src_path
-  - anchor: def _resolved_pipeline_steps(
-    first_line: 617
-    count: 1
-    context_before: ''
-    context_after: '# single source of truth for pipeline order'
-  - anchor: def _is_interactive(
-    first_line: 623
-    count: 1
-    context_before: ''
-    context_after: '# Interactive = prompts are allowed (not --yes)'
-  - anchor: def _stage_cover_from_raw(
-    first_line: 628
-    count: 1
-    context_before: ''
-    context_after: '"""Resolve a cover input (URL/path) and stage it as cover.<ext>
-      inside the book folder.'
-  - anchor: def run_import(
-    first_line: 647
-    count: 1
-    context_before: ''
-    context_after: '# validate pipeline_steps early (fail fast, before FS touch)'
-  - anchor: def _norm(
-    first_line: 192
-    count: 2
-    context_before: ''
-    context_after: return unicodedata.normalize("NFKC", s).strip().casefold()
-  - anchor: def visit(
-    first_line: 308
-    count: 1
-    context_before: ''
-    context_after: 'if d != stage_src and _has_audio_files_here(d):'
-  - anchor: def _pl_resolve_target(
-    first_line: 678
-    count: 1
-    context_before: '# Issue #74: per-source processing log'
-    context_after: spec = cfg.get('processing_log', {})
-  - anchor: class _PLTee
-    first_line: 700
-    count: 1
-    context_before: ''
-    context_after: 'def __init__(self, a, b):'
-  - anchor: def _process_one_source(
-    first_line: 724
-    count: 1
-    context_before: ''
-    context_after: global prompt, prompt_yes_no
-  - anchor: def _run_one_source(
-    first_line: 1253
-    count: 1
-    context_before: ''
-    context_after: '# Explicit per-source boundary: delegate the full lifecycle to
-      _process_one_source().'
-  - anchor: def __init__(
-    first_line: 701
-    count: 1
-    context_before: 'class _PLTee(io.TextIOBase):'
-    context_after: self._a = a
-  - anchor: def write(
-    first_line: 704
-    count: 1
-    context_before: self._b = b
-    context_after: 'if s is None:'
-  - anchor: def flush(
-    first_line: 710
-    count: 1
-    context_before: return na
-    context_after: 'try:'
-  - anchor: def isatty(
-    first_line: 719
-    count: 1
-    context_before: pass
-    context_after: return False
-  - anchor: def _pl_prompt(
-    first_line: 763
-    count: 1
-    context_before: ''
-    context_after: 'try:'
-  - anchor: def _pl_prompt_yes_no(
-    first_line: 775
-    count: 1
-    context_before: ''
-    context_after: 'try:'
-  - anchor: PREPARE
-    first_line: 872
-    count: 3
-    context_before: ''
-    context_after: ''
-  - anchor: PROCESS
-    first_line: 463
-    count: 6
-    context_before: ') -> list[Path]:'
-    context_after: '# Unknown steps are validated earlier by resolve_pipeline_steps().'
+    - anchor: "def _ol_enabled("
+      first_line: 23
+      count: 1
+      context_before: "# Issue #82: OpenLibrary master switch"
+      context_after: "return bool(cfg.get('_openlibrary_enabled', True))"
+    - anchor: "def _resolved_preflight_steps("
+      first_line: 42
+      count: 1
+      context_before: ""
+      context_after: "cached = cfg.get('_preflight_steps_list')"
+    - anchor: "def _resolved_preflight_disable("
+      first_line: 71
+      count: 1
+      context_before: ""
+      context_after: "# Cache the resolved set on cfg to avoid repeated parsing."
+    - anchor: "def _resolved_prompts_disable("
+      first_line: 92
+      count: 1
+      context_before: ""
+      context_after: "# Cache the resolved set on cfg to avoid repeated parsing."
+    - anchor: "def _prompt_disabled("
+      first_line: 126
+      count: 1
+      context_before: ""
+      context_after: "ds = _resolved_prompts_disable(cfg)"
+    - anchor: "def _pf_disabled("
+      first_line: 130
+      count: 1
+      context_before: ""
+      context_after: "return _prompt_disabled(cfg, key) or (key in _resolved_preflight_disable(cfg))"
+    - anchor: "def _pf_prompt_yes_no("
+      first_line: 133
+      count: 1
+      context_before: ""
+      context_after: "# Disabled => behave like pressing Enter (use existing defaults)."
+    - anchor: "def _pf_prompt("
+      first_line: 142
+      count: 1
+      context_before: ""
+      context_after: "# Disabled => behave like pressing Enter (use default argument)."
+    - anchor: "class BookGroup"
+      first_line: 164
+      count: 1
+      context_before: "@dataclass(frozen=True)"
+      context_after: "label: str"
+    - anchor: "def _build_json_report("
+      first_line: 171
+      count: 1
+      context_before: ""
+      context_after: "# Deterministic: derived from manifest.json only"
+    - anchor: "def _ol_offer_top("
+      first_line: 241
+      count: 1
+      context_before: ""
+      context_after: "if not _ol_enabled(cfg):"
+    - anchor: "def _list_sources("
+      first_line: 258
+      count: 1
+      context_before: ""
+      context_after: "# Filter ignored sources here so they never appear in the prompt list."
+    - anchor: "def _choose_source("
+      first_line: 307
+      count: 1
+      context_before: ""
+      context_after: "if not sources:"
+    - anchor: "def _reset_dir("
+      first_line: 328
+      count: 1
+      context_before: ""
+      context_after: "if p.exists():"
+    - anchor: "def _stage_source("
+      first_line: 334
+      count: 1
+      context_before: ""
+      context_after: "_reset_dir(stage_src)"
+    - anchor: "def _has_audio_files_here("
+      first_line: 355
+      count: 1
+      context_before: ""
+      context_after: "for f in p.iterdir():"
+    - anchor: "def _find_first_m4a("
+      first_line: 362
+      count: 1
+      context_before: ""
+      context_after: "for f in sorted(p.rglob(\"*.m4a\"), key=lambda x: x.as_posix().lower()):"
+    - anchor: "def _detect_books("
+      first_line: 370
+      count: 1
+      context_before: "# [issue_75] _detect_books"
+      context_after: "books: list[BookGroup] = []"
+    - anchor: "def _choose_books("
+      first_line: 401
+      count: 1
+      context_before: ""
+      context_after: "# Issue #76: allow disabling choose_books prompt deterministically."
+    - anchor: "def _collect_audio_files("
+      first_line: 439
+      count: 1
+      context_before: "# [issue_75] _collect_audio_files"
+      context_after: "mp3s = sorted([p for p in group_root.iterdir() if p.is_file() and p.suffix.lower() == \".mp3\"], key=lambda p: p.name.casefold())"
+    - anchor: "def _preflight_global("
+      first_line: 444
+      count: 1
+      context_before: "return mp3s + m4as + opuses"
+      context_after: "# publish (placeholder, but must be decided before processing)"
+    - anchor: "def _preflight_book("
+      first_line: 461
+      count: 1
+      context_before: ""
+      context_after: "out(f\"[book-meta] {i}/{n}: {b.label}\")"
+    - anchor: "def _is_dir_nonempty("
+      first_line: 478
+      count: 1
+      context_before: ""
+      context_after: "return p.exists() and p.is_dir() and any(p.iterdir())"
+    - anchor: "def _next_available_title("
+      first_line: 481
+      count: 1
+      context_before: ""
+      context_after: "# Deterministic: Title, Title (2), Title (3), ..."
+    - anchor: "def _output_dir("
+      first_line: 496
+      count: 1
+      context_before: "# [issue_75_v4] _output_dir"
+      context_after: "# Strict mapping: archive_root / author / title"
+    - anchor: "def _copy_audio_to_out_no_rename("
+      first_line: 515
+      count: 1
+      context_before: ""
+      context_after: "ensure_dir(outdir)"
+    - anchor: "def _copy_audio_to_out_raw("
+      first_line: 528
+      count: 1
+      context_before: ""
+      context_after: "ensure_dir(outdir)"
+    - anchor: "def _copy_audio_to_out("
+      first_line: 541
+      count: 1
+      context_before: ""
+      context_after: "copied = _copy_audio_to_out_raw(group_root, outdir)"
+    - anchor: "def _apply_book_steps("
+      first_line: 544
+      count: 1
+      context_before: "return rename_sequential(outdir, copied)"
+      context_after: "*,"
+    - anchor: "def _write_dry_run_summary("
+      first_line: 587
+      count: 1
+      context_before: ""
+      context_after: "name = f\"{author} - {title}.dryrun.txt\""
+    - anchor: "def _process_book("
+      first_line: 596
+      count: 1
+      context_before: ""
+      context_after: "out(f\"[book] {i}/{n}: {b.label}\")"
+    - anchor: "def _resolve_source_arg("
+      first_line: 682
+      count: 1
+      context_before: ""
+      context_after: "p = src_path"
+    - anchor: "def _resolved_pipeline_steps("
+      first_line: 712
+      count: 1
+      context_before: ""
+      context_after: "# single source of truth for pipeline order"
+    - anchor: "def _is_interactive("
+      first_line: 717
+      count: 1
+      context_before: ""
+      context_after: "# Interactive = prompts are allowed (not --yes)"
+    - anchor: "def _stage_cover_from_raw("
+      first_line: 722
+      count: 1
+      context_before: ""
+      context_after: "\"\"\"Resolve a cover input (URL/path) and stage it as cover.<ext> inside the book folder."
+    - anchor: "def run_import("
+      first_line: 741
+      count: 1
+      context_before: ""
+      context_after: "# validate preflight_steps early (fail fast, before FS touch)"
+    - anchor: "def _norm("
+      first_line: 265
+      count: 2
+      context_before: ""
+      context_after: "return unicodedata.normalize(\"NFKC\", s).strip().casefold()"
+    - anchor: "def visit("
+      first_line: 382
+      count: 1
+      context_before: ""
+      context_after: "if d != stage_src and _has_audio_files_here(d):"
+    - anchor: "def _pl_resolve_target("
+      first_line: 774
+      count: 1
+      context_before: "# Issue #74: per-source processing log"
+      context_after: "spec = cfg.get('processing_log', {})"
+    - anchor: "class _PLTee"
+      first_line: 796
+      count: 1
+      context_before: ""
+      context_after: "def __init__(self, a, b):"
+    - anchor: "def _process_one_source("
+      first_line: 820
+      count: 1
+      context_before: ""
+      context_after: "global prompt, prompt_yes_no"
+    - anchor: "def _run_one_source("
+      first_line: 1378
+      count: 1
+      context_before: ""
+      context_after: "# Explicit per-source boundary: delegate the full lifecycle to _process_one_source()."
+    - anchor: "def __init__("
+      first_line: 797
+      count: 1
+      context_before: "class _PLTee(io.TextIOBase):"
+      context_after: "self._a = a"
+    - anchor: "def write("
+      first_line: 800
+      count: 1
+      context_before: "self._b = b"
+      context_after: "if s is None:"
+    - anchor: "def flush("
+      first_line: 806
+      count: 1
+      context_before: "return na"
+      context_after: "try:"
+    - anchor: "def isatty("
+      first_line: 815
+      count: 1
+      context_before: "pass"
+      context_after: "return False"
+    - anchor: "def _pl_prompt("
+      first_line: 859
+      count: 1
+      context_before: ""
+      context_after: "try:"
+    - anchor: "def _pl_prompt_yes_no("
+      first_line: 871
+      count: 1
+      context_before: ""
+      context_after: "try:"
+    - anchor: "def _step_publish_wipe("
+      first_line: 1022
+      count: 1
+      context_before: ""
+      context_after: "nonlocal publish, wipe"
+    - anchor: "def _step_clean_stage("
+      first_line: 1040
+      count: 1
+      context_before: ""
+      context_after: "nonlocal clean_stage"
+    - anchor: "def _exec_step("
+      first_line: 1058
+      count: 1
+      context_before: ""
+      context_after: "if step_key in {\"publish\", \"wipe_id3\"}:"
+    - anchor: "PREPARE"
+      first_line: 968
+      count: 2
+      context_before: ""
+      context_after: ""
+    - anchor: "PROCESS"
+      first_line: 558
+      count: 7
+      context_before: ") -> list[Path]:"
+      context_after: "# Unknown steps are validated earlier by resolve_pipeline_steps()."
 - path: src/audiomason/inspect.py
-  domains:
-  - audio
-  file_sha1: 826517e75b3e1a7b4231cabddb023e550bddba55
+  domains: ['audio']
+  file_sha1: "826517e75b3e1a7b4231cabddb023e550bddba55"
   anchors:
-  - anchor: def _is_audio(
-    first_line: 11
-    count: 1
-    context_before: ''
-    context_after: return p.suffix.lower() in AUDIO_EXTS
-  - anchor: def _is_archive(
-    first_line: 15
-    count: 1
-    context_before: ''
-    context_after: return p.suffix.lower() in ARCHIVE_EXTS
-  - anchor: def inspect_source(
-    first_line: 19
-    count: 1
-    context_before: ''
-    context_after: 'if not path.exists():'
+    - anchor: "def _is_audio("
+      first_line: 11
+      count: 1
+      context_before: ""
+      context_after: "return p.suffix.lower() in AUDIO_EXTS"
+    - anchor: "def _is_archive("
+      first_line: 15
+      count: 1
+      context_before: ""
+      context_after: "return p.suffix.lower() in ARCHIVE_EXTS"
+    - anchor: "def inspect_source("
+      first_line: 19
+      count: 1
+      context_before: ""
+      context_after: "if not path.exists():"
 - path: src/audiomason/manifest.py
-  domains:
-  - audio
-  file_sha1: 543c52d53dcef548aeff6a9db569ebfcc7a1184d
+  domains: ['audio']
+  file_sha1: "e7b6021ba0ea6680722e75bd9159aca47a5ee173"
   anchors:
-  - anchor: def source_fingerprint(
-    first_line: 10
-    count: 1
-    context_before: ''
-    context_after: r = src.expanduser().resolve()
-  - anchor: def manifest_path(
-    first_line: 49
-    count: 1
-    context_before: ''
-    context_after: return stage_run / MANIFEST_NAME
-  - anchor: def load_manifest(
-    first_line: 52
-    count: 1
-    context_before: ''
-    context_after: p = manifest_path(stage_run)
-  - anchor: def _deep_merge(
-    first_line: 62
-    count: 1
-    context_before: ''
-    context_after: 'for k, v in src.items():'
-  - anchor: def write_manifest_atomic(
-    first_line: 70
-    count: 1
-    context_before: ''
-    context_after: stage_run.mkdir(parents=True, exist_ok=True)
-  - anchor: def update_manifest(
-    first_line: 77
-    count: 1
-    context_before: ''
-    context_after: cur = load_manifest(stage_run)
+    - anchor: "def source_fingerprint("
+      first_line: 10
+      count: 1
+      context_before: ""
+      context_after: "r = src.expanduser().resolve()"
+    - anchor: "def manifest_path("
+      first_line: 49
+      count: 1
+      context_before: ""
+      context_after: "return stage_run / MANIFEST_NAME"
+    - anchor: "def load_manifest("
+      first_line: 52
+      count: 1
+      context_before: ""
+      context_after: "p = manifest_path(stage_run)"
+    - anchor: "def _deep_merge("
+      first_line: 62
+      count: 1
+      context_before: ""
+      context_after: "for k, v in src.items():"
+    - anchor: "def write_manifest_atomic("
+      first_line: 70
+      count: 1
+      context_before: ""
+      context_after: "stage_run.mkdir(parents=True, exist_ok=True)"
+    - anchor: "def update_manifest("
+      first_line: 77
+      count: 1
+      context_before: ""
+      context_after: "cur = load_manifest(stage_run)"
 - path: src/audiomason/naming.py
-  domains:
-  - audio
-  file_sha1: aaa61a3f5a62cadd99f72d6357246f25cf1c7a61
+  domains: ['audio']
+  file_sha1: "aaa61a3f5a62cadd99f72d6357246f25cf1c7a61"
   anchors:
-  - anchor: def normalize_name(
-    first_line: 8
-    count: 1
-    context_before: ''
-    context_after: 'if not s:'
-  - anchor: def normalize_sentence(
-    first_line: 32
-    count: 1
-    context_before: ''
-    context_after: \"\"\"
+    - anchor: "def normalize_name("
+      first_line: 8
+      count: 1
+      context_before: ""
+      context_after: "if not s:"
+    - anchor: "def normalize_sentence("
+      first_line: 32
+      count: 1
+      context_before: ""
+      context_after: "\"\"\""
 - path: src/audiomason/openlibrary.py
-  domains:
-  - audio
-  file_sha1: 37004c2ea84f342280c55d2fcccf8c8be57d461d
+  domains: ['audio']
+  file_sha1: "6a214a7af4a58712bb3080d05b843d219ebfdf6c"
   anchors:
-  - anchor: def _cache_path(
-    first_line: 25
-    count: 1
-    context_before: ''
-    context_after: 'try:'
-  - anchor: def _cache_load(
-    first_line: 35
-    count: 1
-    context_before: ''
-    context_after: global _CACHE
-  - anchor: def _cache_get(
-    first_line: 52
-    count: 1
-    context_before: ''
-    context_after: c = _cache_load()
-  - anchor: def _cache_put(
-    first_line: 57
-    count: 1
-    context_before: ''
-    context_after: '# respect dry-run: no cache writes'
-  - anchor: class OLResult
-    first_line: 80
-    count: 1
-    context_before: '@dataclass(frozen=True)'
-    context_after: 'ok: bool'
-  - anchor: def _get_json(
-    first_line: 87
-    count: 1
-    context_before: ''
-    context_after: qs = urlencode(params)
-  - anchor: def validate_author(
-    first_line: 96
-    count: 1
-    context_before: ''
-    context_after: q = (name or \"\").strip()
-  - anchor: def _norm_title(
-    first_line: 129
-    count: 1
-    context_before: ''
-    context_after: s = (s or \"\").strip()
-  - anchor: def _sanitize_title_suggestion(
-    first_line: 136
-    count: 1
-    context_before: ''
-    context_after: \"\"\"No-diacritics suggestion, and suppress suggestion if it matches
-      entered.\"\"\"
-  - anchor: def _best_title_suggestion(
-    first_line: 148
-    count: 1
-    context_before: ''
-    context_after: n0 = _norm_title(entered)
-  - anchor: def _fallback_q(
-    first_line: 171
-    count: 1
-    context_before: ''
-    context_after: s = (title or \"\").strip()
-  - anchor: def _author_match(
-    first_line: 180
-    count: 1
-    context_before: ''
-    context_after: a = _norm_title(author)
-  - anchor: def _lang_codes(
-    first_line: 200
-    count: 1
-    context_before: ''
-    context_after: 'out: set[str] = set()'
-  - anchor: def _pick_edition_title(
-    first_line: 213
-    count: 1
-    context_before: ''
-    context_after: 'if not work_key.startswith(\"/works/\"):'
-  - anchor: def validate_book(
-    first_line: 234
-    count: 1
-    context_before: ''
-    context_after: a = (author or \"\").strip()
+    - anchor: "def _cache_path("
+      first_line: 25
+      count: 1
+      context_before: ""
+      context_after: "try:"
+    - anchor: "def _cache_load("
+      first_line: 35
+      count: 1
+      context_before: ""
+      context_after: "global _CACHE"
+    - anchor: "def _cache_get("
+      first_line: 52
+      count: 1
+      context_before: ""
+      context_after: "c = _cache_load()"
+    - anchor: "def _cache_put("
+      first_line: 57
+      count: 1
+      context_before: ""
+      context_after: "# respect dry-run: no cache writes"
+    - anchor: "class OLResult"
+      first_line: 80
+      count: 1
+      context_before: "@dataclass(frozen=True)"
+      context_after: "ok: bool"
+    - anchor: "def _get_json("
+      first_line: 87
+      count: 1
+      context_before: ""
+      context_after: "qs = urlencode(params)"
+    - anchor: "def validate_author("
+      first_line: 96
+      count: 1
+      context_before: ""
+      context_after: "q = (name or \"\").strip()"
+    - anchor: "def _norm_title("
+      first_line: 129
+      count: 1
+      context_before: ""
+      context_after: "s = (s or \"\").strip()"
+    - anchor: "def _sanitize_title_suggestion("
+      first_line: 136
+      count: 1
+      context_before: ""
+      context_after: "\"\"\"No-diacritics suggestion, and suppress suggestion if it matches entered.\"\"\""
+    - anchor: "def _best_title_suggestion("
+      first_line: 148
+      count: 1
+      context_before: ""
+      context_after: "n0 = _norm_title(entered)"
+    - anchor: "def _fallback_q("
+      first_line: 171
+      count: 1
+      context_before: ""
+      context_after: "s = (title or \"\").strip()"
+    - anchor: "def _author_match("
+      first_line: 180
+      count: 1
+      context_before: ""
+      context_after: "a = _norm_title(author)"
+    - anchor: "def _lang_codes("
+      first_line: 200
+      count: 1
+      context_before: ""
+      context_after: "out: set[str] = set()"
+    - anchor: "def _pick_edition_title("
+      first_line: 213
+      count: 1
+      context_before: ""
+      context_after: "if not work_key.startswith(\"/works/\"):"
+    - anchor: "def validate_book("
+      first_line: 234
+      count: 1
+      context_before: ""
+      context_after: "a = (author or \"\").strip()"
 - path: src/audiomason/paths.py
-  domains:
-  - audio
-  file_sha1: ee9d76947ad7cb7769b89c2516312334b758b478
+  domains: ['audio']
+  file_sha1: "0b1f498b2d61e08658bb7f55afcd24e40138edb4"
   anchors:
-  - anchor: def _default_user_base(
-    first_line: 7
-    count: 1
-    context_before: ''
-    context_after: '# Safe runtime default (does not require AUDIOMASON_ROOT / repo).'
-  - anchor: def _find_repo_root(
-    first_line: 14
-    count: 1
-    context_before: ''
-    context_after: '# Deterministic bootstrap: repo root is the first parent containing
-      pyproject.toml'
-  - anchor: def _env_base(
-    first_line: 27
-    count: 1
-    context_before: ''
-    context_after: env_root = os.environ.get(\"AUDIOMASON_ROOT\")
-  - anchor: def require_audiomason_root(
-    first_line: 40
-    count: 1
-    context_before: ''
-    context_after: env = os.environ.get(\"AUDIOMASON_ROOT\")
-  - anchor: def _data_base(
-    first_line: 57
-    count: 1
-    context_before: ''
-    context_after: global _base
-  - anchor: def _defaults_for(
-    first_line: 70
-    count: 1
-    context_before: ''
-    context_after: base = _data_base()
-  - anchor: def _ensure_abs(
-    first_line: 87
-    count: 1
-    context_before: ''
-    context_after: 'if not p.is_absolute():'
-  - anchor: def _resolve_path(
-    first_line: 92
-    count: 1
-    context_before: ''
-    context_after: p0 = Path(val).expanduser()
-  - anchor: def validate_paths_contract(
-    first_line: 99
-    count: 1
-    context_before: ''
-    context_after: '# NOTE: AUDIOMASON_ROOT is app-root (config discovery). Data paths
-      may live anywhere.'
-  - anchor: def _get(
-    first_line: 124
-    count: 1
-    context_before: '# ======================'
-    context_after: cfg0 = cfg or {}
-  - anchor: def get_drop_root(
-    first_line: 152
-    count: 1
-    context_before: ''
-    context_after: return _get(cfg, (\"inbox\", \"drop_root\"), _defaults_for(cfg)[\"inbox\"])
-  - anchor: def get_stage_root(
-    first_line: 156
-    count: 1
-    context_before: ''
-    context_after: return _get(cfg, (\"stage\", \"stage_root\"), _defaults_for(cfg)[\"stage\"])
-  - anchor: def get_output_root(
-    first_line: 160
-    count: 1
-    context_before: ''
-    context_after: return _get(cfg, (\"output\", \"ready\", \"output_root\"), _defaults_for(cfg)[\"output\"])
-  - anchor: def get_archive_root(
-    first_line: 164
-    count: 1
-    context_before: ''
-    context_after: return _get(cfg, (\"archive\", \"archive_ro\", \"archive_root\"),
-      _defaults_for(cfg)[\"archive\"])
-  - anchor: def get_cache_root(
-    first_line: 168
-    count: 1
-    context_before: ''
-    context_after: return _get(cfg, \"cache\", _defaults_for(cfg)[\"cache\"])
-  - anchor: def get_ignore_file(
-    first_line: 172
-    count: 1
-    context_before: ''
-    context_after: return get_drop_root(cfg) / \".abook_ignore\"
+    - anchor: "def _default_user_base("
+      first_line: 9
+      count: 1
+      context_before: ""
+      context_after: "# Safe runtime default (does not require AUDIOMASON_ROOT / repo)."
+    - anchor: "def _find_repo_root("
+      first_line: 16
+      count: 1
+      context_before: ""
+      context_after: "# Deterministic bootstrap: repo root is the first parent containing pyproject.toml"
+    - anchor: "def _env_base("
+      first_line: 29
+      count: 1
+      context_before: ""
+      context_after: "env_root = os.environ.get(\"AUDIOMASON_ROOT\")"
+    - anchor: "def require_audiomason_root("
+      first_line: 41
+      count: 1
+      context_before: ""
+      context_after: "env = os.environ.get(\"AUDIOMASON_ROOT\")"
+    - anchor: "def _data_base("
+      first_line: 58
+      count: 1
+      context_before: ""
+      context_after: "global _base"
+    - anchor: "def _defaults_for("
+      first_line: 71
+      count: 1
+      context_before: ""
+      context_after: "base = _data_base()"
+    - anchor: "def _ensure_abs("
+      first_line: 88
+      count: 1
+      context_before: ""
+      context_after: "if not p.is_absolute():"
+    - anchor: "def _resolve_path("
+      first_line: 93
+      count: 1
+      context_before: ""
+      context_after: "p0 = Path(val).expanduser()"
+    - anchor: "def validate_paths_contract("
+      first_line: 100
+      count: 1
+      context_before: ""
+      context_after: "# NOTE: AUDIOMASON_ROOT is app-root (config discovery). Data paths may live anywhere."
+    - anchor: "def _get("
+      first_line: 125
+      count: 1
+      context_before: "# ======================"
+      context_after: "cfg0 = cfg or {}"
+    - anchor: "def get_drop_root("
+      first_line: 153
+      count: 1
+      context_before: ""
+      context_after: "return _get(cfg, (\"inbox\", \"drop_root\"), _defaults_for(cfg)[\"inbox\"])"
+    - anchor: "def get_stage_root("
+      first_line: 157
+      count: 1
+      context_before: ""
+      context_after: "return _get(cfg, (\"stage\", \"stage_root\"), _defaults_for(cfg)[\"stage\"])"
+    - anchor: "def get_output_root("
+      first_line: 161
+      count: 1
+      context_before: ""
+      context_after: "return _get(cfg, (\"output\", \"ready\", \"output_root\"), _defaults_for(cfg)[\"output\"])"
+    - anchor: "def get_archive_root("
+      first_line: 165
+      count: 1
+      context_before: ""
+      context_after: "return _get(cfg, (\"archive\", \"archive_ro\", \"archive_root\"), _defaults_for(cfg)[\"archive\"])"
+    - anchor: "def get_cache_root("
+      first_line: 169
+      count: 1
+      context_before: ""
+      context_after: "return _get(cfg, \"cache\", _defaults_for(cfg)[\"cache\"])"
+    - anchor: "def get_ignore_file("
+      first_line: 173
+      count: 1
+      context_before: ""
+      context_after: "return get_drop_root(cfg) / \".abook_ignore\""
 - path: src/audiomason/pipeline_steps.py
-  domains:
-  - audio
-  - pipeline
-  file_sha1: d39ba736cf08d926499d19e47c6065a58721cd7f
+  domains: ['audio', 'pipeline']
+  file_sha1: "d39ba736cf08d926499d19e47c6065a58721cd7f"
   anchors:
-  - anchor: def _validate_step_order(
-    first_line: 43
-    count: 1
-    context_before: ''
-    context_after: 'idx = {name: i for i, name in enumerate(steps)}'
-  - anchor: def resolve_pipeline_steps(
-    first_line: 49
-    count: 1
-    context_before: ''
-    context_after: steps = cfg.get(\"pipeline_steps\")
-  - anchor: PROCESS
-    first_line: 26
-    count: 1
-    context_before: '# Ordering constraints (fail fast for impossible pipelines in
-      current implementation):'
-    context_after: '# - chapters/split are stage-level (even if currently no-op)'
-- path: src/audiomason/publish.py
-  domains:
-  - audio
-  - publish
-  file_sha1: 6a1d15826a1b46a47c14efbfd31d612393caf475
-  anchors: null
-- path: src/audiomason/rename.py
-  domains:
-  - audio
-  file_sha1: 219b1c59b47c8ce49bbd51a4b54985f084afc5e1
-  anchors:
-  - anchor: def extract_track_num(
-    first_line: 13
-    count: 1
-    context_before: ''
-    context_after: base = Path(name).stem
-  - anchor: def natural_sort(
-    first_line: 31
-    count: 1
-    context_before: ''
-    context_after: 'def key(p: Path):'
-  - anchor: def rename_sequential(
-    first_line: 39
-    count: 1
-    context_before: ''
-    context_after: tmp = []
-  - anchor: def key(
-    first_line: 32
-    count: 1
-    context_before: 'def natural_sort(files: list[Path]) -> list[Path]:'
-    context_after: n = extract_track_num(p.name)
-- path: src/audiomason/state.py
-  domains:
-  - audio
-  file_sha1: a1821bb5ed8af361d60227ba716928876331676b
-  anchors:
-  - anchor: class Opts
-    first_line: 13
-    count: 1
-    context_before: '@dataclass'
-    context_after: 'yes: bool = False'
-- path: src/audiomason/tags.py
-  domains:
-  - audio
-  file_sha1: 882f405edfcf00a85956e4f7cdfa8aaefb56eaa5
-  anchors:
-  - anchor: def _load_id3(
-    first_line: 21
-    count: 1
-    context_before: ''
-    context_after: 'try:'
-  - anchor: def wipe_id3(
-    first_line: 30
-    count: 1
-    context_before: ''
-    context_after: 'for mp3 in files:'
-  - anchor: def write_tags(
-    first_line: 39
-    count: 1
-    context_before: ''
-    context_after: 'files: Iterable[Path],'
-  - anchor: def write_cover(
-    first_line: 67
-    count: 1
-    context_before: ''
-    context_after: 'mp3s: Iterable[Path],'
-- path: src/audiomason/util.py
-  domains:
-  - audio
-  - publish
-  file_sha1: d876d3abf2aac918fb9e40cc65416efe6a94cfa9
-  anchors:
-  - anchor: class AmExit
-    first_line: 17
-    count: 1
-    context_before: '# ======================'
-    context_after: \"\"\"Expected termination (no traceback).\"\"\"
-  - anchor: class AmConfigError
-    first_line: 27
-    count: 1
-    context_before: ''
-    context_after: pass
-  - anchor: class AmValidationError
-    first_line: 31
-    count: 1
-    context_before: ''
-    context_after: pass
-  - anchor: class AmExternalToolError
-    first_line: 35
-    count: 1
-    context_before: ''
-    context_after: pass
-  - anchor: class AmAbort
-    first_line: 39
-    count: 1
-    context_before: ''
-    context_after: exit_code = 130
-  - anchor: def run_cmd(
-    first_line: 43
-    count: 1
-    context_before: ''
-    context_after: \"\"\"subprocess.run wrapper that turns expected failures into
-      AmExit.\"\"\"
-  - anchor: def out(
-    first_line: 57
-    count: 1
-    context_before: ''
-    context_after: 'try:'
-  - anchor: def die(
-    first_line: 73
-    count: 1
-    context_before: return
-    context_after: '# Backward-compatible helper: raise a controlled exit instead
-      of printing/traceback.'
-  - anchor: def strip_diacritics(
-    first_line: 84
-    count: 1
-    context_before: ''
-    context_after: return unicodedata.normalize(\"NFKD\", s).encode(\"ascii\", \"ignore\").decode(\"ascii\")
-  - anchor: def clean_text(
-    first_line: 88
-    count: 1
-    context_before: ''
-    context_after: s = strip_diacritics(s)
-  - anchor: def slug(
-    first_line: 94
-    count: 1
-    context_before: ''
-    context_after: s = strip_diacritics(s)
-  - anchor: def two(
-    first_line: 102
-    count: 1
-    context_before: ''
-    context_after: return f\"{n:02d}\"
-  - anchor: def ensure_dir(
-    first_line: 106
-    count: 1
-    context_before: ''
-    context_after: p.mkdir(parents=True, exist_ok=True)
-  - anchor: def unique_path(
-    first_line: 110
-    count: 1
-    context_before: ''
-    context_after: outp = p
-  - anchor: def prompt(
-    first_line: 119
-    count: 1
-    context_before: ''
-    context_after: 'try:'
-  - anchor: def prompt_yes_no(
-    first_line: 139
-    count: 1
-    context_before: ''
-    context_after: 'try:'
-  - anchor: def prune_empty_dirs(
-    first_line: 157
-    count: 1
-    context_before: ''
-    context_after: 'try:'
-  - anchor: def is_url(
-    first_line: 169
-    count: 1
-    context_before: ''
-    context_after: return bool(re.match(r\"^https?://\", s.strip(), flags=re.I))
-  - anchor: def find_archive_match(
-    first_line: 173
-    count: 1
-    context_before: ''
-    context_after: \"\"\"
-  - anchor: def enable_trace(
-    first_line: 244
-    count: 1
-    context_before: ''
-    context_after: \"\"\"
-  - anchor: def __init__(
-    first_line: 21
-    count: 2
-    context_before: ''
-    context_after: super().__init__(msg)
-  - anchor: def _t(
-    first_line: 255
-    count: 1
-    context_before: ''
-    context_after: '# Respect --quiet (runtime state, not a stale imported name)'
-  - anchor: def run(
-    first_line: 271
-    count: 1
-    context_before: ''
-    context_after: _t(f\"subprocess.run args={args!r} kwargs={kwargs!r}\")
-  - anchor: def check_call(
-    first_line: 275
-    count: 1
-    context_before: ''
-    context_after: _t(f\"subprocess.check_call args={args!r} kwargs={kwargs!r}\")
-  - anchor: def check_output(
-    first_line: 279
-    count: 1
-    context_before: ''
-    context_after: _t(f\"subprocess.check_output args={args!r} kwargs={kwargs!r}\")
-  - anchor: class Popen
-    first_line: 283
-    count: 1
-    context_before: ''
-    context_after: 'def __init__(self, *args, **kwargs):'
-  - anchor: def _wrap(
-    first_line: 297
-    count: 2
-    context_before: fn = getattr(shutil, name)
-    context_after: 'def w(*args, **kwargs):'
-  - anchor: def w(
-    first_line: 298
-    count: 2
-    context_before: 'def _wrap(fn, nm):'
-    context_after: _t(f\"shutil.{nm} args={args!r} kwargs={kwargs!r}\")
-- path: src/audiomason/verify.py
-  domains:
-  - audio
-  file_sha1: 0728bac174ef00f0a78f8bbcee66b74ffc9abb15
-  anchors:
-  - anchor: def verify_library(
-    first_line: 18
-    count: 1
-    context_before: ''
-    context_after: \"\"\"
-- path: src/audiomason/version.py
-  domains:
-  - audio
-  file_sha1: dbe9dea7a73dca63188fafac011a4855d49629fd
-  anchors:
-  - anchor: def _pkg_version(
-    first_line: 6
-    count: 1
-    context_before: ''
-    context_after: 'try:'
-- path: tests/test_preflight_steps_order.py
-  domains:
-  - tests
-  file_sha1: 0cf12c398af1111b45cdb0221d823c8114770e92
-- path: docs/CONFIGURATION.md
-  domains:
-  - docs
-  file_sha1: b6727b852bd632c5fcfbce3ac4d7cb0c3cc5a3c5
-- path: docs/design/preflight_orchestration.md
-  domains:
-  - docs
-  file_sha1: 23812b393ae52380c92324700ac3348fcfc3df39
-  anchors: null
-- path: src/audiomason/preflight_registry.py
-  sha1: 6326f53a03c87a81e3d88eb43251be1275fe3cda
+    - anchor: "def _validate_step_order("
+      first_line: 43
+      count: 1
+      context_before: ""
+      context_after: "idx = {name: i for i, name in enumerate(steps)}"
+    - anchor: "def resolve_pipeline_steps("
+      first_line: 49
+      count: 1
+      context_before: ""
+      context_after: "steps = cfg.get(\"pipeline_steps\")"
+    - anchor: "PROCESS"
+      first_line: 26
+      count: 1
+      context_before: "# Ordering constraints (fail fast for impossible pipelines in current implementation):"
+      context_after: "# - chapters/split are stage-level (even if currently no-op)"
 - path: src/audiomason/preflight_orchestrator.py
-  sha1: 1991530d696d013679ca2b478e9d1f9add9a4b00
-- path: docs/design/preflight_orchestration.md
-  sha1: 962d757da95e352c750f1bf8e8649d13ff3b5a60
-- path: tests/test_gov_versions.py
-  domains: []
-  file_sha1: 002b311e0da3765994efa072adbcd7a451b4d664
-  anchors: null
-- path: tests/test_preflight_dispatcher_guard.py
-  domains: []
-  file_sha1: 5b7cc5467499eaf19868aa6a48c309d6a6d7c5b2
-  anchors: null
-- path: scripts/gov_versions.py
-  domains:
-  - pipeline
-  file_sha1: 105703ccb472e890b1484b79b034ca0fe34ce8ad
-- path: scripts/gov_versions.md
-  domains:
-  - pipeline
-  file_sha1: 4882a129cd9d348cb21d96275cd14f11d2722c88
-- path: scripts/sync_issues_archive.py
-  domains:
-  - pipeline
-  file_sha1: 731a2c966e6a884ca8e4b33067111f7a9f07cdc8
-  anchors: null
-- path: tests/test_sync_issues_archive.py
-  domains:
-  - tests
-  file_sha1: 6d1e7965af7bef0a03d0f958a8eaca49a9c1d9e3
-  anchors: null
-- path: docs/issues/open_issues.md
-  domains:
-  - docs
-  file_sha1: 8c5c83e00ff1fa2cc7257150f253d4d0900ec7e5
-  anchors: null
-- path: docs/issues/closed_issues.md
-  domains:
-  - docs
-  file_sha1: 5c775da84b9851cfbfab3abf92f4d44dd7d2e96d
-  anchors: null
-- path: tests/test_cli_support.py
-  domains: []
-  file_sha1: 404bae4e28d0e10652770161805148c5312062f2
-  anchors: null
-- path: README.md
-  domains: []
-  file_sha1: c971f1c28d7e35a4f739a4ad4eb3aae8f947fd85
-  anchors: null
-- path: docs/repo_manifest.yaml
-  domains: []
-  file_sha1: 9cb8b2cc47aa656041b0e7990e4ce640a7fa3880
-  anchors: null
-- path: pyproject.toml
-  domains:
-  - docs
-  file_sha1: 6b6aefe341fcb37a5c9072cd591736c073a2d308
-  anchors: null
-- path: .github/workflows/ci.yml
-  domains:
-  - tests
-  file_sha1: ee477d36127390624f7018184b2fb7b75f77bd3f
-  anchors: null
-- path: CONTRIBUTING.md
-  domains:
-  - docs
-  file_sha1: cf4611d352ab4cb30f085ce3a5f3727d35aaa313
-  anchors: null
+  domains: ['audio']
+  file_sha1: "d61e58084da049e79acc408120333fa8ac695fcf"
+  anchors:
+    - anchor: "class PreflightContext"
+      first_line: 18
+      count: 1
+      context_before: "@dataclass"
+      context_after: "# Minimal deterministic context carrier."
+    - anchor: "class PreflightPlan"
+      first_line: 27
+      count: 1
+      context_before: "@dataclass"
+      context_after: "order: list[str]"
+    - anchor: "class PreflightOrchestrator"
+      first_line: 33
+      count: 1
+      context_before: ""
+      context_after: "def __init__(self, cfg: dict):"
+    - anchor: "def __init__("
+      first_line: 34
+      count: 1
+      context_before: "class PreflightOrchestrator:"
+      context_after: "self.cfg = cfg"
+    - anchor: "def resolve_order("
+      first_line: 37
+      count: 1
+      context_before: ""
+      context_after: "raw = self.cfg.get(\"preflight_steps\", None)"
+    - anchor: "def _eligible("
+      first_line: 49
+      count: 1
+      context_before: ""
+      context_after: "meta = REGISTRY[key]"
+    - anchor: "def plan("
+      first_line: 60
+      count: 1
+      context_before: ""
+      context_after: "order = self.resolve_order()"
+    - anchor: "def materialize_pending("
+      first_line: 71
+      count: 1
+      context_before: ""
+      context_after: "self,"
+- path: src/audiomason/preflight_registry.py
+  domains: ['audio']
+  file_sha1: "52e98872e110b6cdc5c87f32a17d1c7f4fba9598"
+  anchors:
+    - anchor: "class PreflightStepMeta"
+      first_line: 24
+      count: 1
+      context_before: "@dataclass(frozen=True)"
+      context_after: "key: str"
+    - anchor: "def default_steps("
+      first_line: 131
+      count: 1
+      context_before: ""
+      context_after: "return list(DEFAULT_PREFLIGHT_STEPS)"
+    - anchor: "def validate_steps_list("
+      first_line: 135
+      count: 1
+      context_before: ""
+      context_after: "# Deterministic fail-fast validation (unknown/dup/missing + required hard deps)."
+    - anchor: "def _req("
+      first_line: 156
+      count: 1
+      context_before: ""
+      context_after: "if pos[a] > pos[b]:"
+- path: src/audiomason/publish.py
+  domains: ['audio', 'publish']
+  file_sha1: "6a1d15826a1b46a47c14efbfd31d612393caf475"
+  anchors:
+- path: src/audiomason/rename.py
+  domains: ['audio']
+  file_sha1: "26df993322477f00ac3f3358f26c71f3e53170d6"
+  anchors:
+    - anchor: "def extract_track_num("
+      first_line: 12
+      count: 1
+      context_before: ""
+      context_after: "base = Path(name).stem"
+    - anchor: "def natural_sort("
+      first_line: 30
+      count: 1
+      context_before: ""
+      context_after: "def key(p: Path):"
+    - anchor: "def rename_sequential("
+      first_line: 38
+      count: 1
+      context_before: ""
+      context_after: "tmp = []"
+    - anchor: "def key("
+      first_line: 31
+      count: 1
+      context_before: "def natural_sort(files: list[Path]) -> list[Path]:"
+      context_after: "n = extract_track_num(p.name)"
+- path: src/audiomason/state.py
+  domains: ['audio']
+  file_sha1: "5242762b171b5794ad61a4a30706e73166fc94ae"
+  anchors:
+    - anchor: "class Opts"
+      first_line: 11
+      count: 1
+      context_before: "@dataclass"
+      context_after: "yes: bool = False"
+- path: src/audiomason/tags.py
+  domains: ['audio']
+  file_sha1: "798cbab69d9655afe34df4f8078c69980ab0e682"
+  anchors:
+    - anchor: "def _load_id3("
+      first_line: 21
+      count: 1
+      context_before: ""
+      context_after: "try:"
+    - anchor: "def wipe_id3("
+      first_line: 30
+      count: 1
+      context_before: ""
+      context_after: "for mp3 in files:"
+    - anchor: "def write_tags("
+      first_line: 39
+      count: 1
+      context_before: ""
+      context_after: "files: Iterable[Path],"
+    - anchor: "def write_cover("
+      first_line: 67
+      count: 1
+      context_before: ""
+      context_after: "mp3s: Iterable[Path],"
+- path: src/audiomason/util.py
+  domains: ['audio', 'publish']
+  file_sha1: "69c8f5001526322e18f4cc028c0dc563d1ee0800"
+  anchors:
+    - anchor: "class AmExit"
+      first_line: 15
+      count: 1
+      context_before: "# ======================"
+      context_after: "\"\"\"Expected termination (no traceback).\"\"\""
+    - anchor: "class AmConfigError"
+      first_line: 25
+      count: 1
+      context_before: ""
+      context_after: "pass"
+    - anchor: "class AmValidationError"
+      first_line: 29
+      count: 1
+      context_before: ""
+      context_after: "pass"
+    - anchor: "class AmExternalToolError"
+      first_line: 33
+      count: 1
+      context_before: ""
+      context_after: "pass"
+    - anchor: "class AmAbort"
+      first_line: 37
+      count: 1
+      context_before: ""
+      context_after: "exit_code = 130"
+    - anchor: "def run_cmd("
+      first_line: 41
+      count: 1
+      context_before: ""
+      context_after: "\"\"\"subprocess.run wrapper that turns expected failures into AmExit.\"\"\""
+    - anchor: "def out("
+      first_line: 55
+      count: 1
+      context_before: ""
+      context_after: "try:"
+    - anchor: "def die("
+      first_line: 71
+      count: 1
+      context_before: "return"
+      context_after: "# Backward-compatible helper: raise a controlled exit instead of printing/traceback."
+    - anchor: "def strip_diacritics("
+      first_line: 82
+      count: 1
+      context_before: ""
+      context_after: "return unicodedata.normalize(\"NFKD\", s).encode(\"ascii\", \"ignore\").decode(\"ascii\")"
+    - anchor: "def clean_text("
+      first_line: 86
+      count: 1
+      context_before: ""
+      context_after: "s = strip_diacritics(s)"
+    - anchor: "def slug("
+      first_line: 92
+      count: 1
+      context_before: ""
+      context_after: "s = strip_diacritics(s)"
+    - anchor: "def two("
+      first_line: 100
+      count: 1
+      context_before: ""
+      context_after: "return f\"{n:02d}\""
+    - anchor: "def ensure_dir("
+      first_line: 104
+      count: 1
+      context_before: ""
+      context_after: "p.mkdir(parents=True, exist_ok=True)"
+    - anchor: "def unique_path("
+      first_line: 108
+      count: 1
+      context_before: ""
+      context_after: "outp = p"
+    - anchor: "def prompt("
+      first_line: 117
+      count: 1
+      context_before: ""
+      context_after: "try:"
+    - anchor: "def prompt_yes_no("
+      first_line: 137
+      count: 1
+      context_before: ""
+      context_after: "try:"
+    - anchor: "def prune_empty_dirs("
+      first_line: 155
+      count: 1
+      context_before: ""
+      context_after: "try:"
+    - anchor: "def is_url("
+      first_line: 167
+      count: 1
+      context_before: ""
+      context_after: "return bool(re.match(r\"^https?://\", s.strip(), flags=re.I))"
+    - anchor: "def find_archive_match("
+      first_line: 171
+      count: 1
+      context_before: ""
+      context_after: "\"\"\""
+    - anchor: "def enable_trace("
+      first_line: 242
+      count: 1
+      context_before: ""
+      context_after: "\"\"\""
+    - anchor: "def __init__("
+      first_line: 19
+      count: 2
+      context_before: ""
+      context_after: "super().__init__(msg)"
+    - anchor: "def _t("
+      first_line: 253
+      count: 1
+      context_before: ""
+      context_after: "# Respect --quiet (runtime state, not a stale imported name)"
+    - anchor: "def run("
+      first_line: 269
+      count: 1
+      context_before: ""
+      context_after: "_t(f\"subprocess.run args={args!r} kwargs={kwargs!r}\")"
+    - anchor: "def check_call("
+      first_line: 273
+      count: 1
+      context_before: ""
+      context_after: "_t(f\"subprocess.check_call args={args!r} kwargs={kwargs!r}\")"
+    - anchor: "def check_output("
+      first_line: 277
+      count: 1
+      context_before: ""
+      context_after: "_t(f\"subprocess.check_output args={args!r} kwargs={kwargs!r}\")"
+    - anchor: "class Popen"
+      first_line: 281
+      count: 1
+      context_before: ""
+      context_after: "def __init__(self, *args, **kwargs):"
+    - anchor: "def _wrap("
+      first_line: 295
+      count: 2
+      context_before: "fn = getattr(shutil, name)"
+      context_after: "def w(*args, **kwargs):"
+    - anchor: "def w("
+      first_line: 296
+      count: 2
+      context_before: "def _wrap(fn, nm):"
+      context_after: "_t(f\"shutil.{nm} args={args!r} kwargs={kwargs!r}\")"
+- path: src/audiomason/verify.py
+  domains: ['audio']
+  file_sha1: "69efe353362dd605dfc291bba63ac0866dfcb8c0"
+  anchors:
+    - anchor: "def verify_library("
+      first_line: 17
+      count: 1
+      context_before: ""
+      context_after: "\"\"\""
+- path: src/audiomason/version.py
+  domains: ['audio']
+  file_sha1: "dbe9dea7a73dca63188fafac011a4855d49629fd"
+  anchors:
+    - anchor: "def _pkg_version("
+      first_line: 6
+      count: 1
+      context_before: ""
+      context_after: "try:"

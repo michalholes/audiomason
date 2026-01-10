@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 
 import audiomason.state as state
-from audiomason.util import run_cmd, out, die, ensure_dir
+from audiomason.util import die, ensure_dir, out, run_cmd
 
 
 def ffprobe_json(path: Path) -> dict:

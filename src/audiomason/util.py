@@ -1,15 +1,13 @@
 from __future__ import annotations
 
+import os
 import re
+import shutil
+import subprocess
 import unicodedata
 from pathlib import Path
 from typing import Optional
 
-import subprocess
-
-import shutil
-
-import os
 
 # ======================
 # Controlled exits (Issue #41)

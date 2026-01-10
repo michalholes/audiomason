@@ -4,7 +4,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, Optional
 
-
 # One-list ordering model (Design #92):
 # - preflight_steps is a single linear list
 # - choose_source + choose_books are NON-MOVABLE

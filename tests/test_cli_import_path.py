@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from pathlib import Path
 import sys
-import importlib
+from pathlib import Path
+
 import pytest
+
 from audiomason.util import AmExit
 
 

@@ -4,9 +4,9 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import audiomason.state as state
-from audiomason.state import Opts
 from audiomason import audio
 from audiomason import import_flow as imp
+from audiomason.state import Opts
 
 
 def test_convert_opus_in_place_creates_mp3(monkeypatch, tmp_path: Path) -> None:

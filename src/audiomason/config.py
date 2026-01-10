@@ -1,9 +1,11 @@
 from __future__ import annotations
-from pathlib import Path
+
 import os
+from pathlib import Path
+
 import yaml
+
 from audiomason.util import AmConfigError
-from audiomason.paths import require_audiomason_root
 from audiomason.version import __version__ as AM_VERSION
 
 DEFAULTS = {

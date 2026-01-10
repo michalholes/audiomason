@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from audiomason.import_flow import _resolved_preflight_disable, _pf_prompt_yes_no, _pf_prompt
+from audiomason.import_flow import _pf_prompt, _pf_prompt_yes_no, _resolved_preflight_disable
 from audiomason.util import AmConfigError
 
 

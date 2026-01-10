@@ -6,8 +6,7 @@ from pathlib import Path
 
 import audiomason.state as state
 from audiomason.paths import get_cache_root
-from audiomason.util import out, ensure_dir
-
+from audiomason.util import ensure_dir, out
 
 KNOWN_EXTS = {".jpg", ".png", ".webp", ".img"}
 

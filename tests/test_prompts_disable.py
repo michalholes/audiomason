@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import pytest
 from pathlib import Path
 
-from audiomason.import_flow import _resolved_prompts_disable, _choose_source, _choose_books, BookGroup
+import pytest
+
+from audiomason.import_flow import BookGroup, _choose_books, _choose_source, _resolved_prompts_disable
 from audiomason.util import AmConfigError
 
 

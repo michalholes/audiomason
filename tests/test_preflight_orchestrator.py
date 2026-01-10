@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from audiomason.preflight_orchestrator import PreflightContext, PreflightOrchestrator
-from audiomason.preflight_registry import MIN_CONTEXT_NONE, MIN_CONTEXT_SOURCE, MIN_CONTEXT_BOOKS
+from audiomason.preflight_registry import MIN_CONTEXT_BOOKS, MIN_CONTEXT_NONE, MIN_CONTEXT_SOURCE
 
 
 def test_orchestrator_pending_when_too_early():

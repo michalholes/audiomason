@@ -1,15 +1,13 @@
 from __future__ import annotations
 
+import difflib
 import json
 import re
 import time
-import difflib
 import unicodedata
-from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
-
 
 BASE = "https://www.googleapis.com/books/v1"
 UA = "AudioMason/1.0 (https://github.com/michalholes/audiomason)"

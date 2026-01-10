@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-
 import audiomason.state as state
-from audiomason.import_flow import _pf_prompt_yes_no, _pf_prompt
+from audiomason.import_flow import _pf_prompt, _pf_prompt_yes_no
 
 
 def test_preflight_disable_debug_log_yes_no(capsys, monkeypatch):

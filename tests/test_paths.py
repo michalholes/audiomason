@@ -1,6 +1,6 @@
-from pathlib import Path
-import os
 import importlib
+from pathlib import Path
+
 
 def test_paths_default_are_paths():
     import audiomason.paths as paths
@@ -17,8 +17,9 @@ def test_paths_override_env(tmp_path, monkeypatch):
 
 def test_paths_cfg_outside_root_allowed_absolute(tmp_path, monkeypatch):
     monkeypatch.setenv("AUDIOMASON_DATA_ROOT", str(tmp_path))
-    import audiomason.paths as paths
     import importlib
+
+    import audiomason.paths as paths
     importlib.reload(paths)
     other = tmp_path.parent / "data_root_elsewhere"
     cfg = {"paths": {"inbox": str(other / "abooksinbox")}}

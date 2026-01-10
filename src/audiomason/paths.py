@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from pathlib import Path
 import os
+from pathlib import Path
+
 from audiomason.util import AmConfigError
+
 
 def _default_user_base() -> Path:
     # Safe runtime default (does not require AUDIOMASON_ROOT / repo).
@@ -32,7 +34,6 @@ def _env_base() -> Path | None:
     return _find_repo_root()
 
 
-from pathlib import Path
 import os
 
 DEBIAN_DEFAULT_ROOT = Path("/etc/audiomason")

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 
+
 def test_cli_invalid_config_no_traceback(monkeypatch, tmp_path, capsys):
     monkeypatch.setenv("AUDIOMASON_ROOT", str(tmp_path))
 

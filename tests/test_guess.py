@@ -1,4 +1,6 @@
 from audiomason.guess import guess_author_book
+
+
 def test_guess_author_book_dash():
     a,b = guess_author_book("Dan Brown - Inferno", "_ROOT_")
     assert a == "Brown.Dan"

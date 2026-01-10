@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any, Dict
 
-import os
-import hashlib
 
 def source_fingerprint(src: Path) -> str:
     r = src.expanduser().resolve()

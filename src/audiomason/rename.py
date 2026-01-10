@@ -4,7 +4,6 @@ import re
 from pathlib import Path
 from typing import Optional
 
-
 _LEADING = re.compile(r"^\s*(\d{1,4})\b")
 _ANYWHERE = re.compile(r"(\d{1,4})")
 _TRACKISH = re.compile(r"\b(?:track|chapter|kapitola)\s*[_-]?\s*(\d{1,4})\b", re.I)

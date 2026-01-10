@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-from pathlib import Path
-import json
-import time
 import difflib
+import json
 import re
+import time
 import unicodedata
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
-from audiomason.util import strip_diacritics
-from audiomason.googlebooks import suggest_title
 
+from audiomason.googlebooks import suggest_title
+from audiomason.util import strip_diacritics
 
 BASE = "https://openlibrary.org"
 UA = "AudioMason/1.0 (https://github.com/michalholes/audiomason)"

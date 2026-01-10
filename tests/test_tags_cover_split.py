@@ -2,7 +2,7 @@ from pathlib import Path
 
 from mutagen.id3 import ID3
 
-from audiomason.tags import write_tags, write_cover
+from audiomason.tags import write_cover, write_tags
 
 
 def _mk_id3_file(p: Path) -> None:
