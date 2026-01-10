@@ -22,10 +22,12 @@ from audiomason.util import out, AmExit, AmAbort, AmConfigError
 def _version_kv_line() -> str:
     # Stable, machine-readable version line (Feature #72)
     return f"audiomason_version={__version__}"
-def _parent_parser(cfg: Dict[str, Any]) -> argparse.ArgumentParser:
-    ffmpeg = cfg.get("ffmpeg", {}) if isinstance(cfg.get("ffmpeg", {}), dict) else {}
-    paths = cfg.get("paths", {}) if isinstance(cfg.get("paths", {}), dict) else {}
-
+def _parent_parser() -> argparse.ArgumentParser:
+    # IMPORTANT (Issue #105):
+    # Argument parsing must be pure and MUST NOT require config.
+    #
+    # Config-derived defaults are applied later (post-parse) only for commands
+    # that actually require config.
     pp = argparse.ArgumentParser(add_help=False)
     pp.add_argument("--yes", action="store_true", help="non-interactive")
     pp.add_argument("--dry-run", action="store_true", help="do not modify anything")
@@ -36,37 +38,35 @@ def _parent_parser(cfg: Dict[str, Any]) -> argparse.ArgumentParser:
     pp.add_argument("--config", type=Path, help="explicit configuration.yaml path")
     pp.add_argument("--verify", action="store_true", help="verify library after import")
 
-    default_verify_root = Path(paths.get("verify_root") or "__AUDIOMASON_VERIFY_ROOT_UNSET__")
-    pp.add_argument("--verify-root", type=Path, default=default_verify_root, help="root for --verify")
+    pp.add_argument("--verify-root", type=Path, default=None, help="root for --verify")
 
     g2 = pp.add_mutually_exclusive_group()
     g2.add_argument("--lookup", dest="lookup", action="store_true", default=True, help="enable OpenLibrary validation")
     g2.add_argument("--no-lookup", dest="lookup", action="store_false", help="disable OpenLibrary validation")
 
-    publish_default = cfg.get("publish", "ask")
-    if isinstance(publish_default, bool):
-        publish_default = "yes" if publish_default else "no"
-    pp.add_argument("--publish", choices=["yes", "no", "ask"], default=str(publish_default))
+    pp.add_argument("--publish", choices=["yes", "no", "ask"], default=None)
 
     # FEATURE #65: inbox cleanup control (delete processed source under DROP_ROOT)
-    clean_inbox_default = cfg.get("clean_inbox", "no")
-    pp.add_argument("--clean-inbox", choices=["ask", "yes", "no"], default=str(clean_inbox_default))
+    pp.add_argument("--clean-inbox", choices=["ask", "yes", "no"], default=None)
+
     g = pp.add_mutually_exclusive_group()
     g.add_argument("--wipe-id3", dest="wipe_id3", action="store_true", default=None, help="full wipe ID3 tags before writing new tags")
     g.add_argument("--no-wipe-id3", dest="wipe_id3", action="store_false", help="do not wipe ID3 tags (default)")
-    pp.add_argument("--loudnorm", action="store_true", default=bool(ffmpeg.get("loudnorm", False)))
-    pp.add_argument("--q-a", default=str(ffmpeg.get("q_a", "2")), help="lame VBR quality (2=high)")
-    pp.add_argument("--split-chapters", dest="split_chapters", action="store_true", default=bool(cfg.get("split_chapters", True)))
+
+    pp.add_argument("--loudnorm", action="store_true", default=None)
+    pp.add_argument("--q-a", default=None, help="lame VBR quality (2=high)")
+
+    pp.add_argument("--split-chapters", dest="split_chapters", action="store_true", default=None)
     pp.add_argument("--no-split-chapters", dest="split_chapters", action="store_false")
-    pp.add_argument("--cpu-cores", type=int, default=cfg.get("cpu_cores", None), help="override CPU core count for perf tuning")
-    pp.add_argument("--ff-loglevel", choices=["info", "warning", "error"], default=str(ffmpeg.get("loglevel", "warning")))
+
+    pp.add_argument("--cpu-cores", type=int, default=None, help="override CPU core count for perf tuning")
+    pp.add_argument("--ff-loglevel", choices=["info", "warning", "error"], default=None)
     return pp
 
 
-def _parse_args(cfg: Dict[str, Any] | None = None) -> argparse.Namespace:
-    if cfg is None:
-        cfg = load_config()
-    parent = _parent_parser(cfg)
+
+def _parse_args() -> argparse.Namespace:
+    parent = _parent_parser()
 
     ap = argparse.ArgumentParser(
         prog="audiomason",
@@ -135,7 +135,6 @@ def _parse_args(cfg: Dict[str, Any] | None = None) -> argparse.Namespace:
     gc.add_argument("--days", type=int, default=None, help="remove cache files older than N days")
     gc.add_argument("--max-mb", type=int, default=None, help="keep cache size under M megabytes (prune oldest)")
 
-
     ns = ap.parse_args()
 
     # argv fallback for quiet/verbose (argparse quirk)
@@ -164,8 +163,86 @@ def _parse_args(cfg: Dict[str, Any] | None = None) -> argparse.Namespace:
     return ns
 
 
+
+def _cmd_requires_config(ns: argparse.Namespace) -> bool:
+    # Commands that can run without config:
+    # - --help / --version / --support handled during parsing (pre-main)
+    # - inspect (pure filesystem)
+    # - verify if explicit root is provided (positional root or --verify-root)
+    if ns.cmd == "inspect":
+        return False
+    if ns.cmd == "verify":
+        return not bool(getattr(ns, "root", None) or getattr(ns, "verify_root", None))
+    # cache and import require config
+    if ns.cmd in ("import", "cache"):
+        return True
+    # default safe stance: require config
+    return True
+
+
+def _apply_config_defaults(ns: argparse.Namespace, cfg: Dict[str, Any]) -> None:
+    ffmpeg = cfg.get("ffmpeg", {}) if isinstance(cfg.get("ffmpeg", {}), dict) else {}
+    paths = cfg.get("paths", {}) if isinstance(cfg.get("paths", {}), dict) else {}
+
+    if getattr(ns, "verify_root", None) is None:
+        default_verify_root = Path(paths.get("verify_root") or "__AUDIOMASON_VERIFY_ROOT_UNSET__")
+        ns.verify_root = default_verify_root
+
+    if getattr(ns, "publish", None) is None:
+        publish_default = cfg.get("publish", "ask")
+        if isinstance(publish_default, bool):
+            publish_default = "yes" if publish_default else "no"
+        ns.publish = str(publish_default)
+
+    if getattr(ns, "clean_inbox", None) is None:
+        ns.clean_inbox = str(cfg.get("clean_inbox", "no"))
+
+    if getattr(ns, "loudnorm", None) is None:
+        ns.loudnorm = bool(ffmpeg.get("loudnorm", False))
+
+    if getattr(ns, "q_a", None) is None:
+        ns.q_a = str(ffmpeg.get("q_a", "2"))
+
+    if getattr(ns, "split_chapters", None) is None:
+        ns.split_chapters = bool(cfg.get("split_chapters", True))
+
+    if getattr(ns, "cpu_cores", None) is None:
+        ns.cpu_cores = cfg.get("cpu_cores", None)
+
+    if getattr(ns, "ff_loglevel", None) is None:
+        ns.ff_loglevel = str(ffmpeg.get("loglevel", "warning"))
+
+
+
+def _argv_config_path() -> Path | None:
+    _argv = list(sys.argv[1:])
+    for _i, _a in enumerate(_argv):
+        if _a == "--config" and _i + 1 < len(_argv):
+            return Path(_argv[_i + 1])
+        if _a.startswith("--config="):
+            return Path(_a.split("=", 1)[1])
+    return None
+
+
+def _apply_builtin_defaults(ns: argparse.Namespace) -> None:
+    # Fallback defaults used when config is intentionally not loaded.
+    if getattr(ns, "publish", None) is None:
+        ns.publish = "ask"
+    if getattr(ns, "clean_inbox", None) is None:
+        ns.clean_inbox = "no"
+    if getattr(ns, "loudnorm", None) is None:
+        ns.loudnorm = False
+    if getattr(ns, "q_a", None) is None:
+        ns.q_a = "2"
+    if getattr(ns, "split_chapters", None) is None:
+        ns.split_chapters = True
+    if getattr(ns, "ff_loglevel", None) is None:
+        ns.ff_loglevel = "warning"
+
+
 def _ns_to_opts(ns: argparse.Namespace) -> Opts:
-    publish = {"yes": True, "no": False, "ask": None}[ns.publish]
+    publish_key = getattr(ns, "publish", None) or "ask"
+    publish = {"yes": True, "no": False, "ask": None}[publish_key]
     return Opts(
         yes=ns.yes,
         dry_run=ns.dry_run,
@@ -189,82 +266,87 @@ def _ns_to_opts(ns: argparse.Namespace) -> Opts:
 def main() -> int:
     try:
         try:
-            pre = _parse_args({})
-            # FIX: resolve --config path from argv before load_config (do not fall back to /etc)
-            _argv_cfg = None
-            _argv = list(sys.argv[1:])
-            for _i, _a in enumerate(_argv):
-                if _a == '--config' and _i + 1 < len(_argv):
-                    _argv_cfg = Path(_argv[_i + 1])
-                    break
-                if _a.startswith('--config='):
-                    _argv_cfg = Path(_a.split('=', 1)[1])
-                    break
-            cfg = load_config(_argv_cfg) if _argv_cfg else load_config()
-            validate_paths_contract(cfg)
-            ns = _parse_args(cfg)
+            ns = _parse_args()
 
-            # Guard: argparse subparser parsing can reset store_true flags to defaults.
-            # Recompute --json from argv so Feature #72 banner logic remains correct.
-            if "--json" in sys.argv[1:]:
-                setattr(ns, "json", True)
-            # FIX: preserve --config from pre-parse into main parse (do not fall back to /etc)
-            if getattr(pre, 'config', None):
-                ns.config = pre.config
+            # argparse quirk: --config can be lost when subparsers are involved
+            _cfgp = _argv_config_path()
+            if _cfgp is not None:
+                setattr(ns, "config", _cfgp)
+
+            argv_set = set(sys.argv[1:])
 
             # DEBUG wiring must be active before any out()/trace output
-            # FEATURE: debug flag should be argv-driven (parse_args can drop ns.debug)
-            argv = set(sys.argv[1:])
-            state.DEBUG = ('--debug' in argv)
+            state.DEBUG = ("--debug" in argv_set)
             state.VERBOSE = bool(getattr(ns, "verbose", False))
             if state.DEBUG:
                 from audiomason.util import enable_trace
                 enable_trace()
-                out(f"[config] loaded_from={cfg.get('loaded_from','unknown')}")
-                print(f"[TRACE] [config] loaded_from={cfg.get('loaded_from','unknown')}", flush=True)
+
+            # argparse quirk: --json can be lost when subparsers are involved
+            if "--json" in argv_set:
+                setattr(ns, "json", True)
+
+            cfg: Dict[str, Any] | None = None
+            if _cmd_requires_config(ns):
+                # Issue #105: config is loaded lazily ONLY after args are parsed and
+                # only for commands that actually require it.
+                cfg = load_config(getattr(ns, "config", None))
+                validate_paths_contract(cfg)
+                _apply_config_defaults(ns, cfg)
+            else:
+                _apply_builtin_defaults(ns)
 
             state.OPTS = _ns_to_opts(ns)
 
-            # Issue #82: resolve OpenLibrary enablement (CLI > config)
-            _ol_cfg = cfg.get('openlibrary', {})
-            if not isinstance(_ol_cfg, dict):
-                raise AmConfigError('Invalid config: openlibrary must be a mapping')
-            _ol_cfg_enabled = bool(_ol_cfg.get('enabled', True))
+            if state.DEBUG:
+                if cfg is not None:
+                    print(f"[TRACE] [config] loaded_from={cfg.get('loaded_from','unknown')}", flush=True)
+                else:
+                    print("[TRACE] [config] not loaded", flush=True)
 
-            _argv = set(sys.argv[1:])
-            if '--lookup' in _argv:
+            # Non-config commands must work without config (Issue #105).
+            if ns.cmd == "inspect":
+                from audiomason.inspect import inspect_source
+                inspect_source(ns.path)
+                return 0
+
+            if ns.cmd == "verify" and cfg is None:
+                root = getattr(ns, "root", None) or state.OPTS.verify_root
+                if root is None:
+                    raise AmConfigError("verify requires --verify-root or config (paths.verify_root)")
+                verify_library(root)
+                return 0
+
+            # From here on, commands are config-dependent.
+            assert cfg is not None
+
+            # Issue #82: resolve OpenLibrary enablement (CLI > config)
+            if "--lookup" in argv_set:
                 _ol_cli = True
-            elif '--no-lookup' in _argv:
+            elif "--no-lookup" in argv_set:
                 _ol_cli = False
             else:
                 _ol_cli = None
 
+            _ol_cfg = cfg.get("openlibrary", {})
+            if not isinstance(_ol_cfg, dict):
+                raise AmConfigError("Invalid config: openlibrary must be a mapping")
+            _ol_cfg_enabled = bool(_ol_cfg.get("enabled", True))
             _ol_effective = (_ol_cli if _ol_cli is not None else _ol_cfg_enabled)
             state.OPTS.lookup = bool(_ol_effective)
-            cfg['_openlibrary_enabled'] = bool(_ol_effective)
+            cfg["_openlibrary_enabled"] = bool(_ol_effective)
 
-            # FEATURE #65: config default + debug print for clean_inbox
-            argv = list(sys.argv[1:])
-            argv_has_clean_inbox = ('--clean-inbox' in argv)
+            # FEATURE #65: config default for clean_inbox when flag not provided
+            argv_list = list(sys.argv[1:])
+            argv_has_clean_inbox = ("--clean-inbox" in argv_list)
             if not argv_has_clean_inbox:
-                cfg_mode = cfg.get('clean_inbox', 'no')
+                cfg_mode = cfg.get("clean_inbox", "no")
                 state.OPTS.clean_inbox_mode = str(cfg_mode)
 
             if state.DEBUG:
-                # Guaranteed visibility (don’t rely on out()/trace prefixing)
-                print(f"[TRACE] [config] loaded_from={cfg.get('loaded_from','unknown')}", flush=True)
                 print(f"[TRACE] [config] argv_has_clean_inbox={argv_has_clean_inbox}", flush=True)
                 print(f"[TRACE] [config] clean_inbox_mode={state.OPTS.clean_inbox_mode}", flush=True)
 
-            # FEATURE #65: enforce config default for --clean-inbox when flag not provided
-            # (CLI always overrides config if user explicitly passes --clean-inbox)
-            argv = set(sys.argv[1:])
-            if '--clean-inbox' not in argv:
-                cfg_mode = cfg.get('clean_inbox', 'no')
-                state.OPTS.clean_inbox_mode = str(cfg_mode)
-
-            if state.DEBUG:
-                out(f"[config] clean_inbox_mode={state.OPTS.clean_inbox_mode}")
             if str(state.OPTS.verify_root) == "__AUDIOMASON_VERIFY_ROOT_UNSET__":
                 state.OPTS.verify_root = get_output_root(cfg)
 
@@ -294,15 +376,9 @@ def main() -> int:
                 _validate_prompts_disable(cfg)
 
             # Feature #72: version banner (configurable via config.yaml: version-banner)
-            # Print only after config + CLI validation so fail-fast errors start with [error].
-            _vb = bool(cfg.get('version-banner', True))
-            if _vb and ((not state.OPTS.quiet) or bool(getattr(state.OPTS, 'json', False))):
+            _vb = bool(cfg.get("version-banner", True))
+            if _vb and ((not state.OPTS.quiet) or bool(getattr(state.OPTS, "json", False))):
                 print(_version_kv_line(), flush=True)
-
-            if ns.cmd == "inspect":
-                from audiomason.inspect import inspect_source
-                inspect_source(ns.path)
-                return 0
 
             if ns.cmd == "verify":
                 root = ns.root or state.OPTS.verify_root
@@ -312,9 +388,14 @@ def main() -> int:
             if ns.cmd == "cache":
                 if getattr(ns, "cache_cmd", None) == "gc":
                     from audiomason.cache_gc import cache_gc
-                    # command-local --dry-run can force report-only
-                    # argparse quirk: both parent and subparser define --dry-run; keep ns.dry_run
-                    return int(cache_gc(cfg, days=getattr(ns, "days", None), max_mb=getattr(ns, "max_mb", None), dry_run=bool(getattr(ns, "dry_run", False))))
+                    return int(
+                        cache_gc(
+                            cfg,
+                            days=getattr(ns, "days", None),
+                            max_mb=getattr(ns, "max_mb", None),
+                            dry_run=bool(getattr(ns, "dry_run", False)),
+                        )
+                    )
                 out("[error] unknown cache subcommand")
                 return 2
 
@@ -333,18 +414,19 @@ def main() -> int:
             cfg["processing_log"] = {"enabled": bool(_pl_enabled), "path": _pl_path}
 
             # FEATURE #67: resolve preflight_disable (CLI overrides config)
-            _pd = getattr(ns, 'preflight_disable', None)
+            _pd = getattr(ns, "preflight_disable", None)
             if _pd:
                 _items: list[str] = []
                 for _raw in _pd:
-                    for _part in str(_raw).split(','):
+                    for _part in str(_raw).split(","):
                         _k = _part.strip()
                         if _k:
                             _items.append(_k)
-                cfg['preflight_disable'] = _items
+                cfg["preflight_disable"] = _items
             else:
-                _d = cfg.get('preflight_disable', [])
-                cfg['preflight_disable'] = list(_d) if isinstance(_d, list) else []
+                _d = cfg.get("preflight_disable", [])
+                cfg["preflight_disable"] = list(_d) if isinstance(_d, list) else []
+
             run_import(cfg, getattr(ns, "path", None))
 
             # Issue #90 (amended): banner shows by default after successful import.
@@ -359,6 +441,7 @@ def main() -> int:
                 support_enabled = False
             if support_enabled:
                 print(SUPPORT_LINE)
+
             return 0
         except KeyboardInterrupt as e:
             raise AmAbort("cancelled by user") from e
@@ -368,7 +451,7 @@ def main() -> int:
     except AmExit as e:
         out(f"[error] {e}")
         return e.exit_code
-
     except AmConfigError as e:
         out(f"[error] {e}")
         return 2
+

@@ -113,212 +113,214 @@ files:
   domains:
   - audio
   - cli
-  file_sha1: fec62eec24fb46fa0792a30abdccde56fbd0e6d7
+  file_sha1: 07500a6a1795eb08255eeae9b96744c472786a95
   anchors:
-  - anchor: def _version_kv_line(
-    first_line: 18
+  - anchor: "def _version_kv_line("
+    first_line: 22
     count: 1
-    context_before: ''
-    context_after: '# Stable, machine-readable version line (Feature #72)'
-  - anchor: def _parent_parser(
-    first_line: 21
+    context_before: ""
+    context_after: "# Stable, machine-readable version line (Feature #72)"
+  - anchor: "def _parent_parser("
+    first_line: 25
     count: 1
-    context_before: return f\"audiomason_version={__version__}\"
-    context_after: ffmpeg = cfg.get(\"ffmpeg\", {}) if isinstance(cfg.get(\"ffmpeg\",
-      {}), dict) else {}
-  - anchor: def _parse_args(
-    first_line: 62
+    context_before: "return f\"audiomason_version={__version__}\""
+    context_after: "# IMPORTANT (Issue #105):"
+  - anchor: "def _parse_args("
+    first_line: 68
     count: 1
-    context_before: ''
-    context_after: 'if cfg is None:'
-  - anchor: def _ns_to_opts(
-    first_line: 139
+    context_before: ""
+    context_after: "parent = _parent_parser()"
+  - anchor: "def _cmd_requires_config("
+    first_line: 167
     count: 1
-    context_before: ''
-    context_after: 'publish = {\"yes\": True, \"no\": False, \"ask\": None}[ns.publish]'
-  - anchor: def main(
-    first_line: 161
+    context_before: ""
+    context_after: "# Commands that can run without config:"
+  - anchor: "def _apply_config_defaults("
+    first_line: 183
     count: 1
-    context_before: ''
-    context_after: 'try:'
-  - anchor: add_argument
-    first_line: 26
-    count: 30
-    context_before: pp = argparse.ArgumentParser(add_help=False)
-    context_after: pp.add_argument(\"--dry-run\", action=\"store_true\", help=\"do
-      not modify anything\")
-  - anchor: --config
+    context_before: ""
+    context_after: "ffmpeg = cfg.get(\"ffmpeg\", {}) if isinstance(cfg.get(\"ffmpeg\", {}), dict) else {}"
+  - anchor: "def _argv_config_path("
+    first_line: 217
+    count: 1
+    context_before: ""
+    context_after: "_argv = list(sys.argv[1:])"
+  - anchor: "def _apply_builtin_defaults("
+    first_line: 227
+    count: 1
+    context_before: ""
+    context_after: "# Fallback defaults used when config is intentionally not loaded."
+  - anchor: "def _ns_to_opts("
+    first_line: 243
+    count: 1
+    context_before: ""
+    context_after: "publish_key = getattr(ns, \"publish\", None) or \"ask\""
+  - anchor: "def main("
+    first_line: 266
+    count: 1
+    context_before: ""
+    context_after: "try:"
+  - anchor: "add_argument"
     first_line: 32
-    count: 5
-    context_before: pp.add_argument(\"--json\", action=\"store_true\", help=\"print
-      machine-readable JSON report at end\")
-    context_after: pp.add_argument(\"--verify\", action=\"store_true\", help=\"verify
-      library after import\")
-  - anchor: --config=
-    first_line: 172
+    count: 33
+    context_before: "pp = argparse.ArgumentParser(add_help=False)"
+    context_after: "pp.add_argument(\"--dry-run\", action=\"store_true\", help=\"do not modify anything\")"
+  - anchor: "--yes"
+    first_line: 32
     count: 1
-    context_before: break
-    context_after: _argv_cfg = Path(_a.split('=', 1)[1])
-  - anchor: --debug
-    first_line: 30
-    count: 2
-    context_before: pp.add_argument(\"--verbose\", action=\"store_true\", help=\"more
-      output (overrides --quiet)\")
-    context_after: pp.add_argument(\"--json\", action=\"store_true\", help=\"print
-      machine-readable JSON report at end\")
-  - anchor: --lookup
-    first_line: 39
-    count: 2
-    context_before: g2 = pp.add_mutually_exclusive_group()
-    context_after: g2.add_argument(\"--no-lookup\", dest=\"lookup\", action=\"store_false\",
-      help=\"disable OpenLibrary validation\")
-  - anchor: --no-lookup
-    first_line: 40
-    count: 2
-    context_before: g2.add_argument(\"--lookup\", dest=\"lookup\", action=\"store_true\",
-      default=True, help=\"enable OpenLibrary validation\")
-    context_after: ''
-  - anchor: --clean-inbox
-    first_line: 49
-    count: 5
-    context_before: clean_inbox_default = cfg.get(\"clean_inbox\", \"no\")
-    context_after: g = pp.add_mutually_exclusive_group()
-  - anchor: --yes
-    first_line: 26
-    count: 1
-    context_before: pp = argparse.ArgumentParser(add_help=False)
-    context_after: pp.add_argument(\"--dry-run\", action=\"store_true\", help=\"do
-      not modify anything\")
-  - anchor: --dry-run
-    first_line: 27
-    count: 3
-    context_before: pp.add_argument(\"--yes\", action=\"store_true\", help=\"non-interactive\")
-    context_after: pp.add_argument(\"--quiet\", action=\"store_true\", help=\"less
-      output\")
-  - anchor: --quiet
-    first_line: 28
-    count: 3
-    context_before: pp.add_argument(\"--dry-run\", action=\"store_true\", help=\"do
-      not modify anything\")
-    context_after: pp.add_argument(\"--verbose\", action=\"store_true\", help=\"more
-      output (overrides --quiet)\")
-  - anchor: --verbose
-    first_line: 29
-    count: 2
-    context_before: pp.add_argument(\"--quiet\", action=\"store_true\", help=\"less
-      output\")
-    context_after: pp.add_argument(\"--debug\", action=\"store_true\", help=\"prefix
-      every out() line with [TRACE]\")
-  - anchor: --json
-    first_line: 31
-    count: 3
-    context_before: pp.add_argument(\"--debug\", action=\"store_true\", help=\"prefix
-      every out() line with [TRACE]\")
-    context_after: pp.add_argument(\"--config\", type=Path, help=\"explicit configuration.yaml
-      path\")
-  - anchor: --verify
+    context_before: "pp = argparse.ArgumentParser(add_help=False)"
+    context_after: "pp.add_argument(\"--dry-run\", action=\"store_true\", help=\"do not modify anything\")"
+  - anchor: "--dry-run"
     first_line: 33
+    count: 1
+    context_before: "pp.add_argument(\"--yes\", action=\"store_true\", help=\"non-interactive\")"
+    context_after: "pp.add_argument(\"--quiet\", action=\"store_true\", help=\"less output\")"
+  - anchor: "--quiet"
+    first_line: 34
+    count: 4
+    context_before: "pp.add_argument(\"--dry-run\", action=\"store_true\", help=\"do not modify anything\")"
+    context_after: "pp.add_argument(\"--verbose\", action=\"store_true\", help=\"more output (overrides --quiet)\")"
+  - anchor: "--verbose"
+    first_line: 35
     count: 2
-    context_before: pp.add_argument(\"--config\", type=Path, help=\"explicit configuration.yaml
-      path\")
-    context_after: ''
-  - anchor: --verify-root
+    context_before: "pp.add_argument(\"--quiet\", action=\"store_true\", help=\"less output\")"
+    context_after: "pp.add_argument(\"--debug\", action=\"store_true\", help=\"prefix every out() line with [TRACE]\")"
+  - anchor: "--debug"
     first_line: 36
-    count: 1
-    context_before: default_verify_root = Path(paths.get(\"verify_root\") or \"__AUDIOMASON_VERIFY_ROOT_UNSET__\")
-    context_after: ''
-  - anchor: --publish
+    count: 2
+    context_before: "pp.add_argument(\"--verbose\", action=\"store_true\", help=\"more output (overrides --quiet)\")"
+    context_after: "pp.add_argument(\"--json\", action=\"store_true\", help=\"print machine-readable JSON report at end\")"
+  - anchor: "--json"
+    first_line: 37
+    count: 4
+    context_before: "pp.add_argument(\"--debug\", action=\"store_true\", help=\"prefix every out() line with [TRACE]\")"
+    context_after: "pp.add_argument(\"--config\", type=Path, help=\"explicit configuration.yaml path\")"
+  - anchor: "--config"
+    first_line: 38
+    count: 4
+    context_before: "pp.add_argument(\"--json\", action=\"store_true\", help=\"print machine-readable JSON report at end\")"
+    context_after: "pp.add_argument(\"--verify\", action=\"store_true\", help=\"verify library after import\")"
+  - anchor: "--verify"
+    first_line: 39
+    count: 4
+    context_before: "pp.add_argument(\"--config\", type=Path, help=\"explicit configuration.yaml path\")"
+    context_after: ""
+  - anchor: "--verify-root"
+    first_line: 41
+    count: 3
+    context_before: ""
+    context_after: ""
+  - anchor: "--lookup"
+    first_line: 44
+    count: 2
+    context_before: "g2 = pp.add_mutually_exclusive_group()"
+    context_after: "g2.add_argument(\"--no-lookup\", dest=\"lookup\", action=\"store_false\", help=\"disable OpenLibrary validation\")"
+  - anchor: "--no-lookup"
     first_line: 45
+    count: 2
+    context_before: "g2.add_argument(\"--lookup\", dest=\"lookup\", action=\"store_true\", default=True, help=\"enable OpenLibrary validation\")"
+    context_after: ""
+  - anchor: "--publish"
+    first_line: 47
     count: 1
-    context_before: publish_default = \"yes\" if publish_default else \"no\"
-    context_after: ''
-  - anchor: --wipe-id3
-    first_line: 51
-    count: 1
-    context_before: g = pp.add_mutually_exclusive_group()
-    context_after: g.add_argument(\"--no-wipe-id3\", dest=\"wipe_id3\", action=\"store_false\",
-      help=\"do not wipe ID3 tags (default)\")
-  - anchor: --no-wipe-id3
-    first_line: 52
-    count: 1
-    context_before: g.add_argument(\"--wipe-id3\", dest=\"wipe_id3\", action=\"store_true\",
-      default=None, help=\"full wipe ID3 tags before writing new tags\")
-    context_after: pp.add_argument(\"--loudnorm\", action=\"store_true\", default=bool(ffmpeg.get(\"loudnorm\",
-      False)))
-  - anchor: --loudnorm
+    context_before: ""
+    context_after: ""
+  - anchor: "--clean-inbox"
+    first_line: 50
+    count: 2
+    context_before: "# FEATURE #65: inbox cleanup control (delete processed source under DROP_ROOT)"
+    context_after: ""
+  - anchor: "--wipe-id3"
     first_line: 53
     count: 1
-    context_before: g.add_argument(\"--no-wipe-id3\", dest=\"wipe_id3\", action=\"store_false\",
-      help=\"do not wipe ID3 tags (default)\")
-    context_after: pp.add_argument(\"--q-a\", default=str(ffmpeg.get(\"q_a\", \"2\")),
-      help=\"lame VBR quality (2=high)\")
-  - anchor: --q-a
+    context_before: "g = pp.add_mutually_exclusive_group()"
+    context_after: "g.add_argument(\"--no-wipe-id3\", dest=\"wipe_id3\", action=\"store_false\", help=\"do not wipe ID3 tags (default)\")"
+  - anchor: "--no-wipe-id3"
     first_line: 54
     count: 1
-    context_before: pp.add_argument(\"--loudnorm\", action=\"store_true\", default=bool(ffmpeg.get(\"loudnorm\",
-      False)))
-    context_after: pp.add_argument(\"--split-chapters\", dest=\"split_chapters\",
-      action=\"store_true\", default=bool(cfg.get(\"split_chapters\", True)))
-  - anchor: --split-chapters
-    first_line: 55
-    count: 1
-    context_before: pp.add_argument(\"--q-a\", default=str(ffmpeg.get(\"q_a\", \"2\")),
-      help=\"lame VBR quality (2=high)\")
-    context_after: pp.add_argument(\"--no-split-chapters\", dest=\"split_chapters\",
-      action=\"store_false\")
-  - anchor: --no-split-chapters
+    context_before: "g.add_argument(\"--wipe-id3\", dest=\"wipe_id3\", action=\"store_true\", default=None, help=\"full wipe ID3 tags before writing new tags\")"
+    context_after: ""
+  - anchor: "--loudnorm"
     first_line: 56
     count: 1
-    context_before: pp.add_argument(\"--split-chapters\", dest=\"split_chapters\",
-      action=\"store_true\", default=bool(cfg.get(\"split_chapters\", True)))
-    context_after: pp.add_argument(\"--cpu-cores\", type=int, default=cfg.get(\"cpu_cores\",
-      None), help=\"override CPU core count for perf tuning\")
-  - anchor: --cpu-cores
+    context_before: ""
+    context_after: "pp.add_argument(\"--q-a\", default=None, help=\"lame VBR quality (2=high)\")"
+  - anchor: "--q-a"
     first_line: 57
     count: 1
-    context_before: pp.add_argument(\"--no-split-chapters\", dest=\"split_chapters\",
-      action=\"store_false\")
-    context_after: pp.add_argument(\"--ff-loglevel\", choices=[\"info\", \"warning\",
-      \"error\"], default=str(ffmpeg.get(\"loglevel\", \"warning\")))
-  - anchor: --ff-loglevel
-    first_line: 58
+    context_before: "pp.add_argument(\"--loudnorm\", action=\"store_true\", default=None)"
+    context_after: ""
+  - anchor: "--split-chapters"
+    first_line: 59
     count: 1
-    context_before: pp.add_argument(\"--cpu-cores\", type=int, default=cfg.get(\"cpu_cores\",
-      None), help=\"override CPU core count for perf tuning\")
-    context_after: return pp
-  - anchor: --version
-    first_line: 72
+    context_before: ""
+    context_after: "pp.add_argument(\"--no-split-chapters\", dest=\"split_chapters\", action=\"store_false\")"
+  - anchor: "--no-split-chapters"
+    first_line: 60
     count: 1
-    context_before: )
-    context_after: ''
-  - anchor: --processing-log
-    first_line: 81
+    context_before: "pp.add_argument(\"--split-chapters\", dest=\"split_chapters\", action=\"store_true\", default=None)"
+    context_after: ""
+  - anchor: "--cpu-cores"
+    first_line: 62
+    count: 1
+    context_before: ""
+    context_after: "pp.add_argument(\"--ff-loglevel\", choices=[\"info\", \"warning\", \"error\"], default=None)"
+  - anchor: "--ff-loglevel"
+    first_line: 63
+    count: 1
+    context_before: "pp.add_argument(\"--cpu-cores\", type=int, default=None, help=\"override CPU core count for perf tuning\")"
+    context_after: "return pp"
+  - anchor: "--version"
+    first_line: 76
+    count: 2
+    context_before: ")"
+    context_after: "ap.add_argument(\"--support\", action=\"store_true\", help=\"show support link and exit\")"
+  - anchor: "--support"
+    first_line: 77
+    count: 2
+    context_before: "ap.add_argument(\"--version\", action=\"store_true\", help=\"show version and exit\")"
+    context_after: ""
+  - anchor: "--processing-log"
+    first_line: 86
     count: 3
-    context_before: gpl.add_argument(
-    context_after: dest=\"processing_log\",
-  - anchor: --processing-log-path
-    first_line: 88
+    context_before: "gpl.add_argument("
+    context_after: "dest=\"processing_log\","
+  - anchor: "--processing-log-path"
+    first_line: 93
     count: 1
-    context_before: gpl.add_argument(
-    context_after: dest=\"processing_log_path\",
-  - anchor: --preflight-disable
-    first_line: 96
+    context_before: "gpl.add_argument("
+    context_after: "dest=\"processing_log_path\","
+  - anchor: "--preflight-disable"
+    first_line: 101
     count: 1
-    context_before: imp.add_argument(
-    context_after: dest=\"preflight_disable\",
-  - anchor: --days
-    first_line: 112
+    context_before: "imp.add_argument("
+    context_after: "dest=\"preflight_disable\","
+  - anchor: "--disable-prompt"
+    first_line: 110
+    count: 2
+    context_before: "imp.add_argument("
+    context_after: "dest=\"disable_prompt\","
+  - anchor: "--no-support"
+    first_line: 119
     count: 1
-    context_before: gc = csub.add_parser(\"gc\", help=\"prune cover disk cache\",
-      parents=[parent])
-    context_after: gc.add_argument(\"--max-mb\", type=int, default=None, help=\"keep
-      cache size under M megabytes (prune oldest)\")
-  - anchor: --max-mb
-    first_line: 113
+    context_before: "imp.add_argument("
+    context_after: "dest=\"no_support\","
+  - anchor: "--days"
+    first_line: 135
     count: 1
-    context_before: gc.add_argument(\"--days\", type=int, default=None, help=\"remove
-      cache files older than N days\")
-    context_after: ''
+    context_before: "gc = csub.add_parser(\"gc\", help=\"prune cover disk cache\", parents=[parent])"
+    context_after: "gc.add_argument(\"--max-mb\", type=int, default=None, help=\"keep cache size under M megabytes (prune oldest)\")"
+  - anchor: "--max-mb"
+    first_line: 136
+    count: 1
+    context_before: "gc.add_argument(\"--days\", type=int, default=None, help=\"remove cache files older than N days\")"
+    context_after: ""
+  - anchor: "--config="
+    first_line: 222
+    count: 1
+    context_before: "return Path(_argv[_i + 1])"
+    context_after: "return Path(_a.split(\"=\", 1)[1])"
+
 - path: src/audiomason/config.py
   domains:
   - audio
@@ -1270,7 +1272,7 @@ files:
   anchors: null
 - path: tests/test_cli_support.py
   domains: []
-  file_sha1: ba286fe5e5da9e837e7261643816668ff96ea7ae
+  file_sha1: 404bae4e28d0e10652770161805148c5312062f2
   anchors: null
 - path: README.md
   domains: []

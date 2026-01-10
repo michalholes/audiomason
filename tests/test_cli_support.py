@@ -173,3 +173,35 @@ def test_json_suppresses_banner(monkeypatch, tmp_path, capsys):
 
     assert rc == 0
     assert "buymeacoffee.com/audiomason" not in out
+
+
+def test_cli_support_flag_works_without_config(monkeypatch, tmp_path, capsys):
+    # No AUDIOMASON_ROOT and no config on disk: must still work.
+    from audiomason import cli
+    monkeypatch.setattr(sys, "argv", ["am", "--support"])
+    with pytest.raises(SystemExit) as ex:
+        cli.main()
+    assert ex.value.code == 0
+    out = capsys.readouterr().out
+    assert "buymeacoffee.com/audiomason" in out
+
+
+def test_cli_version_works_without_config(monkeypatch, tmp_path, capsys):
+    from audiomason import cli
+    monkeypatch.setattr(sys, "argv", ["am", "--version"])
+    with pytest.raises(SystemExit) as ex:
+        cli.main()
+    assert ex.value.code == 0
+    out = capsys.readouterr().out
+    assert "audiomason_version=" in out
+    assert "buymeacoffee.com/audiomason" in out
+
+
+def test_cli_help_works_without_config(monkeypatch, capsys):
+    from audiomason import cli
+    monkeypatch.setattr(sys, "argv", ["am", "--help"])
+    with pytest.raises(SystemExit) as ex:
+        cli.main()
+    assert ex.value.code == 0
+    out = capsys.readouterr().out
+    assert "AudioMason" in out
