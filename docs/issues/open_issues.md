@@ -460,89 +460,15 @@ Notes
 - Assignees: —
 - Milestone: —
 - Created: 2026-01-04T23:00:23Z
-- Updated: 2026-01-04T23:37:58Z
+- Updated: 2026-01-10T00:16:12Z
 
-Feat/Bug: expose loudnorm in preflight (default No) with CLI control and disable-able prompt
+TRACKING (META) — split into sub-issues:
+- # loudnorm determinism
+- # cleanup_stage CLI control
+- # clean_inbox config-hide validation bug
+- # docs audit & alignment
 
-Problem
-- `loudnorm` exists in the codebase (and may already be wired as an option internally), but it is not discoverable in the interactive dialogs.
-- Users cannot enable/disable loudnorm via a dedicated preflight prompt.
-- This leads to inconsistent UX: a feature exists but cannot be reached from the normal interactive workflow.
-
-Goal (authoritative)
-- Add a preflight question for loudnorm so it becomes a first-class user-facing option.
-
-Required behavior
-1) Preflight prompt
-- Add a preflight question (indicative wording):
-  "Apply loudnorm? [y/N]"
-- Default answer: No (preserves current behavior unless explicitly enabled).
-
-2) CLI control
-- Provide a CLI option to enable loudnorm without prompting (exact flag name may already exist; if so, ensure it works and is documented by behavior/tests).
-- CLI must override config/preflight defaults.
-
-3) Prompt disable (config)
-- It must be possible to disable this new loudnorm prompt via config (consistent with the global/per-prompt prompt-control mechanism used for other preflight prompts).
-- When the prompt is disabled, the default (No) must be applied deterministically unless overridden by CLI.
-
-Scope
-- Add/route loudnorm into preflight decision flow.
-- Ensure the chosen value is carried into processing where loudnorm is applied.
-- Add validation and tests.
-- No unrelated refactors or documentation changes in this issue.
-
-Acceptance criteria
-- Interactive mode shows a loudnorm question in preflight.
-- Default is No.
-- CLI can enable loudnorm (no prompt required).
-- Config can disable the loudnorm question deterministically.
-- Regression tests cover:
-  - default No behavior
-  - prompt disabled -> default No
-  - CLI enabling loudnorm overrides defaults
-
-Notes
-- If loudnorm is currently only partially implemented or unused, this issue includes wiring it end-to-end so the preflight choice actually affects processing.
-
----
-
-Additional requirement: CLI enable + config-hide support for all Opts flags
-
-Not only loudnorm: the same capability is required for *all* current Opts fields.
-
-Requirement
-- For every Opts field listed below:
-  - it must be possible to explicitly enable/disable it via CLI (when applicable)
-  - and it must be possible to hide/disable the corresponding interactive question via config (prompt control)
-- When a prompt is hidden/disabled:
-  - behavior must remain deterministic (use default unless CLI overrides)
-- CLI overrides config/defaults.
-
-Opts fields (current)
-- yes
-- dry_run
-- config
-- quiet
-- publish
-- wipe_id3
-- loudnorm
-- q_a
-- verify
-- verify_root
-- lookup
-- cleanup_stage
-- clean_inbox_mode
-- split_chapters
-- ff_loglevel
-- cpu_cores
-- debug
-- json
-
-Notes
-- Some fields may already have CLI flags; for those, the requirement is to ensure consistency and test coverage.
-- Fields that are not interactive prompts today should still follow the rule: if a prompt exists or is introduced, it must be suppressible via config and controllable via CLI.
-
+Close #79 only when all sub-issues are closed.
 
 ---
 
