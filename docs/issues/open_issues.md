@@ -627,3 +627,164 @@ Acceptance criteria:
 
 
 ---
+
+## #101 – Bug: gov_versions.py --set-version allows invalid version, then --check fails
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T11:01:33Z
+- Updated: 2026-01-10T11:01:33Z
+
+Observed in scripts/gov_versions.py:
+- VERSION_VALUE_RE expects vX.Y
+- set_version() writes Version: <new_version> without validating format
+
+Impact:
+- Tool can write a value that later fails validation, breaking lockstep/version checks.
+
+Acceptance criteria:
+- --set-version validates input against the same rules as --check (vX.Y)
+- tests updated/added to cover invalid input
+- docs/help output clearly states required format
+
+---
+
+## #102 – Feat: Make ./am launcher portable (no hardcoded /home/pi path)
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T11:02:30Z
+- Updated: 2026-01-10T11:02:30Z
+
+Current root script `am` hardcodes DIR="/home/pi/apps/audiomason" and uses .venv from there.
+
+Impact:
+- Breaks on non-pi users or different install paths.
+- Makes fresh installs/migrations brittle.
+
+Acceptance criteria:
+- Launcher resolves repo root dynamically (relative to script location or via env var)
+- Works when repo is cloned to any path
+- Update docs accordingly
+
+---
+
+## #103 – Repo hygiene: Decide how to store .deb artifacts (docs/apt/pool) and document policy
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T11:02:50Z
+- Updated: 2026-01-10T11:02:50Z
+
+Repo contains multiple .deb artifacts under docs/apt/pool/main/...
+
+Question:
+- Should these live in Git (docs-hosted APT repo), or be released via GitHub Releases/Artifacts?
+
+Acceptance criteria:
+- Document chosen policy (where .deb live)
+- If moving out of Git: remove from repo and add guardrails
+- If keeping in Git: document update process and size expectations
+
+---
+
+## #104 – Docs/Policy: Add LICENSE + SECURITY.md + CONTRIBUTING.md
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T11:02:59Z
+- Updated: 2026-01-10T11:02:59Z
+
+Repo is missing standard policy docs:
+- LICENSE
+- SECURITY.md
+- CONTRIBUTING.md
+
+Acceptance criteria:
+- Add LICENSE (selected license)
+- Add SECURITY.md (vuln reporting)
+- Add CONTRIBUTING.md (dev/test workflow)
+- Mention in README
+
+---
+
+## #105 – Refactor: CLI arg parsing must not require config load (lazy-load config)
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T11:14:39Z
+- Updated: 2026-01-10T11:14:39Z
+
+Decision: Variant A (lazy-load config).
+
+Problem:
+- CLI currently loads config during argument parsing, which breaks clean environments and makes tests brittle.
+
+Scope:
+- _parse_args() must not call load_config().
+- Parse args first, then load config as part of command execution.
+
+Acceptance criteria:
+- `audiomason --help` and `audiomason --version` work without /etc config or user config.
+- `audiomason import ...` can be invoked in a clean env (unless config is truly required for that path).
+- Add/adjust tests to cover running without /etc/audiomason/config.yaml.
+- If `--config` is provided, it must be honored without requiring the default config file to exist.
+
+---
+
+## #106 – Dev tooling: add ruff + mypy (CI + local workflow)
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T11:14:45Z
+- Updated: 2026-01-10T11:14:45Z
+
+Decision: Variant B (ruff + mypy).
+
+Goal:
+- Add lightweight, fast quality gates (lint/format + types) without heavy developer friction.
+
+Scope:
+- Add `ruff` (lint + formatter).
+- Add `mypy` for static type checks (scope can start with src/audiomason only).
+- Wire into CI.
+
+Acceptance criteria:
+- `ruff check .` passes in CI.
+- `ruff format --check .` passes in CI.
+- `mypy` runs in CI (initially at least `src/audiomason`).
+- Document the commands in README or CONTRIBUTING (if present).
+- No changes required to end-user installs (dev/test extras only).
+
+---
+
+## #107 – CI: avoid writing /etc/audiomason/config.yaml; use --config with repo config
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T11:14:52Z
+- Updated: 2026-01-10T11:14:52Z
+
+Decision: Variant A.
+
+Problem:
+- CI currently writes config to /etc/audiomason/config.yaml using sudo.
+- This makes tests less isolated and hides config-loading brittleness.
+
+Scope:
+- Remove sudo copy into /etc from CI workflow.
+- Use `--config <repo>/debian/config.yaml` (or equivalent) in CI invocations.
+
+Acceptance criteria:
+- CI completes without writing to /etc and without sudo copy of config.
+- CI explicitly points CLI to a config via `--config`.
+- At least one test/execution path runs in a clean env (no /etc config present) to prevent regressions.
+
+---
