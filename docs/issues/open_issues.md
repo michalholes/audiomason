@@ -628,27 +628,6 @@ Acceptance criteria:
 
 ---
 
-## #102 – Feat: Make ./am launcher portable (no hardcoded /home/pi path)
-- State: **OPEN**
-- Labels: —
-- Assignees: —
-- Milestone: —
-- Created: 2026-01-10T11:02:30Z
-- Updated: 2026-01-10T11:02:30Z
-
-Current root script `am` hardcodes DIR="/home/pi/apps/audiomason" and uses .venv from there.
-
-Impact:
-- Breaks on non-pi users or different install paths.
-- Makes fresh installs/migrations brittle.
-
-Acceptance criteria:
-- Launcher resolves repo root dynamically (relative to script location or via env var)
-- Works when repo is cloned to any path
-- Update docs accordingly
-
----
-
 ## #103 – Repo hygiene: Decide how to store .deb artifacts (docs/apt/pool) and document policy
 - State: **OPEN**
 - Labels: —

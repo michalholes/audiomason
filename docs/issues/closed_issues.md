@@ -1,5 +1,27 @@
 # Closed Issues
 
+## #102 – Feat: Make ./am launcher portable (no hardcoded /home/pi path)
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T11:02:30Z
+- Updated: 2026-01-10T15:53:44Z
+- Closed: 2026-01-10T15:53:44Z
+
+Current root script `am` hardcodes DIR="/home/pi/apps/audiomason" and uses .venv from there.
+
+Impact:
+- Breaks on non-pi users or different install paths.
+- Makes fresh installs/migrations brittle.
+
+Acceptance criteria:
+- Launcher resolves repo root dynamically (relative to script location or via env var)
+- Works when repo is cloned to any path
+- Update docs accordingly
+
+---
+
 ## #101 – Bug: gov_versions.py --set-version allows invalid version, then --check fails
 - State: **CLOSED**
 - Labels: —
