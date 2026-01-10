@@ -238,3 +238,85 @@ All governance documents located in `docs/governance/` constitute a single Gover
 5. Any governance change that bypasses the tool,
    or results in version drift,
    constitutes a governance violation.
+
+
+
+## §X. Canonical Artifact Directory
+
+The Project Manager MUST ensure that all execution artifacts
+(patches, governance documents, scripts, and supporting files)
+are consistently handled using the canonical artifact directory:
+
+    /home/pi/apps/patches
+
+This directory is the sole authoritative staging location
+for artifacts referenced in consultant or implementation chats.
+
+The Project Manager MUST:
+- enforce this directory in all handoffs,
+- reject handoffs that reference unspecified or alternative locations.
+
+Failure to enforce the canonical artifact directory
+constitutes a project management violation.
+
+---
+
+
+## §Y. Canonical Implementation Handoff Template (PM Mandatory)
+
+When opening an implementation chat, the Project Manager MUST provide the handoff
+using the **Canonical Implementation Handoff Template** below.
+
+The Project Manager MUST:
+- fill in all placeholders,
+- list all authoritative inputs provided in the chat (exact filenames),
+- include the canonical artifact directory,
+- ensure the template is posted as the **first message** of the implementation chat.
+
+Failure to use this template constitutes a project management violation.
+
+---
+
+### Canonical Implementation Handoff Template (copy/paste)
+
+```text
+# IMPLEMENTATION HANDOFF (CANONICAL)
+
+CHAT TYPE: IMPLEMENTATION
+
+GOVERNANCE BASIS (MUST PRINT IN EVERY IC RESPONSE):
+- PROJECT_CONSTITUTION vX.Y
+- IMPLEMENTATION_LAW vX.Y
+- PROJECT_LAW vX.Y
+- This handoff
+
+ARTIFACT DIRECTORY (CANONICAL):
+/home/pi/apps/patches
+
+AUTHORITATIVE INPUTS (FILES PROVIDED IN THIS CHAT):
+- <list exact filenames, or NONE>
+
+ZIP STATUS:
+- ZIP provided: YES/NO
+- Expected proof in IC: FILE MANIFEST | anchor snippet | extraction error
+
+ISSUE:
+- #NN — <Title>
+- Goal: IMPLEMENTATION | VERIFICATION-ONLY
+- Scope: <exact scope>
+- Non-goals: <explicit exclusions>
+- Dependencies: <if any>
+
+MANDATORY GATES (IC MUST ENFORCE):
+- Hard Gates (GOVERNANCE BASIS + INPUT STATUS + ZIP proof)
+- Docs + Repo Manifest gate (no “complete” without docs/manifest if applicable)
+- Dual checklists:
+  - GATE CHECKLIST (every response)
+  - SELF-AUDIT CHECKLIST (FINAL RESULT only)
+
+DELIVERABLE (STRICT):
+- FINAL RESULT must be exactly one of:
+  A) COMPLETE (with SHA + confirmation tests + docs + manifest)
+  B) NOT COMPLETE / FAIL-FAST (explicit missing items, repo-relative paths)
+```
+

@@ -128,6 +128,14 @@ Diffs, inline edits, or manual instructions are prohibited.
 
 ## 6.2 Mandatory Hard Gates (A + C)
 
+
+Implementation artifacts MUST be consumed exclusively from the canonical
+artifact directory defined by governance (Project Law and Consultant Law).
+
+If an implementation chat references artifacts located elsewhere
+or omits the artifact location, the implementation MUST FAIL-FAST.
+
+
 ### 6.2.1 Auto-Invalid Output (Hard Gate)
 
 Any assistant response in an **implementation chat** is **AUTOMATICALLY INVALID**
