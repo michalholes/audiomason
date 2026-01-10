@@ -1,5 +1,26 @@
 # Closed Issues
 
+## #111 – Ruff: autofix all fixable lint errors
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:18Z
+- Updated: 2026-01-10T21:11:40Z
+- Closed: 2026-01-10T21:11:40Z
+
+SCOPE
+- Apply `ruff check --fix` for all safe/auto-fixable findings.
+- Keep changes mechanical where possible.
+
+ACCEPTANCE CRITERIA
+- Ruff error count is significantly reduced.
+- No user-facing behavior changes.
+- Tests pass.
+
+
+---
+
 ## #106 – Dev tooling: add ruff + mypy (CI + local workflow)
 - State: **CLOSED**
 - Labels: —

@@ -722,26 +722,6 @@ NOTES
 
 ---
 
-## #111 – Ruff: autofix all fixable lint errors
-- State: **OPEN**
-- Labels: —
-- Assignees: —
-- Milestone: —
-- Created: 2026-01-10T20:55:18Z
-- Updated: 2026-01-10T20:55:18Z
-
-SCOPE
-- Apply `ruff check --fix` for all safe/auto-fixable findings.
-- Keep changes mechanical where possible.
-
-ACCEPTANCE CRITERIA
-- Ruff error count is significantly reduced.
-- No user-facing behavior changes.
-- Tests pass.
-
-
----
-
 ## #112 – Ruff: resolve remaining lint findings
 - State: **OPEN**
 - Labels: —
