@@ -1282,3 +1282,18 @@ files:
   domains: []
   file_sha1: 9cb8b2cc47aa656041b0e7990e4ce640a7fa3880
   anchors: null
+- path: pyproject.toml
+  domains:
+  - docs
+  file_sha1: 6b6aefe341fcb37a5c9072cd591736c073a2d308
+  anchors: null
+- path: .github/workflows/ci.yml
+  domains:
+  - tests
+  file_sha1: ee477d36127390624f7018184b2fb7b75f77bd3f
+  anchors: null
+- path: CONTRIBUTING.md
+  domains:
+  - docs
+  file_sha1: cf4611d352ab4cb30f085ce3a5f3727d35aaa313
+  anchors: null

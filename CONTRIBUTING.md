@@ -37,3 +37,33 @@ All contributors **must** read and respect these documents.
 
 Documentation changes are subject to the same governance rules as code changes.
 Implementation chats and handoffs are mandatory for all accepted changes.
+
+## Dev tooling (ruff + mypy)
+
+AudioMason uses **ruff** (lint + formatter) and **mypy** (type checking) as developer tooling.
+
+### Install (developer environment)
+
+Use the optional `dev` extra:
+
+```bash
+python -m pip install -U pip
+pip install -e ".[test,dev]"
+```
+
+### Run locally
+
+```bash
+ruff check .
+ruff format --check .
+mypy src/audiomason
+```
+
+### Notes
+
+- `mypy` is intentionally scoped to `src/audiomason` only.
+- Clear caches if results look stale:
+
+```bash
+rm -rf .mypy_cache .ruff_cache
+```
