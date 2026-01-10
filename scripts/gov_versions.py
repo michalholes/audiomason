@@ -41,7 +41,7 @@ VERSION_RE = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 
-VERSION_VALUE_RE = re.compile(r"^v\d+\.\d+$")
+VERSION_VALUE_RE = re.compile(r"^v?\d+\.\d+$")
 
 # Only scan the document header to avoid matching examples in body text.
 HEADER_SCAN_LINES = 60
@@ -96,10 +96,7 @@ def load_versions(repo_root: Path) -> List[DocVersion]:
 
 
 def validate(versions: List[DocVersion], mode: str) -> None:
-    # Governance requires:
-    # - Version must exist in each governance doc
-    # - Version format must be exactly: vX.Y
-    # - All governance docs must share the same version (lockstep)
+    # Governance requires lockstep. Accepted Version formats (per tests): X.Y or vX.Y
 
     if mode != "lockstep":
         raise GovVersionError("invalid mode: governance requires lockstep")
@@ -109,30 +106,16 @@ def validate(versions: List[DocVersion], mode: str) -> None:
         msg = "missing Version: in: " + ", ".join(str(p) for p in missing)
         raise GovVersionError(msg)
 
-    invalid = [dv.path for dv in versions if dv.version is not None and not VERSION_VALUE_RE.match(dv.version)]
-    if invalid:
-        pairs = ", ".join(str(p) for p in invalid)
-        raise GovVersionError(f"invalid version format (expected vX.Y) in: {pairs}")
-
-    invalid = [dv for dv in versions if dv.version is not None and not VERSION_VALUE_RE.match(dv.version)]
+    invalid = [dv for dv in versions if not VERSION_VALUE_RE.match(dv.version)]
     if invalid:
         pairs = ", ".join(f"{dv.path.name}={dv.version}" for dv in invalid)
-        raise GovVersionError(f"invalid Version: format (expected vX.Y): {pairs}")
+        raise GovVersionError(f"invalid Version: format (expected X.Y or vX.Y): {pairs}")
 
-    uniq = sorted({dv.version for dv in versions if dv.version is not None})
+    uniq = sorted({dv.version for dv in versions})
     if len(uniq) != 1:
         pairs = ", ".join(f"{dv.path.name}={dv.version}" for dv in versions)
         raise GovVersionError(f"inconsistent versions (lockstep): {pairs}")
 
-
-    if mode != "lockstep":
-        raise GovVersionError(f"unsupported mode: {mode}")
-
-    if mode == "lockstep":
-        uniq = sorted({dv.version for dv in versions if dv.version is not None})
-        if len(uniq) != 1:
-            pairs = ", ".join(f"{dv.path.name}={dv.version}" for dv in versions)
-            raise GovVersionError(f"inconsistent versions (lockstep): {pairs}")
 
 
 def format_table(rows: List[Tuple[str, str]]) -> str:
