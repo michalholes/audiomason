@@ -13,11 +13,20 @@ def test_convert_opus_in_place_creates_mp3(monkeypatch, tmp_path: Path) -> None:
     # Arrange
     old_opts = getattr(state, "OPTS", None)
     try:
-        state.OPTS = Opts(dry_run=False, loudnorm=False, q_a="2", ff_loglevel="warning", cpu_cores=None)
+        state.OPTS = Opts(
+            dry_run=False,
+            loudnorm=False,
+            q_a="2",
+            ff_loglevel="warning",
+            cpu_cores=None,
+        )
         src = tmp_path / "track.opus"
         src.write_bytes(b"fake-opus")
 
-        monkeypatch.setattr(audio.shutil, "which", lambda name: "/usr/bin/ffmpeg" if name == "ffmpeg" else "/usr/bin/ffprobe")
+        def fake_which(name: str) -> str:
+            return "/usr/bin/ffmpeg" if name == "ffmpeg" else "/usr/bin/ffprobe"
+
+        monkeypatch.setattr(audio.shutil, "which", fake_which)
 
         def fake_run_cmd(cmd, check=True, stdout=None):
             dst = Path(cmd[-1])
@@ -39,13 +48,22 @@ def test_detect_books_after_opus_conversion(monkeypatch, tmp_path: Path) -> None
     # Arrange: opus-only folder should become a detectable book once converted to mp3
     old_opts = getattr(state, "OPTS", None)
     try:
-        state.OPTS = Opts(dry_run=False, loudnorm=False, q_a="2", ff_loglevel="warning", cpu_cores=None)
+        state.OPTS = Opts(
+            dry_run=False,
+            loudnorm=False,
+            q_a="2",
+            ff_loglevel="warning",
+            cpu_cores=None,
+        )
 
         stage = tmp_path / "stage"
         stage.mkdir()
         (stage / "01.opus").write_bytes(b"fake-opus")
 
-        monkeypatch.setattr(audio.shutil, "which", lambda name: "/usr/bin/ffmpeg" if name == "ffmpeg" else "/usr/bin/ffprobe")
+        def fake_which(name: str) -> str:
+            return "/usr/bin/ffmpeg" if name == "ffmpeg" else "/usr/bin/ffprobe"
+
+        monkeypatch.setattr(audio.shutil, "which", fake_which)
 
         def fake_run_cmd(cmd, check=True, stdout=None):
             dst = Path(cmd[-1])
