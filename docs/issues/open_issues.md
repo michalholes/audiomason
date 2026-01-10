@@ -512,3 +512,118 @@ Acceptance criteria
 - Existing tests pass; add a regression test if feasible.
 
 ---
+
+## #97 – Sub-issue: loudnorm determinism (prompt + CLI symmetry + tests)
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T00:19:35Z
+- Updated: 2026-01-10T00:22:18Z
+
+Child of #79.
+
+Missing (per verification):
+- preflight prompt
+- --no-loudnorm
+- tests
+
+Scope:
+- Add preflight prompt: "Apply loudnorm? [y/N]" (default No)
+- Add CLI symmetry: --loudnorm and --no-loudnorm
+- Allow config-hide/disable for the loudnorm prompt
+- Deterministic resolution: CLI > config > default
+- Tests: default, config-hide default, CLI override
+
+Acceptance criteria:
+- Deterministic behavior proven by tests
+- No interactive leakage in non-interactive contexts
+
+
+---
+
+## #98 – Sub-issue: cleanup_stage must be CLI-controllable (remove hardcoded True)
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T00:19:36Z
+- Updated: 2026-01-10T00:22:19Z
+
+Child of #79.
+
+Missing (per verification):
+- cleanup_stage is hardcoded True and not CLI-controllable
+
+Scope:
+- Remove hardcoded cleanup_stage=True
+- Add explicit CLI enable/disable
+- Preserve default behavior unless overridden
+- Tests for CLI override + determinism
+
+Acceptance criteria:
+- CLI can explicitly control cleanup_stage
+- Default behavior unchanged unless explicitly overridden
+- Tests prove override
+
+
+---
+
+## #99 – Sub-issue: fix clean_inbox config-hide validation bug
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T00:19:37Z
+- Updated: 2026-01-10T00:22:20Z
+
+Child of #79.
+
+Missing (per verification):
+- clean_inbox prompt exists, but config-hide key is rejected by validation
+
+Scope:
+- Fix validation to accept intended config-hide key
+- Ensure prompt hide works deterministically
+- Regression tests
+
+Acceptance criteria:
+- Valid config key passes validation
+- Hidden prompt applies deterministic behavior
+- Regression tests cover the bug
+
+
+---
+
+## #100 – Sub-issue: docs audit & alignment for Opts CLI + config-hide behavior
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T00:19:38Z
+- Updated: 2026-01-10T00:22:21Z
+
+Child of #79.
+
+Missing (per verification):
+- docs do not reflect final behavior for the full Opts list
+
+Scope:
+- Audit full Opts list from #79
+- Align docs with actual behavior:
+  - CLI flags
+  - config-hide/disable behavior
+  - determinism rules (CLI > config > default)
+
+Files (expected):
+- README.md
+- docs/CLI.md
+- docs/CONFIGURATION.md
+
+Acceptance criteria:
+- Docs match actual behavior
+- No contradictions
+- Explicitly covers full Opts list from #79
+
+
+---
