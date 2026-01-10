@@ -1,5 +1,18 @@
 # Closed Issues
 
+## #108 – CI: fix gov_versions lockstep test to match canonical version format
+- State: **CLOSED**
+- Labels: bug
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T11:53:39Z
+- Updated: 2026-01-10T15:05:16Z
+- Closed: 2026-01-10T15:05:16Z
+
+CI fails on tests/test_gov_versions.py::test_set_version_makes_lockstep because test expectations are inconsistent with the canonical governance version format (vX.Y). The goal is to align the test and/or gov_versions behavior so --set-version and --check are consistent and CI passes. Out of scope: governance changes, new features, or refactors outside version tooling.
+
+---
+
 ## #90 – Feat: add Buy Me a Coffee support (non-intrusive monetization)
 - State: **CLOSED**
 - Labels: —

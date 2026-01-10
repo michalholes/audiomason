@@ -788,15 +788,3 @@ Acceptance criteria:
 - At least one test/execution path runs in a clean env (no /etc config present) to prevent regressions.
 
 ---
-
-## #108 – CI: fix gov_versions lockstep test to match canonical version format
-- State: **OPEN**
-- Labels: bug
-- Assignees: —
-- Milestone: —
-- Created: 2026-01-10T11:53:39Z
-- Updated: 2026-01-10T11:53:39Z
-
-CI fails on tests/test_gov_versions.py::test_set_version_makes_lockstep because test expectations are inconsistent with the canonical governance version format (vX.Y). The goal is to align the test and/or gov_versions behavior so --set-version and --check are consistent and CI passes. Out of scope: governance changes, new features, or refactors outside version tooling.
-
----
