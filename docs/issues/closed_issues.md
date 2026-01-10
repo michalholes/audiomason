@@ -1,5 +1,25 @@
 # Closed Issues
 
+## #112 – Ruff: resolve remaining lint findings
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:19Z
+- Updated: 2026-01-10T23:58:19Z
+- Closed: 2026-01-10T23:58:19Z
+
+SCOPE
+- Manually address remaining ruff findings after formatter + autofix.
+- Prefer minimal edits; no unrelated refactors.
+
+ACCEPTANCE CRITERIA
+- `ruff check .` passes.
+- Tests pass.
+
+
+---
+
 ## #111 – Ruff: autofix all fixable lint errors
 - State: **CLOSED**
 - Labels: —

@@ -722,25 +722,6 @@ NOTES
 
 ---
 
-## #112 – Ruff: resolve remaining lint findings
-- State: **OPEN**
-- Labels: —
-- Assignees: —
-- Milestone: —
-- Created: 2026-01-10T20:55:19Z
-- Updated: 2026-01-10T20:55:19Z
-
-SCOPE
-- Manually address remaining ruff findings after formatter + autofix.
-- Prefer minimal edits; no unrelated refactors.
-
-ACCEPTANCE CRITERIA
-- `ruff check .` passes.
-- Tests pass.
-
-
----
-
 ## #113 – Mypy: fix Optional & None handling
 - State: **OPEN**
 - Labels: —
