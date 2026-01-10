@@ -66,10 +66,14 @@ PATCH_PATH="${PATCH_DIR}/${PATCH_FILENAME}"
 
 # ------------------------------------------------------------------
 # Discover repo root (walk up until pyproject.toml is found)
+# NOTE: do NOT depend on current working directory (CWD). Start from
+#       the runner's own location inside the repo.
 # ------------------------------------------------------------------
 find_repo_root() {
   local d
-  d="$(pwd)"
+  # scripts/am_patch.sh lives under <repo_root>/scripts/
+  # Start from <repo_root> regardless of CWD (e.g. /home/pi/apps/patches).
+  d="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
   while true; do
     if [[ -f "${d}/pyproject.toml" ]]; then
       echo "${d}"
