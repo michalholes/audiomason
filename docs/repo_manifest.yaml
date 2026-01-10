@@ -1232,6 +1232,10 @@ files:
   sha1: 1991530d696d013679ca2b478e9d1f9add9a4b00
 - path: docs/design/preflight_orchestration.md
   sha1: 962d757da95e352c750f1bf8e8649d13ff3b5a60
+- path: tests/test_gov_versions.py
+  domains: []
+  file_sha1: 002b311e0da3765994efa072adbcd7a451b4d664
+  anchors: null
 - path: tests/test_preflight_dispatcher_guard.py
   domains: []
   file_sha1: 5b7cc5467499eaf19868aa6a48c309d6a6d7c5b2
@@ -1239,11 +1243,11 @@ files:
 - path: scripts/gov_versions.py
   domains:
   - pipeline
-  file_sha1: ce166c45b7092ecb81c8c7b3cb61f3f7c416988c
+  file_sha1: 105703ccb472e890b1484b79b034ca0fe34ce8ad
 - path: scripts/gov_versions.md
   domains:
   - pipeline
-  file_sha1: 3e06485fffd376a343cea41701621a2aefc873b5
+  file_sha1: 4882a129cd9d348cb21d96275cd14f11d2722c88
 - path: scripts/sync_issues_archive.py
   domains:
   - pipeline
@@ -1274,5 +1278,5 @@ files:
   anchors: null
 - path: docs/repo_manifest.yaml
   domains: []
-  file_sha1: 7d286f0cf922565cb14aa436b783db9377b13629
+  file_sha1: 9cb8b2cc47aa656041b0e7990e4ce640a7fa3880
   anchors: null

@@ -140,6 +140,10 @@ def cmd_list(repo_root: Path, versions: List[DocVersion]) -> int:
 
 
 def set_version(repo_root: Path, new_version: str, dry_run: bool) -> int:
+    # Ensure --set-version accepts exactly the same formats as --check.
+    if not VERSION_VALUE_RE.match(new_version):
+        raise GovVersionError(f"invalid Version: format (expected X.Y or vX.Y): {new_version}")
+
     files = list_governance_files(repo_root)
     gdir = governance_dir(repo_root)
     planned: List[Tuple[Path, str, str]] = []
@@ -181,7 +185,7 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
     ap.add_argument("--mode", choices=["lockstep"], default="lockstep")
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--check", action="store_true")
-    ap.add_argument("--set-version", dest="set_version", metavar="X.Y")
+    ap.add_argument("--set-version", dest="set_version", metavar="X.Y|vX.Y")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--repo-root", default=None)
 

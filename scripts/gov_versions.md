@@ -20,6 +20,12 @@ Any new governance document added to `docs/governance/` (including future laws) 
 
 ## Version line rules
 
+Accepted version formats (enforced by both `--check` and `--set-version`):
+
+- `X.Y` (e.g. `2.11`)
+- `vX.Y` (e.g. `v2.11`)
+
+
 The tool recognizes version declarations case-insensitively, with optional leading `#`:
 
 - `Version: <value>`
