@@ -628,33 +628,6 @@ Acceptance criteria:
 
 ---
 
-## #106 – Dev tooling: add ruff + mypy (CI + local workflow)
-- State: **OPEN**
-- Labels: —
-- Assignees: —
-- Milestone: —
-- Created: 2026-01-10T11:14:45Z
-- Updated: 2026-01-10T11:14:45Z
-
-Decision: Variant B (ruff + mypy).
-
-Goal:
-- Add lightweight, fast quality gates (lint/format + types) without heavy developer friction.
-
-Scope:
-- Add `ruff` (lint + formatter).
-- Add `mypy` for static type checks (scope can start with src/audiomason only).
-- Wire into CI.
-
-Acceptance criteria:
-- `ruff check .` passes in CI.
-- `ruff format --check .` passes in CI.
-- `mypy` runs in CI (initially at least `src/audiomason`).
-- Document the commands in README or CONTRIBUTING (if present).
-- No changes required to end-user installs (dev/test extras only).
-
----
-
 ## #107 – CI: avoid writing /etc/audiomason/config.yaml; use --config with repo config
 - State: **OPEN**
 - Labels: —

@@ -1,5 +1,33 @@
 # Closed Issues
 
+## #106 – Dev tooling: add ruff + mypy (CI + local workflow)
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T11:14:45Z
+- Updated: 2026-01-10T20:10:13Z
+- Closed: 2026-01-10T20:10:13Z
+
+Decision: Variant B (ruff + mypy).
+
+Goal:
+- Add lightweight, fast quality gates (lint/format + types) without heavy developer friction.
+
+Scope:
+- Add `ruff` (lint + formatter).
+- Add `mypy` for static type checks (scope can start with src/audiomason only).
+- Wire into CI.
+
+Acceptance criteria:
+- `ruff check .` passes in CI.
+- `ruff format --check .` passes in CI.
+- `mypy` runs in CI (initially at least `src/audiomason`).
+- Document the commands in README or CONTRIBUTING (if present).
+- No changes required to end-user installs (dev/test extras only).
+
+---
+
 ## #105 – Refactor: CLI arg parsing must not require config load (lazy-load config)
 - State: **CLOSED**
 - Labels: —
