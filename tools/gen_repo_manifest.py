@@ -22,14 +22,22 @@ def yaml_escape(s: str) -> str:
 def domains_for(path: str, src: str) -> list[str]:
     p = path.lower()
     tags = set()
-    if p.startswith("docs/"): tags.add("docs")
-    if "cli" in p: tags.add("cli")
-    if "config" in p: tags.add("config")
-    if "import_flow" in p or "pipeline" in p or "flow" in p: tags.add("pipeline")
-    if "audio" in p or "ffmpeg" in src or ".opus" in src or ".m4a" in src: tags.add("audio")
-    if "publish" in p or ("output" in src and "copy" in src): tags.add("publish")
-    if "prompt" in p or "_pf_" in src: tags.add("prompts")
-    if not tags: tags.add("misc")
+    if p.startswith("docs/"):
+        tags.add("docs")
+    if "cli" in p:
+        tags.add("cli")
+    if "config" in p:
+        tags.add("config")
+    if "import_flow" in p or "pipeline" in p or "flow" in p:
+        tags.add("pipeline")
+    if "audio" in p or "ffmpeg" in src or ".opus" in src or ".m4a" in src:
+        tags.add("audio")
+    if "publish" in p or ("output" in src and "copy" in src):
+        tags.add("publish")
+    if "prompt" in p or "_pf_" in src:
+        tags.add("prompts")
+    if not tags:
+        tags.add("misc")
     return sorted(tags)
 
 def extract_anchors(p: Path) -> list[dict]:
@@ -118,4 +126,3 @@ for e in entries:
 
 OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
 print(f"OK: wrote {OUT}")
-

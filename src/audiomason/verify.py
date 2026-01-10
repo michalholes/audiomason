@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-READ_ONLY_VERIFY = True
-
-
-
 from pathlib import Path
 
 from mutagen.id3 import ID3, ID3NoHeaderError
@@ -12,6 +8,8 @@ from audiomason.naming import normalize_name
 from audiomason.openlibrary import validate_author, validate_book
 from audiomason.paths import COVER_NAME
 from audiomason.util import out
+
+READ_ONLY_VERIFY = True
 
 
 def verify_library(root: Path) -> None:

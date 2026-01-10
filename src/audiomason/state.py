@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-DEBUG = False
-VERBOSE = False
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+DEBUG = False
+VERBOSE = False
 
 @dataclass
 class Opts:
@@ -29,7 +29,8 @@ class Opts:
 
     debug: bool = False
 
-
     json: bool = False
+# During refactor we keep global state for compatibility with legacy code.
+
 # During refactor we keep global state for compatibility with legacy code.
 OPTS: Opts | None = None
