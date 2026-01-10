@@ -2,7 +2,7 @@
 
 AUTHORITATIVE – AudioMason  
 Status: active  
-Version: v2.9
+Version: v2.10
 This document is an execution law subordinate to the Project Constitution.
 It governs consultant chats and governance-related activities.
 
@@ -154,6 +154,15 @@ The consultant MUST NOT:
 
 Failure to specify the canonical artifact directory
 constitutes a consultant role violation.
+
+
+### §8.3 Canonical Patch Runner Reference (NEW)
+
+When an implementation chat requires a runner invocation line, the consultant MUST
+instruct the implementer to use the canonical repo-backed runner path:
+
+    /home/pi/apps/audiomason/scripts/am_patch.sh
+
 
 ---
 

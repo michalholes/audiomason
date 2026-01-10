@@ -1,6 +1,6 @@
 # PROJECT LAW – AudioMason
 # AUTHORITATIVE – AudioMason
-Version: v2.9
+Version: v2.10
 # Status: active
 
 This document is a project governance law subordinate to the Project Constitution.
@@ -251,6 +251,18 @@ are consistently handled using the canonical artifact directory:
 This directory is the sole authoritative staging location
 for artifacts referenced in consultant or implementation chats.
 
+
+## §Z. Canonical Patch Runner Location (NEW)
+
+The canonical patch runner MUST be stored in the repository and referenced
+using the absolute path:
+
+    /home/pi/apps/audiomason/scripts/am_patch.sh
+
+Implementation chats MUST use this path verbatim when providing the runner
+invocation line.
+
+
 The Project Manager MUST:
 - enforce this directory in all handoffs,
 - reject handoffs that reference unspecified or alternative locations.
@@ -292,6 +304,9 @@ GOVERNANCE BASIS (MUST PRINT IN EVERY IC RESPONSE):
 
 ARTIFACT DIRECTORY (CANONICAL):
 /home/pi/apps/patches
+
+CANONICAL PATCH RUNNER (REPO-BACKED):
+/home/pi/apps/audiomason/scripts/am_patch.sh
 
 AUTHORITATIVE INPUTS (FILES PROVIDED IN THIS CHAT):
 - <list exact filenames, or NONE>
