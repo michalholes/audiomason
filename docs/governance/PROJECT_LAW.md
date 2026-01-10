@@ -1,6 +1,6 @@
 # PROJECT LAW – AudioMason
 # AUTHORITATIVE – AudioMason
-Version: v2.10
+Version: v2.11
 # Status: active
 
 This document is a project governance law subordinate to the Project Constitution.
@@ -262,6 +262,9 @@ using the absolute path:
 Implementation chats MUST use this path verbatim when providing the runner
 invocation line.
 
+The canonical patch runner supports an optional patch filename argument when the
+canonical patch filename cannot be used.
+
 
 The Project Manager MUST:
 - enforce this directory in all handoffs,
@@ -307,6 +310,8 @@ ARTIFACT DIRECTORY (CANONICAL):
 
 CANONICAL PATCH RUNNER (REPO-BACKED):
 /home/pi/apps/audiomason/scripts/am_patch.sh
+
+(OPTIONAL PATCH FILENAME ARGUMENT SUPPORTED)
 
 AUTHORITATIVE INPUTS (FILES PROVIDED IN THIS CHAT):
 - <list exact filenames, or NONE>

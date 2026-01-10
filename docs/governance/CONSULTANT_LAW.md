@@ -2,7 +2,7 @@
 
 AUTHORITATIVE – AudioMason  
 Status: active  
-Version: v2.10
+Version: v2.11
 This document is an execution law subordinate to the Project Constitution.
 It governs consultant chats and governance-related activities.
 
@@ -162,6 +162,14 @@ When an implementation chat requires a runner invocation line, the consultant MU
 instruct the implementer to use the canonical repo-backed runner path:
 
     /home/pi/apps/audiomason/scripts/am_patch.sh
+
+
+If the canonical patch filename cannot be used for technical reasons, the consultant MUST
+allow the use of the runner's optional patch filename argument.
+
+
+If the canonical patch filename cannot be used for technical reasons, the consultant MUST
+allow the use of the runner's optional patch filename argument.
 
 
 ---

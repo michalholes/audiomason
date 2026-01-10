@@ -1,6 +1,6 @@
 # IMPLEMENTATION LAW – AudioMason
 # AUTHORITATIVE – AudioMason
-Version: v2.10
+Version: v2.11
 # STATUS: ACTIVE
 
 This document is an execution law subordinate to the Project Constitution.
@@ -132,14 +132,22 @@ stored in the AudioMason repository:
     /home/pi/apps/audiomason/scripts/am_patch.sh
 
 Rules:
-- The patch script MUST be located in the canonical artifact directory:
+- Patch scripts MUST be stored in the canonical artifact directory:
 
-      /home/pi/apps/patches/issue_<N>.py
+      /home/pi/apps/patches/
 
-- The runner MUST be invoked using an absolute path, as a single command line:
+- The default patch filename is:
 
-      /home/pi/apps/audiomason/scripts/am_patch.sh <ISSUE> "<COMMIT MESSAGE>"
+      issue_<N>.py
 
+- If the canonical filename cannot be used, an alternative patch filename MAY be used,
+  but it MUST be passed explicitly to the canonical patch runner as an additional argument:
+
+      /home/pi/apps/audiomason/scripts/am_patch.sh <ISSUE> "<COMMIT MESSAGE>" <PATCH_FILENAME>
+
+  Where <PATCH_FILENAME> is a filename (not a path) located under /home/pi/apps/patches/.
+
+- The runner MUST be invoked using an absolute path, as a single command line.
 - Shell chaining (e.g. `&&`, `;`), additional commands (`cd`, `python`, `git`),
   or alternative runner paths are prohibited.
 - If the canonical runner path is not present on disk, the implementation MUST FAIL-FAST.
