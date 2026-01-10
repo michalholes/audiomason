@@ -974,7 +974,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                 picked = mf.get("books", {}).get("picked") if isinstance(mf, dict) else None
                 if reuse_stage and use_manifest_answers and isinstance(picked, list) and picked:
                     by_label = {b.label: b for b in books}
-                    picked_books = [by_label[l] for l in picked if l in by_label]
+                    picked_books = [by_label[label] for label in picked if label in by_label]
 
                 default_ans = "1"
                 if (not picked_books) and isinstance(picked, list) and picked:
@@ -1013,8 +1013,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                                 return
 
                 # publish/wipe/clean_stage via dispatcher (Issue #93)
-                preflight_order = _resolved_preflight_steps(cfg)
-
+                
                 publish: bool | None = None
                 wipe: bool | None = None
                 clean_stage: bool | None = None
