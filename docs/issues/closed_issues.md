@@ -1,5 +1,26 @@
 # Closed Issues
 
+## #103 – Repo hygiene: Decide how to store .deb artifacts (docs/apt/pool) and document policy
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T11:02:50Z
+- Updated: 2026-01-10T16:12:25Z
+- Closed: 2026-01-10T16:12:25Z
+
+Repo contains multiple .deb artifacts under docs/apt/pool/main/...
+
+Question:
+- Should these live in Git (docs-hosted APT repo), or be released via GitHub Releases/Artifacts?
+
+Acceptance criteria:
+- Document chosen policy (where .deb live)
+- If moving out of Git: remove from repo and add guardrails
+- If keeping in Git: document update process and size expectations
+
+---
+
 ## #102 – Feat: Make ./am launcher portable (no hardcoded /home/pi path)
 - State: **CLOSED**
 - Labels: —
