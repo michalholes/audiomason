@@ -628,28 +628,6 @@ Acceptance criteria:
 
 ---
 
-## #101 – Bug: gov_versions.py --set-version allows invalid version, then --check fails
-- State: **OPEN**
-- Labels: —
-- Assignees: —
-- Milestone: —
-- Created: 2026-01-10T11:01:33Z
-- Updated: 2026-01-10T11:01:33Z
-
-Observed in scripts/gov_versions.py:
-- VERSION_VALUE_RE expects vX.Y
-- set_version() writes Version: <new_version> without validating format
-
-Impact:
-- Tool can write a value that later fails validation, breaking lockstep/version checks.
-
-Acceptance criteria:
-- --set-version validates input against the same rules as --check (vX.Y)
-- tests updated/added to cover invalid input
-- docs/help output clearly states required format
-
----
-
 ## #102 – Feat: Make ./am launcher portable (no hardcoded /home/pi path)
 - State: **OPEN**
 - Labels: —

@@ -1,5 +1,28 @@
 # Closed Issues
 
+## #101 – Bug: gov_versions.py --set-version allows invalid version, then --check fails
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T11:01:33Z
+- Updated: 2026-01-10T15:45:13Z
+- Closed: 2026-01-10T15:45:13Z
+
+Observed in scripts/gov_versions.py:
+- VERSION_VALUE_RE expects vX.Y
+- set_version() writes Version: <new_version> without validating format
+
+Impact:
+- Tool can write a value that later fails validation, breaking lockstep/version checks.
+
+Acceptance criteria:
+- --set-version validates input against the same rules as --check (vX.Y)
+- tests updated/added to cover invalid input
+- docs/help output clearly states required format
+
+---
+
 ## #108 – CI: fix gov_versions lockstep test to match canonical version format
 - State: **CLOSED**
 - Labels: bug
