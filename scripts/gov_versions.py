@@ -14,7 +14,7 @@ Capabilities:
 - --check: validate presence, and optionally lockstep consistency
 - --set-version X.Y: set Version: line in all governance docs (write mode)
 - --dry-run: for --set-version, show what would change without writing
-- --mode lockstep|independent (default lockstep)
+- --mode lockstep (default lockstep; independent mode is not supported by governance)
 
 Exit codes:
 - 0 success
@@ -40,6 +40,8 @@ VERSION_RE = re.compile(
     r"^(?P<prefix>\s*(?:#\s*)?)version\s*:\s*(?P<val>\S+)\s*$",
     re.IGNORECASE | re.MULTILINE,
 )
+
+VERSION_VALUE_RE = re.compile(r"^v\d+\.\d+$")
 
 # Only scan the document header to avoid matching examples in body text.
 HEADER_SCAN_LINES = 60
@@ -94,10 +96,37 @@ def load_versions(repo_root: Path) -> List[DocVersion]:
 
 
 def validate(versions: List[DocVersion], mode: str) -> None:
+    # Governance requires:
+    # - Version must exist in each governance doc
+    # - Version format must be exactly: vX.Y
+    # - All governance docs must share the same version (lockstep)
+
+    if mode != "lockstep":
+        raise GovVersionError("invalid mode: governance requires lockstep")
+
     missing = [dv.path for dv in versions if dv.version is None]
     if missing:
         msg = "missing Version: in: " + ", ".join(str(p) for p in missing)
         raise GovVersionError(msg)
+
+    invalid = [dv.path for dv in versions if dv.version is not None and not VERSION_VALUE_RE.match(dv.version)]
+    if invalid:
+        pairs = ", ".join(str(p) for p in invalid)
+        raise GovVersionError(f"invalid version format (expected vX.Y) in: {pairs}")
+
+    invalid = [dv for dv in versions if dv.version is not None and not VERSION_VALUE_RE.match(dv.version)]
+    if invalid:
+        pairs = ", ".join(f"{dv.path.name}={dv.version}" for dv in invalid)
+        raise GovVersionError(f"invalid Version: format (expected vX.Y): {pairs}")
+
+    uniq = sorted({dv.version for dv in versions if dv.version is not None})
+    if len(uniq) != 1:
+        pairs = ", ".join(f"{dv.path.name}={dv.version}" for dv in versions)
+        raise GovVersionError(f"inconsistent versions (lockstep): {pairs}")
+
+
+    if mode != "lockstep":
+        raise GovVersionError(f"unsupported mode: {mode}")
 
     if mode == "lockstep":
         uniq = sorted({dv.version for dv in versions if dv.version is not None})
@@ -166,7 +195,7 @@ def set_version(repo_root: Path, new_version: str, dry_run: bool) -> int:
 
 def parse_args(argv: List[str]) -> argparse.Namespace:
     ap = argparse.ArgumentParser(prog="gov_versions.py", add_help=True)
-    ap.add_argument("--mode", choices=["lockstep", "independent"], default="lockstep")
+    ap.add_argument("--mode", choices=["lockstep"], default="lockstep")
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--set-version", dest="set_version", metavar="X.Y")

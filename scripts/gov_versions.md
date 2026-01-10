@@ -54,11 +54,8 @@ python scripts/gov_versions.py --check
 
 Default mode is `lockstep`, meaning all governance documents must share the same version.
 
-To check only presence (no lockstep constraint):
-
-```bash
-python scripts/gov_versions.py --check --mode independent
-```
+Lockstep is mandatory for the governance set; bypass modes are not supported.
+Lockstep is mandatory by governance; there is no bypass mode.
 
 ### Set version (write mode)
 

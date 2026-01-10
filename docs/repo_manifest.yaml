@@ -1236,6 +1236,14 @@ files:
   domains: []
   file_sha1: 5b7cc5467499eaf19868aa6a48c309d6a6d7c5b2
   anchors: null
+- path: scripts/gov_versions.py
+  domains:
+  - pipeline
+  file_sha1: ce166c45b7092ecb81c8c7b3cb61f3f7c416988c
+- path: scripts/gov_versions.md
+  domains:
+  - pipeline
+  file_sha1: 3e06485fffd376a343cea41701621a2aefc873b5
 - path: scripts/sync_issues_archive.py
   domains:
   - pipeline
