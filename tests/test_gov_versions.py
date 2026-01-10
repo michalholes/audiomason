@@ -9,6 +9,7 @@ def _write(p: Path, text: str) -> None:
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(text, encoding="utf-8")
 
+
 def _run(repo_root: Path, args: list[str]) -> subprocess.CompletedProcess[str]:
     script = repo_root / "scripts" / "gov_versions.py"
     return subprocess.run(
@@ -17,12 +18,16 @@ def _run(repo_root: Path, args: list[str]) -> subprocess.CompletedProcess[str]:
         capture_output=True,
     )
 
+
 def test_check_fails_when_version_missing(tmp_path: Path) -> None:
     repo_root = tmp_path
     _write(repo_root / "pyproject.toml", "[project]\nname='x'\nversion='0.0.0'\n")
 
     # Install the script into the temp repo
-    _write(repo_root / "scripts" / "gov_versions.py", (Path(__file__).parent.parent / "scripts" / "gov_versions.py").read_text(encoding="utf-8"))
+    _write(
+        repo_root / "scripts" / "gov_versions.py",
+        (Path(__file__).parent.parent / "scripts" / "gov_versions.py").read_text(encoding="utf-8"),
+    )
 
     _write(repo_root / "docs" / "governance" / "A.md", "Title\n\nVersion: 1.0\n")
     _write(repo_root / "docs" / "governance" / "B.md", "Title\n\nNO VERSION HERE\n")
@@ -32,12 +37,14 @@ def test_check_fails_when_version_missing(tmp_path: Path) -> None:
     assert "missing Version" in (r.stderr + r.stdout)
 
 
-
 def test_set_version_rejects_invalid_format(tmp_path: Path) -> None:
     repo_root = tmp_path
     _write(repo_root / "pyproject.toml", "[project]\nname='x'\nversion='0.0.0'\n")
 
-    _write(repo_root / "scripts" / "gov_versions.py", (Path(__file__).parent.parent / "scripts" / "gov_versions.py").read_text(encoding="utf-8"))
+    _write(
+        repo_root / "scripts" / "gov_versions.py",
+        (Path(__file__).parent.parent / "scripts" / "gov_versions.py").read_text(encoding="utf-8"),
+    )
 
     _write(repo_root / "docs" / "governance" / "A.md", "Title\n\nVersion: 1.0\n")
     _write(repo_root / "docs" / "governance" / "B.md", "Title\n\nVersion: 1.0\n")
@@ -50,11 +57,15 @@ def test_set_version_rejects_invalid_format(tmp_path: Path) -> None:
     assert r2.returncode != 0
     assert "invalid Version: format" in (r2.stderr + r2.stdout)
 
+
 def test_set_version_makes_lockstep(tmp_path: Path) -> None:
     repo_root = tmp_path
     _write(repo_root / "pyproject.toml", "[project]\nname='x'\nversion='0.0.0'\n")
 
-    _write(repo_root / "scripts" / "gov_versions.py", (Path(__file__).parent.parent / "scripts" / "gov_versions.py").read_text(encoding="utf-8"))
+    _write(
+        repo_root / "scripts" / "gov_versions.py",
+        (Path(__file__).parent.parent / "scripts" / "gov_versions.py").read_text(encoding="utf-8"),
+    )
 
     _write(repo_root / "docs" / "governance" / "A.md", "Title\n\nVersion: 1.0\n")
     _write(repo_root / "docs" / "governance" / "B.md", "Title\n\nVersion: 2.0\n")
@@ -89,5 +100,3 @@ def test_future_law_included(tmp_path: Path):
     _write(repo_root / "docs" / "governance" / "NEW_LAW.md", "Version: 1.0\n")
     r = _run(repo_root, ["--list"])
     assert "NEW_LAW.md" in r.stdout
-
-
