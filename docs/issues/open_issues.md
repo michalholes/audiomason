@@ -628,27 +628,6 @@ Acceptance criteria:
 
 ---
 
-## #104 – Docs/Policy: Add LICENSE + SECURITY.md + CONTRIBUTING.md
-- State: **OPEN**
-- Labels: —
-- Assignees: —
-- Milestone: —
-- Created: 2026-01-10T11:02:59Z
-- Updated: 2026-01-10T11:02:59Z
-
-Repo is missing standard policy docs:
-- LICENSE
-- SECURITY.md
-- CONTRIBUTING.md
-
-Acceptance criteria:
-- Add LICENSE (selected license)
-- Add SECURITY.md (vuln reporting)
-- Add CONTRIBUTING.md (dev/test workflow)
-- Mention in README
-
----
-
 ## #105 – Refactor: CLI arg parsing must not require config load (lazy-load config)
 - State: **OPEN**
 - Labels: —

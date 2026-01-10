@@ -1,5 +1,27 @@
 # Closed Issues
 
+## #104 – Docs/Policy: Add LICENSE + SECURITY.md + CONTRIBUTING.md
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T11:02:59Z
+- Updated: 2026-01-10T16:33:16Z
+- Closed: 2026-01-10T16:33:16Z
+
+Repo is missing standard policy docs:
+- LICENSE
+- SECURITY.md
+- CONTRIBUTING.md
+
+Acceptance criteria:
+- Add LICENSE (selected license)
+- Add SECURITY.md (vuln reporting)
+- Add CONTRIBUTING.md (dev/test workflow)
+- Mention in README
+
+---
+
 ## #103 – Repo hygiene: Decide how to store .deb artifacts (docs/apt/pool) and document policy
 - State: **CLOSED**
 - Labels: —
