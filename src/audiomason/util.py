@@ -289,7 +289,17 @@ def enable_trace() -> None:
     subprocess.Popen = Popen
 
     # --- shutil ---
-    for name in ["copy2", "copytree", "rmtree", "move", "copyfile", "copymode", "copystat", "make_archive", "unpack_archive"]:
+    for name in [
+        "copy2",
+        "copytree",
+        "rmtree",
+        "move",
+        "copyfile",
+        "copymode",
+        "copystat",
+        "make_archive",
+        "unpack_archive",
+    ]:
         if hasattr(shutil, name):
             fn = getattr(shutil, name)
             def _wrap(fn, nm):

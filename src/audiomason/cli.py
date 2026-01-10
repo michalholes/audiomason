@@ -5,10 +5,6 @@ import sys
 from pathlib import Path
 from typing import Any, Dict
 
-from audiomason.version import __version__
-
-SUPPORT_URL = "https://buymeacoffee.com/audiomason"
-SUPPORT_LINE = f"Support AudioMason: {SUPPORT_URL}"
 import audiomason.state as state
 from audiomason.config import _validate_prompts_disable, load_config
 from audiomason.import_flow import run_import
@@ -16,7 +12,10 @@ from audiomason.paths import get_output_root, validate_paths_contract
 from audiomason.state import Opts
 from audiomason.util import AmAbort, AmConfigError, AmExit, out
 from audiomason.verify import verify_library
+from audiomason.version import __version__
 
+SUPPORT_URL = "https://buymeacoffee.com/audiomason"
+SUPPORT_LINE = f"Support AudioMason: {SUPPORT_URL}"
 
 def _version_kv_line() -> str:
     # Stable, machine-readable version line (Feature #72)
@@ -49,7 +48,13 @@ def _parent_parser() -> argparse.ArgumentParser:
     pp.add_argument("--clean-inbox", choices=["ask", "yes", "no"], default=None)
 
     g = pp.add_mutually_exclusive_group()
-    g.add_argument("--wipe-id3", dest="wipe_id3", action="store_true", default=None, help="full wipe ID3 tags before writing new tags")
+    g.add_argument(
+        "--wipe-id3",
+        dest="wipe_id3",
+        action="store_true",
+        default=None,
+        help="full wipe ID3 tags before writing new tags",
+    )
     g.add_argument("--no-wipe-id3", dest="wipe_id3", action="store_false", help="do not wipe ID3 tags (default)")
 
     pp.add_argument("--loudnorm", action="store_true", default=None)

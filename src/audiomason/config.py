@@ -117,7 +117,8 @@ def load_config(config_path: Path | None = None) -> dict:
         if not p.exists():
             raise AmConfigError(
                 f"Config not found: {p}. "
-                "Resolution order: --config, $XDG_CONFIG_HOME/audiomason/config.yaml (or ~/.config/audiomason/config.yaml), /etc/audiomason/config.yaml."
+                "Resolution order: --config, $XDG_CONFIG_HOME/audiomason/config.yaml "
+                "(or ~/.config/audiomason/config.yaml), /etc/audiomason/config.yaml."
             )
     else:
         up = user_config_path()
@@ -132,7 +133,8 @@ def load_config(config_path: Path | None = None) -> dict:
                 tried_s = ", ".join(str(x) for x in tried)
                 raise AmConfigError(
                     "Config not found. Tried (in order): " + tried_s + ". "
-                    "Provide --config or create a user-space config under $XDG_CONFIG_HOME/audiomason/config.yaml (or ~/.config/audiomason/config.yaml), "
+                    "Provide --config or create a user-space config under "
+                    "$XDG_CONFIG_HOME/audiomason/config.yaml (or ~/.config/audiomason/config.yaml), "
                     "or install /etc/audiomason/config.yaml."
                 )
 
