@@ -1,3 +1,7 @@
+# macOS AppleDouble / metadata
+._*
+.DS_Store
+
 build/
 debian/*.log
 # pytest / coverage
