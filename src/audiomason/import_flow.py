@@ -1,5 +1,6 @@
 
 from __future__ import annotations
+
 import io
 import json
 import shutil
@@ -7,21 +8,33 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
+
 import audiomason.state as state
+from audiomason.archives import unpack
+from audiomason.audio import convert_m4a_in_place, convert_opus_in_place
+from audiomason.covers import (
+    choose_cover,
+    cover_from_input,
+    extract_embedded_cover_from_mp3,
+    find_file_cover,
+)
+from audiomason.ignore import add_ignore, load_ignore
+from audiomason.manifest import load_manifest, source_fingerprint, update_manifest
 from audiomason.naming import normalize_name, normalize_sentence
 from audiomason.openlibrary import validate_author, validate_book
-from audiomason.paths import ARCHIVE_EXTS, get_archive_root, get_drop_root, get_output_root, get_stage_root
+from audiomason.paths import (
+    ARCHIVE_EXTS,
+    get_archive_root,
+    get_drop_root,
+    get_output_root,
+    get_stage_root,
+)
 from audiomason.pipeline_steps import resolve_pipeline_steps
 from audiomason.preflight_orchestrator import PreflightContext, PreflightOrchestrator
 from audiomason.preflight_registry import DEFAULT_PREFLIGHT_STEPS, validate_steps_list
-from audiomason.util import AmConfigError, die, ensure_dir, out, prompt, prompt_yes_no, slug
-from audiomason.archives import unpack
-from audiomason.audio import convert_m4a_in_place, convert_opus_in_place
-from audiomason.covers import choose_cover, cover_from_input, extract_embedded_cover_from_mp3, find_file_cover
-from audiomason.ignore import add_ignore, load_ignore
-from audiomason.manifest import load_manifest, source_fingerprint, update_manifest
 from audiomason.rename import natural_sort, rename_sequential
 from audiomason.tags import wipe_id3, write_cover, write_tags
+from audiomason.util import AmConfigError, die, ensure_dir, out, prompt, prompt_yes_no, slug
 
 
 
