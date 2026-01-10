@@ -77,7 +77,7 @@ def extract_anchors(p: Path) -> list[dict]:
 
     out = []
     for a in uniq:
-        idxs = [i for i, l in enumerate(lines) if a in line]
+        idxs = [i for i, line in enumerate(lines) if a in line]
         if not idxs:
             continue
         i = idxs[0]

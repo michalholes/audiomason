@@ -5,6 +5,7 @@ from pathlib import Path
 
 from audiomason.util import AmConfigError
 
+
 def _default_user_base() -> Path:
     # Safe runtime default (does not require AUDIOMASON_ROOT / repo).
     # Debian package must work for unprivileged users.

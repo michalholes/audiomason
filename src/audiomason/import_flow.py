@@ -36,9 +36,6 @@ from audiomason.rename import natural_sort, rename_sequential
 from audiomason.tags import wipe_id3, write_cover, write_tags
 from audiomason.util import AmConfigError, die, ensure_dir, out, prompt, prompt_yes_no, slug
 
-
-
-
 # FEATURE #67: disable selected preflight prompts (skip prompts deterministically)
 
 # Issue #82: OpenLibrary master switch
