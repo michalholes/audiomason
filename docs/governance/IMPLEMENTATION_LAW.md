@@ -1,6 +1,6 @@
 # IMPLEMENTATION LAW – AudioMason
 # AUTHORITATIVE – AudioMason
-Version: 2.8
+Version: 2.9
 # STATUS: ACTIVE
 
 This document is an execution law subordinate to the Project Constitution.
@@ -126,6 +126,122 @@ Diffs, inline edits, or manual instructions are prohibited.
 
 ---
 
+## 6.2 Mandatory Hard Gates (A + C)
+
+### 6.2.1 Auto-Invalid Output (Hard Gate)
+
+Any assistant response in an **implementation chat** is **AUTOMATICALLY INVALID**
+and MUST be ignored if it does not comply with **all mandatory gate blocks**
+defined in §6.2.2.
+
+An invalid output:
+- MUST NOT be discussed,
+- MUST NOT be corrected in-place,
+- MUST NOT be partially accepted.
+
+### 6.2.2 Mandatory Gate Blocks (REQUIRED IN EVERY RESPONSE)
+
+Every response in an implementation chat MUST begin with the following blocks,
+verbatim in structure:
+
+```
+GOVERNANCE BASIS:
+- PROJECT_CONSTITUTION vX.Y
+- IMPLEMENTATION_LAW vX.Y
+```
+
+```
+INPUT STATUS:
+- ZIP provided: YES | NO
+- ZIP inspected: YES | NO
+- Proof: <FILE MANIFEST | anchor snippet | extraction error | N/A>
+```
+
+Rules:
+- If `ZIP provided: YES` → `ZIP inspected` MUST be `YES` and `Proof` MUST be present.
+- Proof MUST be concrete and verifiable (repo-relative paths + anchors), or an explicit extraction error.
+- Any absence, mismatch, or inconsistency → output is AUTO-INVALID.
+
+---
+
+## 6.3 Documentation and Repo Manifest Gate (P2)
+
+### 6.3.1 Completion Barrier
+
+An implementation chat MUST NOT declare:
+- “COMPLETE”,
+- “READY TO CLOSE”,
+- or any equivalent finality,
+
+unless **ALL applicable gates** below are satisfied:
+
+1) **CODE**
+- Required changes implemented (or verification-only verdict issued).
+- Tests executed and outcome explicitly stated.
+
+2) **DOCUMENTATION**
+- Documentation updated if behavior, CLI, config, or workflow changed.
+- “Docs out of scope” or “docs intentionally skipped” is NOT a valid exemption.
+
+3) **REPO MANIFEST**
+- `docs/repo_manifest.yaml` updated if:
+  - files were added/removed/moved, or
+  - anchors/domains covered by the manifest changed, or
+  - the patch touched files not present in the manifest.
+
+If any gate is unmet:
+- the only valid outcomes are:
+  - `NOT COMPLETE`, or
+  - `NEXT RUN REQUIRED` (explicitly naming what remains).
+
+### 6.3.2 Verification Chats
+
+In verification-only implementation chats:
+- Missing or outdated documentation or repo manifest MUST result in `NOT COMPLETE`.
+
+---
+
+## 6.4 Dual Checklist Enforcement (P3 + Alternative 3)
+
+### 6.4.1 Mandatory Gate Checklist (ALWAYS REQUIRED)
+
+Every valid response MUST include the following **Gate Checklist** (verbatim):
+
+```
+GATE CHECKLIST:
+[ ] Governance basis printed and consistent
+[ ] Input status declared
+[ ] ZIP inspected with proof (if provided)
+```
+
+Any unchecked item → output is AUTO-INVALID.
+
+### 6.4.2 Mandatory Self-Audit Checklist (FINAL RESULT ONLY)
+
+Every FINAL RESULT MUST include the following **Self-Audit Checklist** (verbatim):
+
+```
+SELF-AUDIT CHECKLIST:
+[ ] Gate Checklist satisfied
+[ ] Scope / RUN label respected
+[ ] Tests executed or verification verdict issued
+[ ] Documentation updated OR explicitly deferred to approved next RUN
+[ ] Repo manifest updated OR explicitly deferred to approved next RUN
+[ ] No status or acknowledgement text outside allowed outputs
+```
+
+Rules:
+- Any unchecked item + claim of completion → INVALID RESULT.
+- Deferred docs/manifest MUST explicitly reference an approved next RUN.
+
+### 6.4.3 Enforcement Semantics
+
+- Hard Gates and Checklists are mechanical enforcement, not advisory.
+- Compliance is binary: PASS / INVALID.
+- Repeated INVALID outputs indicate a governance violation and require escalation to the User.
+
+---
+
 ## 14. Authority and supersession
 
 This document is the sole authoritative source of implementation rules
@@ -146,7 +262,6 @@ Any such reference constitutes a role violation
 and requires an immediate STOP
 and escalation to the User.
 
-
 ---
 
 ## Mandatory Governance Version Check
@@ -165,6 +280,7 @@ Implementation chats MUST:
 Failure to run or report the verification
 constitutes a role violation.
 
+---
 
 ## Strict Implementation Scope
 
@@ -182,6 +298,6 @@ If such topics arise, the chat MUST:
   the discussion to the appropriate chat type.
 
 Any continuation beyond execution scope
-constitutes a role violation.
+constitutes a governance violation.
 
 END OF DOCUMENT

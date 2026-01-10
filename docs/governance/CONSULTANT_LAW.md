@@ -2,7 +2,7 @@
 
 AUTHORITATIVE – AudioMason  
 Status: active  
-Version: 2.8
+Version: 2.9
 This document is an execution law subordinate to the Project Constitution.
 It governs consultant chats and governance-related activities.
 
@@ -102,6 +102,25 @@ governing consultant chats in the AudioMason project.
 
 ---
 
+## 8. Implementation Chat Instruction Duty
+
+When preparing or handing off an implementation chat, the consultant MUST:
+
+1. Explicitly declare the chat type as **IMPLEMENTATION**.
+2. Explicitly reference the governing **IMPLEMENTATION_LAW** (with version).
+3. Explicitly instruct the implementer to apply all mandatory hard gates, including:
+   - `GOVERNANCE BASIS` declaration,
+   - `INPUT STATUS` declaration,
+   - ZIP inspection proof,
+   - documentation and repo manifest gates,
+   - mandatory checklists.
+4. Explicitly state that any response missing required gate blocks is **INVALID** and must be ignored.
+
+The consultant MUST NOT assume implicit knowledge of implementation rules.
+
+Failure to provide explicit implementation instructions constitutes a consultant role violation.
+
+---
 ## Deprecated Governance Artifacts
 
 The Consultant MUST actively identify
