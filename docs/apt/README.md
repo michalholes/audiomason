@@ -89,3 +89,61 @@ Package installs defaults, but users must set real paths before first run.
   - Configuration used to generate Packages and Release metadata.
 - audiomason.gpg.asc
   - Public key distributed to clients for signature verification.
+
+---
+## Policy: .deb artifacts stored in Git
+
+This repository intentionally stores `.deb` artifacts directly in Git
+under the `docs/apt/` directory.
+
+### Purpose
+
+The `docs/apt/` subtree serves as a **docs-hosted APT repository** for AudioMason.
+Storing `.deb` packages in Git is a deliberate choice to ensure:
+
+- transparency of released binaries,
+- offline availability,
+- simple hosting without external infrastructure,
+- reproducible and auditable release history.
+
+These `.deb` files are **release artifacts**, not temporary build outputs.
+
+### Canonical location
+
+All `.deb` artifacts MUST be stored exclusively under:
+
+docs/apt/pool/main/
+
+No other locations in the repository are permitted for `.deb` files.
+
+### Update rules
+
+- `.deb` artifacts are added only as part of an explicit release.
+- Each release MUST introduce a new versioned `.deb` file.
+- Existing `.deb` files MUST NOT be modified, replaced, or overwritten.
+- The repository history represents the authoritative archive of released packages.
+
+### Guardrails (strict)
+
+The following are explicitly forbidden:
+
+- committing locally built or experimental `.deb` files,
+- storing `.deb` files outside of `docs/apt/`,
+- overwriting an existing `.deb` with a different binary,
+- treating `.deb` files as CI build artifacts.
+
+If CI is used, it may build `.deb` packages, but the final release
+artifact committed to Git must be an explicit, intentional action.
+
+### Responsibility
+
+The project owner is responsible for:
+
+- deciding when a `.deb` is released,
+- ensuring version correctness,
+- committing the artifact into the canonical location.
+
+### Related documentation
+
+- `docs/apt/README.md` (this file)
+---
