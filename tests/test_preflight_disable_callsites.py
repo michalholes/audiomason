@@ -26,10 +26,12 @@ def test_preflight_disable_callsites_do_not_bypass_pf_prompt_yes_no():
     )
 
     # And we expect the _pf_prompt_yes_no variants to be present.
-    assert (
-        '_pf_prompt_yes_no(cfg, "use_manifest_answers", "[manifest] Use saved answers (skip prompts)?", default_no=False)'
-        in txt
+    expected = (
+        '_pf_prompt_yes_no(cfg, "use_manifest_answers", '
+        '"[manifest] Use saved answers (skip prompts)?", '
+        'default_no=False)'
     )
+    assert expected in txt
     assert (
         '_pf_prompt_yes_no(cfg, "publish", "Publish after import?", default_no=(not default_publish))'
         in txt
