@@ -652,3 +652,192 @@ Acceptance criteria:
 - At least one test/execution path runs in a clean env (no /etc config present) to prevent regressions.
 
 ---
+
+## #109 – EPIC: Codebase cleanup for strict ruff + mypy compliance
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:16Z
+- Updated: 2026-01-10T20:55:16Z
+
+GOAL (AUTHORITATIVE)
+Systematically clean up the existing codebase so that:
+- ruff check .
+- ruff format --check .
+- mypy src/audiomason
+all pass with no exceptions in strict mode, without changing user-facing behavior.
+
+SCOPE (STRICT)
+- Cleanup only (no new features)
+- No CLI UX changes
+- No new runtime dependencies
+- No governance changes
+
+OUT OF SCOPE
+- New features
+- Architectural refactors unless strictly required for typing
+- CI wiring changes (introduced in #106)
+
+ACCEPTANCE CRITERIA (EPIC)
+- Repo is ruff-clean and mypy-clean
+- CI can be re-enabled for push triggers after cleanup
+- Cleanup is delivered via small, auditable sub-issues
+
+EXECUTION RULE
+- Each sub-issue: small diff, isolated commit, independently closable
+- Close this EPIC only after all sub-issues are closed.
+
+SUB-ISSUES
+- Ruff: apply formatter repo-wide
+- Ruff: autofix all fixable lint errors
+- Ruff: resolve remaining lint findings
+- Mypy: fix Optional & None handling
+- Mypy: fix return types & helpers
+- Mypy: resolve remaining typing errors
+- CI: re-enable push-triggered runs
+
+
+---
+
+## #110 – Ruff: apply formatter repo-wide
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:17Z
+- Updated: 2026-01-10T20:55:17Z
+
+SCOPE
+- Run ruff formatter across the repo (one-time normalization).
+- No intentional behavior changes.
+
+ACCEPTANCE CRITERIA
+- `ruff format --check .` passes.
+- Tests still pass.
+
+NOTES
+- Large file count is expected; this is mechanical churn only.
+
+
+---
+
+## #111 – Ruff: autofix all fixable lint errors
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:18Z
+- Updated: 2026-01-10T20:55:18Z
+
+SCOPE
+- Apply `ruff check --fix` for all safe/auto-fixable findings.
+- Keep changes mechanical where possible.
+
+ACCEPTANCE CRITERIA
+- Ruff error count is significantly reduced.
+- No user-facing behavior changes.
+- Tests pass.
+
+
+---
+
+## #112 – Ruff: resolve remaining lint findings
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:19Z
+- Updated: 2026-01-10T20:55:19Z
+
+SCOPE
+- Manually address remaining ruff findings after formatter + autofix.
+- Prefer minimal edits; no unrelated refactors.
+
+ACCEPTANCE CRITERIA
+- `ruff check .` passes.
+- Tests pass.
+
+
+---
+
+## #113 – Mypy: fix Optional & None handling
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:21Z
+- Updated: 2026-01-10T20:55:21Z
+
+SCOPE
+- Fix mypy errors related to Optional/None (guards, asserts, casts as needed).
+- Keep changes minimal; avoid broad refactors.
+
+ACCEPTANCE CRITERIA
+- Mypy error count is reduced for Optional/None-related issues.
+- Tests pass.
+
+
+---
+
+## #114 – Mypy: fix return types & helpers
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:22Z
+- Updated: 2026-01-10T20:55:22Z
+
+SCOPE
+- Fix mypy errors related to return types, helper utilities, and implicit Any.
+- Minimal annotations/overloads where appropriate.
+
+ACCEPTANCE CRITERIA
+- Mypy error count is further reduced.
+- Tests pass.
+
+
+---
+
+## #115 – Mypy: resolve remaining typing errors
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:23Z
+- Updated: 2026-01-10T20:55:23Z
+
+SCOPE
+- Resolve all remaining mypy errors in `src/audiomason`.
+- Use minimal, explicit typing fixes; avoid architecture changes.
+
+ACCEPTANCE CRITERIA
+- `mypy src/audiomason` passes.
+- Tests pass.
+
+
+---
+
+## #116 – CI: re-enable push-triggered runs
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:24Z
+- Updated: 2026-01-10T20:55:24Z
+
+SCOPE
+- Restore CI workflow trigger to run on both push and pull_request.
+
+CHANGE
+- In `.github/workflows/ci.yml`, set:
+  on:
+    push:
+    pull_request:
+
+ACCEPTANCE CRITERIA
+- CI runs on push and PR.
+- CI passes with ruff + mypy + pytest.
+
+
+---
