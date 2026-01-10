@@ -1,4 +1,18 @@
-import scripts.sync_issues_archive as sync
+import importlib.util
+from pathlib import Path
+
+
+def _load_sync_module():
+    repo_root = Path(__file__).resolve().parents[1]
+    script = repo_root / "scripts" / "sync_issues_archive.py"
+    spec = importlib.util.spec_from_file_location("sync_issues_archive", script)
+    assert spec and spec.loader
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+sync = _load_sync_module()
 
 
 def _issue(n, state, closedAt=None, body='BODY', title=None):
