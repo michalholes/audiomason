@@ -628,31 +628,6 @@ Acceptance criteria:
 
 ---
 
-## #107 – CI: avoid writing /etc/audiomason/config.yaml; use --config with repo config
-- State: **OPEN**
-- Labels: —
-- Assignees: —
-- Milestone: —
-- Created: 2026-01-10T11:14:52Z
-- Updated: 2026-01-10T11:14:52Z
-
-Decision: Variant A.
-
-Problem:
-- CI currently writes config to /etc/audiomason/config.yaml using sudo.
-- This makes tests less isolated and hides config-loading brittleness.
-
-Scope:
-- Remove sudo copy into /etc from CI workflow.
-- Use `--config <repo>/debian/config.yaml` (or equivalent) in CI invocations.
-
-Acceptance criteria:
-- CI completes without writing to /etc and without sudo copy of config.
-- CI explicitly points CLI to a config via `--config`.
-- At least one test/execution path runs in a clean env (no /etc config present) to prevent regressions.
-
----
-
 ## #109 – EPIC: Codebase cleanup for strict ruff + mypy compliance
 - State: **OPEN**
 - Labels: —
