@@ -6,7 +6,10 @@ import shutil
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, cast
+from typing import Optional, cast, Callable
+
+PromptFn = Callable[[str, Optional[str]], str]
+PromptYesNoFn = Callable[[str, bool], bool]
 
 import audiomason.state as state
 from audiomason.archives import unpack
@@ -980,13 +983,13 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                 return ansb
 
             # IMPORTANT: override module globals so all callers use wrappers.
-            prompt = cast(type(prompt), _pl_prompt)
-            prompt_yes_no = cast(type(prompt_yes_no), _pl_prompt_yes_no)
+            prompt = cast(PromptFn, _pl_prompt)
+            prompt_yes_no = cast(PromptYesNoFn, _pl_prompt_yes_no)
             try:
                 if _pl_util is not None and _pl_util_prompt0 is not None:
-                    _pl_util.prompt = cast(type(prompt), _pl_prompt)
+                    _pl_util.prompt = cast(PromptFn, _pl_prompt)
                 if _pl_util is not None and _pl_util_prompt_yes_no0 is not None:
-                    _pl_util.prompt_yes_no = cast(type(prompt_yes_no), _pl_prompt_yes_no)
+                    _pl_util.prompt_yes_no = cast(PromptYesNoFn, _pl_prompt_yes_no)
             except Exception:
                 pass
 
