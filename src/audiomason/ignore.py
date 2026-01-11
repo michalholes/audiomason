@@ -50,7 +50,7 @@ def add_ignore(path_or_name: Path | str, name: str | None = None) -> None:
 
     f = _resolve_ignore_file(dir_path)
 
-    if key in load_ignore(dir_path):
+    if dir_path is not None and key in load_ignore(dir_path):
         return
     if OPTS is not None and OPTS.dry_run:
         out(f"[dry-run] would ignore source: {key}")

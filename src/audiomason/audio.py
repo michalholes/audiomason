@@ -8,6 +8,12 @@ from pathlib import Path
 import audiomason.state as state
 from audiomason.util import die, ensure_dir, out, run_cmd
 
+def _opts():
+    opts = state.OPTS
+    assert opts is not None
+    return opts
+
+
 
 def ffprobe_json(path: Path) -> dict:
     if not shutil.which("ffprobe"):
@@ -21,7 +27,7 @@ def ffprobe_json(path: Path) -> dict:
         "-show_chapters",
         str(path),
     ]
-    if state.OPTS and state.OPTS.dry_run:
+    if state.OPTS and _opts().dry_run:
         out("[dry-run] " + " ".join(cmd))
         return {}
     p = run_cmd(cmd, check=True, stdout=subprocess.PIPE)
@@ -40,17 +46,17 @@ def ffmpeg_common_input() -> list[str]:
     cores = getattr(state.OPTS, "cpu_cores", None) or os.cpu_count() or 1
     # Deterministic conservative default (RPi-safe)
     threads = min(2, max(1, int(cores) // 2))
-    return ["-hide_banner", "-nostdin", "-stats", "-loglevel", state.OPTS.ff_loglevel, "-threads", str(threads)]
+    return ["-hide_banner", "-nostdin", "-stats", "-loglevel", _opts().ff_loglevel, "-threads", str(threads)]
 
 
 def opus_to_mp3_single(src: Path, dst: Path) -> None:
     if not shutil.which("ffmpeg"):
         die("ffmpeg not installed")
     cmd = ["ffmpeg"] + ffmpeg_common_input() + ["-y", "-i", str(src), "-vn"]
-    if state.OPTS.loudnorm:
+    if _opts().loudnorm:
         cmd += ["-af", "loudnorm=I=-16:LRA=11:TP=-1.5"]
-    cmd += ["-codec:a", "libmp3lame", "-q:a", state.OPTS.q_a, str(dst)]
-    if state.OPTS.dry_run:
+    cmd += ["-codec:a", "libmp3lame", "-q:a", _opts().q_a, str(dst)]
+    if _opts().dry_run:
         out("[dry-run] " + " ".join(cmd))
         return
     run_cmd(cmd, check=True)
@@ -60,10 +66,10 @@ def m4a_to_mp3_single(src: Path, dst: Path) -> None:
     if not shutil.which("ffmpeg"):
         die("ffmpeg not installed")
     cmd = ["ffmpeg"] + ffmpeg_common_input() + ["-y", "-i", str(src), "-vn"]
-    if state.OPTS.loudnorm:
+    if _opts().loudnorm:
         cmd += ["-af", "loudnorm=I=-16:LRA=11:TP=-1.5"]
-    cmd += ["-codec:a", "libmp3lame", "-q:a", state.OPTS.q_a, str(dst)]
-    if state.OPTS.dry_run:
+    cmd += ["-codec:a", "libmp3lame", "-q:a", _opts().q_a, str(dst)]
+    if _opts().dry_run:
         out("[dry-run] " + " ".join(cmd))
         return
     run_cmd(cmd, check=True)
@@ -114,11 +120,11 @@ def m4a_split_by_chapters(src: Path, outdir: Path) -> list[Path]:
         "-t", str(total),
         "-map", "0:a:0",
     ]
-    if state.OPTS.loudnorm:
+    if _opts().loudnorm:
         cmd += ["-af", "loudnorm=I=-16:LRA=11:TP=-1.5"]
     cmd += [
         "-codec:a", "libmp3lame",
-        "-q:a", state.OPTS.q_a,
+        "-q:a", _opts().q_a,
         "-f", "segment",
         "-segment_times", ",".join(str(x) for x in split_points),
         "-segment_start_number", "1",
@@ -128,7 +134,7 @@ def m4a_split_by_chapters(src: Path, outdir: Path) -> list[Path]:
 
     produced = [outdir / f"{i:02d}.mp3" for i in range(1, len(times) + 1)]
 
-    if state.OPTS.dry_run:
+    if _opts().dry_run:
         out("[dry-run] " + " ".join(cmd))
         return produced
 
@@ -165,7 +171,7 @@ def convert_m4a_in_place(stage: Path, recursive: bool = True) -> None:
     for idx, src in enumerate(m4as, 1):
         out(f"[convert] {idx}/{len(m4as)} {src.name}")
 
-        if state.OPTS.split_chapters:
+        if _opts().split_chapters:
             produced = m4a_split_by_chapters(src, src.parent)
             if produced:
                 out(f"[convert] split produced {len(produced)} mp3")
