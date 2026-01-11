@@ -700,28 +700,6 @@ SUB-ISSUES
 
 ---
 
-## #110 – Ruff: apply formatter repo-wide
-- State: **OPEN**
-- Labels: —
-- Assignees: —
-- Milestone: —
-- Created: 2026-01-10T20:55:17Z
-- Updated: 2026-01-10T20:55:17Z
-
-SCOPE
-- Run ruff formatter across the repo (one-time normalization).
-- No intentional behavior changes.
-
-ACCEPTANCE CRITERIA
-- `ruff format --check .` passes.
-- Tests still pass.
-
-NOTES
-- Large file count is expected; this is mechanical churn only.
-
-
----
-
 ## #116 – CI: re-enable push-triggered runs
 - State: **OPEN**
 - Labels: —
@@ -917,5 +895,17 @@ Acceptance criteria
 - Heuristic is conservative (does not pick random images without prompting).
 - Existing behavior for embedded/file/url modes remains unchanged unless this new detection path is reached.
 - pytest stays green.
+
+---
+
+## #121 – Bug: Tests rely on brittle source-code string matching (break on formatting)
+- State: **OPEN**
+- Labels: bug, cleanup
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-11T10:48:31Z
+- Updated: 2026-01-11T10:48:31Z
+
+Several tests fail after ruff format because they assert exact source-code string layouts instead of semantic behavior.\n\nExamples:\n- test_pipeline_steps_wired_into_process_book\n- test_preflight_disable_callsites_do_not_bypass_pf_prompt_yes_no\n- test_preflight_disable_cover_override_is_routed_via_pf_prompt\n\nUnderlying behavior is unchanged; only formatting/layout differs. Tests should assert semantics, not raw text.
 
 ---

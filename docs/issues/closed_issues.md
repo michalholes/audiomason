@@ -1,5 +1,28 @@
 # Closed Issues
 
+## #110 – Ruff: apply formatter repo-wide
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:17Z
+- Updated: 2026-01-11T10:49:31Z
+- Closed: 2026-01-11T10:49:31Z
+
+SCOPE
+- Run ruff formatter across the repo (one-time normalization).
+- No intentional behavior changes.
+
+ACCEPTANCE CRITERIA
+- `ruff format --check .` passes.
+- Tests still pass.
+
+NOTES
+- Large file count is expected; this is mechanical churn only.
+
+
+---
+
 ## #115 – Mypy: resolve remaining typing errors
 - State: **CLOSED**
 - Labels: —
