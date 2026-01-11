@@ -722,25 +722,6 @@ NOTES
 
 ---
 
-## #114 – Mypy: fix return types & helpers
-- State: **OPEN**
-- Labels: —
-- Assignees: —
-- Milestone: —
-- Created: 2026-01-10T20:55:22Z
-- Updated: 2026-01-11T08:44:54Z
-
-SCOPE
-- Fix mypy errors related to return types, helper utilities, and implicit Any.
-- Minimal annotations/overloads where appropriate.
-
-ACCEPTANCE CRITERIA
-- Mypy error count is further reduced.
-- Tests pass.
-
-
----
-
 ## #115 – Mypy: resolve remaining typing errors
 - State: **OPEN**
 - Labels: —

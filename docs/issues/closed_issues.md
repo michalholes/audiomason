@@ -1,5 +1,25 @@
 # Closed Issues
 
+## #114 – Mypy: fix return types & helpers
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:22Z
+- Updated: 2026-01-11T09:35:08Z
+- Closed: 2026-01-11T09:35:08Z
+
+SCOPE
+- Fix mypy errors related to return types, helper utilities, and implicit Any.
+- Minimal annotations/overloads where appropriate.
+
+ACCEPTANCE CRITERIA
+- Mypy error count is further reduced.
+- Tests pass.
+
+
+---
+
 ## #113 – Mypy: fix Optional & None handling
 - State: **CLOSED**
 - Labels: —
