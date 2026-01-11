@@ -1,5 +1,25 @@
 # Closed Issues
 
+## #113 – Mypy: fix Optional & None handling
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:21Z
+- Updated: 2026-01-11T08:43:06Z
+- Closed: 2026-01-11T08:43:06Z
+
+SCOPE
+- Fix mypy errors related to Optional/None (guards, asserts, casts as needed).
+- Keep changes minimal; avoid broad refactors.
+
+ACCEPTANCE CRITERIA
+- Mypy error count is reduced for Optional/None-related issues.
+- Tests pass.
+
+
+---
+
 ## #112 – Ruff: resolve remaining lint findings
 - State: **CLOSED**
 - Labels: —

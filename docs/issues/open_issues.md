@@ -722,25 +722,6 @@ NOTES
 
 ---
 
-## #113 – Mypy: fix Optional & None handling
-- State: **OPEN**
-- Labels: —
-- Assignees: —
-- Milestone: —
-- Created: 2026-01-10T20:55:21Z
-- Updated: 2026-01-10T20:55:21Z
-
-SCOPE
-- Fix mypy errors related to Optional/None (guards, asserts, casts as needed).
-- Keep changes minimal; avoid broad refactors.
-
-ACCEPTANCE CRITERIA
-- Mypy error count is reduced for Optional/None-related issues.
-- Tests pass.
-
-
----
-
 ## #114 – Mypy: fix return types & helpers
 - State: **OPEN**
 - Labels: —
