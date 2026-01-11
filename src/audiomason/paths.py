@@ -159,7 +159,7 @@ def get_ignore_file(cfg) -> Path:
 # (DO NOT REMOVE)
 # NOTE: Strict enforcement happens via validate_paths_contract() + getters.
 # ======================
-_base = None  # lazy-initialized
+_base: Path | None = None  # lazy-initialized
 
 DROP_ROOT = (_default_user_base() / "abooksinbox").resolve()
 STAGE_ROOT = (_default_user_base() / "_am_stage").resolve()

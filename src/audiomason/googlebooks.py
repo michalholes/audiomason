@@ -71,7 +71,12 @@ def _pick_best(entered_title: str, author: str, items: list[dict[str, Any]]) -> 
     for it in items:
         if not isinstance(it, dict):
             continue
-        vi = it.get("volumeInfo") if isinstance(it.get("volumeInfo"), dict) else {}
+        vi_raw = it.get("volumeInfo")
+        vi: dict[str, Any]
+        if isinstance(vi_raw, dict):
+            vi = vi_raw
+        else:
+            vi = {}
         title = str(vi.get("title") or "").strip()
         if not title:
             continue
@@ -141,7 +146,12 @@ def suggest_title(author: str, title: str) -> str | None:
         for it in items:
             if not isinstance(it, dict):
                 continue
-            vi = it.get("volumeInfo") if isinstance(it.get("volumeInfo"), dict) else {}
+            vi_raw = it.get("volumeInfo")
+            vi: dict[str, Any]
+            if isinstance(vi_raw, dict):
+                vi = vi_raw
+            else:
+                vi = {}
             if str(vi.get("language") or "").strip().lower() != lang:
                 continue
             filtered.append(it)
