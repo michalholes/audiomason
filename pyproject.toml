@@ -15,7 +15,9 @@ dependencies = [
 [project.optional-dependencies]
 test = ["pytest>=7.0"]
 
-dev = ["ruff>=0.5", "mypy>=1.8"]
+dev = ["ruff>=0.5", "mypy>=1.8",
+  "types-PyYAML",
+]
 [project.scripts]
 audiomason = "audiomason.cli:main"
 [project.urls]
