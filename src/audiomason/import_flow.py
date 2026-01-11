@@ -6,7 +6,7 @@ import shutil
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast
 
 import audiomason.state as state
 from audiomason.archives import unpack
