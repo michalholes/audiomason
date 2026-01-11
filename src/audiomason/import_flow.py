@@ -948,7 +948,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
 
             # Wrap prompts to explicitly log questions + user answers.
             try:
-                import audiomason.util as _pl_util
+                import audiomason.util as _pl_util  # type: ignore[assignment]
 
                 _pl_util_prompt0 = getattr(_pl_util, "prompt", None)
                 _pl_util_prompt_yes_no0 = getattr(_pl_util, "prompt_yes_no", None)
@@ -980,13 +980,13 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                 return ansb
 
             # IMPORTANT: override module globals so all callers use wrappers.
-            prompt = _pl_prompt
-            prompt_yes_no = _pl_prompt_yes_no
+            prompt = cast(type(prompt), _pl_prompt)
+            prompt_yes_no = cast(type(prompt_yes_no), _pl_prompt_yes_no)
             try:
                 if _pl_util is not None and _pl_util_prompt0 is not None:
-                    _pl_util.prompt = _pl_prompt
+                    _pl_util.prompt = cast(type(prompt), _pl_prompt)
                 if _pl_util is not None and _pl_util_prompt_yes_no0 is not None:
-                    _pl_util.prompt_yes_no = _pl_prompt_yes_no
+                    _pl_util.prompt_yes_no = cast(type(prompt_yes_no), _pl_prompt_yes_no)
             except Exception:
                 pass
 
