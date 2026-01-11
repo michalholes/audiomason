@@ -918,21 +918,23 @@ Notes
 - Assignees: —
 - Milestone: —
 - Created: 2026-01-11T09:56:08Z
-- Updated: 2026-01-11T09:56:08Z
+- Updated: 2026-01-11T09:58:37Z
 
 Problem
 - Some books have no embedded cover in the audio files, but a cover image exists in the same directory with a non-standard filename.
 
 Scope
-- When selecting a cover, search the book/audio directory for common image files (e.g., *.jpg, *.jpeg, *.png, *.gif, *.avif) using a conservative heuristic:
-  - Prefer filenames that look like covers (e.g., cover, folder, front, jacket) but also allow a fallback to 'best candidate' if nothing matches.
-- If a candidate is found, prompt the user to confirm using it (respecting --yes / non-interactive behavior).
+- During cover selection, search the book/audio directory for image files (at least: *.jpg, *.jpeg, *.png, *.gif, *.avif).
+- Use a conservative heuristic:
+  - Prefer names that look like covers (cover, folder, front, jacket, artwork).
+  - If multiple candidates exist, select the best candidate deterministically.
+- Prompt the user to confirm using the detected file (respect --yes / non-interactive behavior).
 - Normalize to the standard cover output format and filename, preserving existing conversion rules.
 
 Acceptance criteria
-- If a directory image exists, the tool can offer it as a cover candidate.
+- If a directory image exists, the tool offers it as a candidate.
 - Heuristic is conservative (does not pick random images without prompting).
-- Existing behavior for embedded/file/url modes remains unchanged unless this new detection path is explicitly reached.
+- Existing behavior for embedded/file/url modes remains unchanged unless this new detection path is reached.
 - pytest stays green.
 
 ---
