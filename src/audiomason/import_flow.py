@@ -960,7 +960,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     pass
                 return ans
 
-            def _pl_prompt_yes_no(q: str, *, default_no: bool = True) -> bool:
+            def _pl_prompt_yes_no(q: str, default_no: bool = True) -> bool:
                 try:
                     _pl_fh.write(f"[prompt_yes_no] {q} [default={'no' if default_no else 'yes'}]\n")
                 except Exception:
