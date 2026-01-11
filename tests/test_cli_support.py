@@ -9,25 +9,21 @@ def _write_config(tmp_path, *, banner: bool, support_enabled: bool | None = None
     # IMPORTANT: quote YAML yes/no to avoid YAML 1.1 bool coercion (no->False).
     support_block = ""
     if support_enabled is not None:
-        support_block = (
-            "support:\n"
-            f"  enabled: {str(support_enabled).lower()}\n"
-        )
+        support_block = f"support:\n  enabled: {str(support_enabled).lower()}\n"
 
     cfgp = tmp_path / "configuration.yaml"
     cfgp.write_text(
         (
             f"version-banner: {str(banner).lower()}\n"
-            "publish: \"no\"\n"
-            "clean_inbox: \"no\"\n"
+            'publish: "no"\n'
+            'clean_inbox: "no"\n'
             "paths:\n"
             f"  inbox: {tmp_path / 'abooksinbox'}\n"
             f"  stage: {tmp_path / '_am_stage'}\n"
             f"  output: {tmp_path / 'abooks'}\n"
             f"  ready: {tmp_path / 'abooks_ready'}\n"
             f"  archive: {tmp_path / 'abooks_archive'}\n"
-            f"  cache: {tmp_path / 'am_cache'}\n"
-            + support_block
+            f"  cache: {tmp_path / 'am_cache'}\n" + support_block
         ),
         encoding="utf-8",
     )
@@ -49,6 +45,7 @@ def test_cli_support_flag_prints_link_and_exits(monkeypatch, tmp_path, capsys):
     cfg = _write_config(tmp_path, banner=False)
 
     from audiomason import cli
+
     monkeypatch.setattr(sys, "argv", ["am", "--support", "--config", cfg])
 
     with pytest.raises(SystemExit) as ex:
@@ -65,6 +62,7 @@ def test_cli_version_includes_support_link(monkeypatch, tmp_path, capsys):
     cfg = _write_config(tmp_path, banner=False)
 
     from audiomason import cli
+
     monkeypatch.setattr(sys, "argv", ["am", "--version", "--config", cfg])
 
     with pytest.raises(SystemExit) as ex:
@@ -179,6 +177,7 @@ def test_json_suppresses_banner(monkeypatch, tmp_path, capsys):
 def test_cli_support_flag_works_without_config(monkeypatch, tmp_path, capsys):
     # No AUDIOMASON_ROOT and no config on disk: must still work.
     from audiomason import cli
+
     monkeypatch.setattr(sys, "argv", ["am", "--support"])
     with pytest.raises(SystemExit) as ex:
         cli.main()
@@ -189,6 +188,7 @@ def test_cli_support_flag_works_without_config(monkeypatch, tmp_path, capsys):
 
 def test_cli_version_works_without_config(monkeypatch, tmp_path, capsys):
     from audiomason import cli
+
     monkeypatch.setattr(sys, "argv", ["am", "--version"])
     with pytest.raises(SystemExit) as ex:
         cli.main()
@@ -200,6 +200,7 @@ def test_cli_version_works_without_config(monkeypatch, tmp_path, capsys):
 
 def test_cli_help_works_without_config(monkeypatch, capsys):
     from audiomason import cli
+
     monkeypatch.setattr(sys, "argv", ["am", "--help"])
     with pytest.raises(SystemExit) as ex:
         cli.main()

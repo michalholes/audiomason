@@ -17,9 +17,12 @@ from audiomason.version import __version__
 SUPPORT_URL = "https://buymeacoffee.com/audiomason"
 SUPPORT_LINE = f"Support AudioMason: {SUPPORT_URL}"
 
+
 def _version_kv_line() -> str:
     # Stable, machine-readable version line (Feature #72)
     return f"audiomason_version={__version__}"
+
+
 def _parent_parser() -> argparse.ArgumentParser:
     # IMPORTANT (Issue #105):
     # Argument parsing must be pure and MUST NOT require config.
@@ -66,7 +69,6 @@ def _parent_parser() -> argparse.ArgumentParser:
     pp.add_argument("--cpu-cores", type=int, default=None, help="override CPU core count for perf tuning")
     pp.add_argument("--ff-loglevel", choices=["info", "warning", "error"], default=None)
     return pp
-
 
 
 def _parse_args() -> argparse.Namespace:
@@ -167,7 +169,6 @@ def _parse_args() -> argparse.Namespace:
     return ns
 
 
-
 def _cmd_requires_config(ns: argparse.Namespace) -> bool:
     # Commands that can run without config:
     # - --help / --version / --support handled during parsing (pre-main)
@@ -217,7 +218,6 @@ def _apply_config_defaults(ns: argparse.Namespace, cfg: Dict[str, Any]) -> None:
         ns.ff_loglevel = str(ffmpeg.get("loglevel", "warning"))
 
 
-
 def _argv_config_path() -> Path | None:
     _argv = list(sys.argv[1:])
     for _i, _a in enumerate(_argv):
@@ -259,10 +259,10 @@ def _ns_to_opts(ns: argparse.Namespace) -> Opts:
         verify_root=ns.verify_root,
         lookup=getattr(ns, "lookup", True),
         cleanup_stage=True,
-        clean_inbox_mode=str(getattr(ns, 'clean_inbox', 'no')),
+        clean_inbox_mode=str(getattr(ns, "clean_inbox", "no")),
         split_chapters=ns.split_chapters,
         ff_loglevel=ns.ff_loglevel,
-        cpu_cores=getattr(ns, 'cpu_cores', None),
+        cpu_cores=getattr(ns, "cpu_cores", None),
         json=getattr(ns, "json", False),
     )
 
@@ -280,10 +280,11 @@ def main() -> int:
             argv_set = set(sys.argv[1:])
 
             # DEBUG wiring must be active before any out()/trace output
-            state.DEBUG = ("--debug" in argv_set)
+            state.DEBUG = "--debug" in argv_set
             state.VERBOSE = bool(getattr(ns, "verbose", False))
             if state.DEBUG:
                 from audiomason.util import enable_trace
+
                 enable_trace()
 
             # argparse quirk: --json can be lost when subparsers are involved
@@ -304,13 +305,14 @@ def main() -> int:
 
             if state.DEBUG:
                 if cfg is not None:
-                    print(f"[TRACE] [config] loaded_from={cfg.get('loaded_from','unknown')}", flush=True)
+                    print(f"[TRACE] [config] loaded_from={cfg.get('loaded_from', 'unknown')}", flush=True)
                 else:
                     print("[TRACE] [config] not loaded", flush=True)
 
             # Non-config commands must work without config (Issue #105).
             if ns.cmd == "inspect":
                 from audiomason.inspect import inspect_source
+
                 inspect_source(ns.path)
                 return 0
 
@@ -336,13 +338,13 @@ def main() -> int:
             if not isinstance(_ol_cfg, dict):
                 raise AmConfigError("Invalid config: openlibrary must be a mapping")
             _ol_cfg_enabled = bool(_ol_cfg.get("enabled", True))
-            _ol_effective = (_ol_cli if _ol_cli is not None else _ol_cfg_enabled)
+            _ol_effective = _ol_cli if _ol_cli is not None else _ol_cfg_enabled
             state.OPTS.lookup = bool(_ol_effective)
             cfg["_openlibrary_enabled"] = bool(_ol_effective)
 
             # FEATURE #65: config default for clean_inbox when flag not provided
             argv_list = list(sys.argv[1:])
-            argv_has_clean_inbox = ("--clean-inbox" in argv_list)
+            argv_has_clean_inbox = "--clean-inbox" in argv_list
             if not argv_has_clean_inbox:
                 cfg_mode = cfg.get("clean_inbox", "no")
                 state.OPTS.clean_inbox_mode = str(cfg_mode)
@@ -392,6 +394,7 @@ def main() -> int:
             if ns.cmd == "cache":
                 if getattr(ns, "cache_cmd", None) == "gc":
                     from audiomason.cache_gc import cache_gc
+
                     return int(
                         cache_gc(
                             cfg,
@@ -458,4 +461,3 @@ def main() -> int:
     except AmConfigError as e:
         out(f"[error] {e}")
         return 2
-

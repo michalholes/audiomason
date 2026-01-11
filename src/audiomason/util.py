@@ -14,6 +14,7 @@ from typing import Optional
 # ======================
 class AmExit(RuntimeError):
     """Expected termination (no traceback)."""
+
     exit_code: int = 2
 
     def __init__(self, msg: str, exit_code: int | None = None):
@@ -51,7 +52,6 @@ def run_cmd(cmd, *, tool: str | None = None, install: str | None = None, **kwarg
         raise AmExternalToolError(f"External tool failed: {name} (exit {e.returncode})") from e
 
 
-
 def out(msg: str) -> None:
     try:
         import audiomason.state as state
@@ -68,6 +68,8 @@ def out(msg: str) -> None:
             print(msg, flush=True)
     except BrokenPipeError:
         return
+
+
 def die(msg: str, code: int = 2) -> None:
     # Backward-compatible helper: raise a controlled exit instead of printing/traceback.
     m = str(msg)
@@ -117,10 +119,11 @@ def unique_path(p: Path) -> Path:
 def prompt(msg: str, default: Optional[str] = None) -> str:
     try:
         import audiomason.state as state
-        _opts = getattr(state, 'OPTS', None)
+
+        _opts = getattr(state, "OPTS", None)
     except Exception:
         _opts = None
-    if _opts is not None and getattr(_opts, 'yes', False):
+    if _opts is not None and getattr(_opts, "yes", False):
         return default or ""
     try:
         if default is not None and default != "":
@@ -137,10 +140,11 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
 def prompt_yes_no(msg: str, default_no: bool = True) -> bool:
     try:
         import audiomason.state as state
-        _opts = getattr(state, 'OPTS', None)
+
+        _opts = getattr(state, "OPTS", None)
     except Exception:
         _opts = None
-    if _opts is not None and getattr(_opts, 'yes', False):
+    if _opts is not None and getattr(_opts, "yes", False):
         return False if default_no else True
     d = "y/N" if default_no else "Y/n"
     try:
@@ -221,23 +225,25 @@ def find_archive_match(archive_ro: str, author_hint: str, book_hint: str):
                 continue
 
     # prefer exact match
-    exact = [(a,b) for a,b,score in hits if score == 2]
+    exact = [(a, b) for a, b, score in hits if score == 2]
     if len(exact) == 1:
         return exact[0]
 
     # if only one fuzzy hit overall, accept
     uniq = []
     seen = set()
-    for a,b,_ in hits:
-        if (a,b) not in seen:
-            seen.add((a,b))
-            uniq.append((a,b))
+    for a, b, _ in hits:
+        if (a, b) not in seen:
+            seen.add((a, b))
+            uniq.append((a, b))
     if len(uniq) == 1:
         return uniq[0]
 
     return (None, None)
 
+
 _TRACE_ENABLED = False
+
 
 def enable_trace() -> None:
     """
@@ -254,6 +260,7 @@ def enable_trace() -> None:
         # Respect --quiet (runtime state, not a stale imported name)
         try:
             import audiomason.state as state
+
             if getattr(getattr(state, "OPTS", None), "quiet", False):
                 return
         except Exception:
@@ -302,21 +309,26 @@ def enable_trace() -> None:
     ]:
         if hasattr(shutil, name):
             fn = getattr(shutil, name)
+
             def _wrap(fn, nm):
                 def w(*args, **kwargs):
                     _t(f"shutil.{nm} args={args!r} kwargs={kwargs!r}")
                     return fn(*args, **kwargs)
+
                 return w
+
             setattr(shutil, name, _wrap(fn, name))
 
     # --- os (covers Path ops internally: rename/unlink/mkdir/etc.) ---
     for name in ["rename", "replace", "remove", "unlink", "mkdir", "rmdir", "makedirs", "chmod", "chown", "utime"]:
         if hasattr(os, name):
             fn = getattr(os, name)
+
             def _wrap(fn, nm):
                 def w(*args, **kwargs):
                     _t(f"os.{nm} args={args!r} kwargs={kwargs!r}")
                     return fn(*args, **kwargs)
-                return w
-            setattr(os, name, _wrap(fn, name))
 
+                return w
+
+            setattr(os, name, _wrap(fn, name))

@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import shutil
 from pathlib import Path
-from typing import Optional, Tuple, Protocol, cast
+from typing import Optional, Protocol, Tuple, cast
 
 from mutagen.id3 import APIC, ID3, ID3NoHeaderError
 
@@ -89,7 +89,7 @@ def _sha1(s: str) -> str:
 
 def _sniff_image_ext(data: bytes) -> tuple[str, str]:
     # Detect image type from magic bytes (no external deps)
-    if len(data) >= 3 and data[0:3] == b"\xFF\xD8\xFF":
+    if len(data) >= 3 and data[0:3] == b"\xff\xd8\xff":
         return ("jpg", "image/jpeg")
     if len(data) >= 8 and data[0:8] == b"\x89PNG\r\n\x1a\n":
         return ("png", "image/png")

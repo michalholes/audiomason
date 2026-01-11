@@ -9,7 +9,7 @@ def test_process_step_cannot_be_between_stage_steps():
         "pipeline_steps": [
             "unpack",
             "convert",
-            "cover",      # invalid: PROCESS step before chapters/split
+            "cover",  # invalid: PROCESS step before chapters/split
             "chapters",
             "split",
             "tags",

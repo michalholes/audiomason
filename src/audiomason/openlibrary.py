@@ -18,19 +18,21 @@ BASE = "https://openlibrary.org"
 UA = "AudioMason/1.0 (https://github.com/michalholes/audiomason)"
 
 
-
 # Disk cache (deterministic): AUDIOMASON_ROOT/_state/openlibrary_cache.json
 _CACHE: dict[str, dict] | None = None
+
 
 def _cache_path() -> Path | None:
     try:
         import os
+
         root = os.environ.get("AUDIOMASON_ROOT")
         if not root:
             return None
         return Path(root) / "_state" / "openlibrary_cache.json"
     except Exception:
         return None
+
 
 def _cache_load() -> dict[str, dict]:
     global _CACHE
@@ -49,15 +51,18 @@ def _cache_load() -> dict[str, dict]:
         _CACHE = {}
         return _CACHE
 
+
 def _cache_get(key: str) -> dict | None:
     c = _cache_load()
     v = c.get(key)
     return v if isinstance(v, dict) else None
 
+
 def _cache_put(key: str, payload: dict) -> None:
     # respect dry-run: no cache writes
     try:
         import audiomason.state as state
+
         if getattr(getattr(state, "OPTS", None), "dry_run", False):
             return
     except Exception:
@@ -133,6 +138,7 @@ def _norm_title(s: str) -> str:
     s = re.sub(r"\s+", " ", s).strip()
     return s
 
+
 def _sanitize_title_suggestion(entered: str, suggested: str | None) -> str | None:
     """No-diacritics suggestion, and suppress suggestion if it matches entered."""
     if not suggested:
@@ -144,6 +150,7 @@ def _sanitize_title_suggestion(entered: str, suggested: str | None) -> str | Non
     if _norm_title(ss) == _norm_title(entered):
         return None
     return ss
+
 
 def _best_title_suggestion(entered: str, titles: list[str]) -> tuple[str | None, float, float]:
     n0 = _norm_title(entered)

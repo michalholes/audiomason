@@ -25,8 +25,7 @@ def test_check_fails_when_version_missing(tmp_path: Path) -> None:
 
     _write(
         repo_root / "scripts" / "gov_versions.py",
-        (Path(__file__).parent.parent / "scripts" / "gov_versions.py")
-        .read_text(encoding="utf-8"),
+        (Path(__file__).parent.parent / "scripts" / "gov_versions.py").read_text(encoding="utf-8"),
     )
 
     _write(repo_root / "docs" / "governance" / "A.md", "Title\n\nVersion: 1.0\n")
@@ -43,8 +42,7 @@ def test_set_version_rejects_invalid_format(tmp_path: Path) -> None:
 
     _write(
         repo_root / "scripts" / "gov_versions.py",
-        (Path(__file__).parent.parent / "scripts" / "gov_versions.py")
-        .read_text(encoding="utf-8"),
+        (Path(__file__).parent.parent / "scripts" / "gov_versions.py").read_text(encoding="utf-8"),
     )
 
     _write(repo_root / "docs" / "governance" / "A.md", "Title\n\nVersion: 1.0\n")
@@ -65,8 +63,7 @@ def test_set_version_makes_lockstep(tmp_path: Path) -> None:
 
     _write(
         repo_root / "scripts" / "gov_versions.py",
-        (Path(__file__).parent.parent / "scripts" / "gov_versions.py")
-        .read_text(encoding="utf-8"),
+        (Path(__file__).parent.parent / "scripts" / "gov_versions.py").read_text(encoding="utf-8"),
     )
 
     _write(repo_root / "docs" / "governance" / "A.md", "Title\n\nVersion: 1.0\n")
@@ -76,18 +73,12 @@ def test_set_version_makes_lockstep(tmp_path: Path) -> None:
     assert r.returncode == 0
     assert "-> 3.1" in r.stdout
 
-    assert (
-        repo_root / "docs" / "governance" / "A.md"
-    ).read_text(encoding="utf-8").strip().endswith("Version: 1.0")
+    assert (repo_root / "docs" / "governance" / "A.md").read_text(encoding="utf-8").strip().endswith("Version: 1.0")
 
     r2 = _run(repo_root, ["--set-version", "3.1"])
     assert r2.returncode == 0
-    assert "Version: 3.1" in (
-        repo_root / "docs" / "governance" / "A.md"
-    ).read_text(encoding="utf-8")
-    assert "Version: 3.1" in (
-        repo_root / "docs" / "governance" / "B.md"
-    ).read_text(encoding="utf-8")
+    assert "Version: 3.1" in (repo_root / "docs" / "governance" / "A.md").read_text(encoding="utf-8")
+    assert "Version: 3.1" in (repo_root / "docs" / "governance" / "B.md").read_text(encoding="utf-8")
 
     r3 = _run(repo_root, ["--check"])
     assert r3.returncode == 0

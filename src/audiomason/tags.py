@@ -64,6 +64,7 @@ def write_tags(
         id3.save(mp3)
         out(f"[tags] {mp3.name}")
 
+
 def write_cover(
     mp3s: Iterable[Path],
     cover: Optional[bytes],

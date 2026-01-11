@@ -37,6 +37,7 @@ def verify_library(root: Path) -> None:
     # OpenLibrary validation (read-only)
     try:
         import audiomason.state as state
+
         do_lookup = bool(getattr(getattr(state, "OPTS", None), "lookup", False))
     except Exception:
         do_lookup = False
@@ -70,9 +71,4 @@ def verify_library(root: Path) -> None:
                 out(f"[verify] missing ID3 tags: {book.name}/{mp3.name}")
                 missing_tags += 1
 
-    out(
-        f"[verify] done: "
-        f"books={len(books)}, "
-        f"missing_cover={missing_cover}, "
-        f"missing_tags={missing_tags}"
-    )
+    out(f"[verify] done: books={len(books)}, missing_cover={missing_cover}, missing_tags={missing_tags}")

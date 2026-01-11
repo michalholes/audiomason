@@ -10,14 +10,18 @@ SRC = ROOT / "src" / "audiomason"
 DOCS = ROOT / "docs"
 OUT = DOCS / "repo_manifest.yaml"
 
+
 def sha1_text(s: str) -> str:
     return hashlib.sha1(s.encode("utf-8", errors="ignore")).hexdigest()
+
 
 def file_sha1(p: Path) -> str:
     return sha1_text(p.read_text(encoding="utf-8", errors="ignore"))
 
+
 def yaml_escape(s: str) -> str:
     return s.replace("\\", "\\\\").replace('"', '\\"')
+
 
 def domains_for(path: str, src: str) -> list[str]:
     p = path.lower()
@@ -39,6 +43,7 @@ def domains_for(path: str, src: str) -> list[str]:
     if not tags:
         tags.add("misc")
     return sorted(tags)
+
 
 def extract_anchors(p: Path) -> list[dict]:
     src = p.read_text(encoding="utf-8", errors="ignore")
@@ -67,7 +72,7 @@ def extract_anchors(p: Path) -> list[dict]:
                 break
             j = src.find(q, i + 1)
             if j > i:
-                anchors.append(src[i + 1:j])
+                anchors.append(src[i + 1 : j])
             i += 1
 
     uniq = []
@@ -81,25 +86,30 @@ def extract_anchors(p: Path) -> list[dict]:
         if not idxs:
             continue
         i = idxs[0]
-        out.append({
-            "anchor": a,
-            "first_line": i + 1,
-            "count": len(idxs),
-            "context_before": lines[i - 1].strip() if i > 0 else "",
-            "context_after": lines[i + 1].strip() if i + 1 < len(lines) else "",
-        })
+        out.append(
+            {
+                "anchor": a,
+                "first_line": i + 1,
+                "count": len(idxs),
+                "context_before": lines[i - 1].strip() if i > 0 else "",
+                "context_after": lines[i + 1].strip() if i + 1 < len(lines) else "",
+            }
+        )
     return out
+
 
 entries = []
 
 for p in sorted(SRC.rglob("*.py")):
     src = p.read_text(encoding="utf-8", errors="ignore")
-    entries.append({
-        "path": p.relative_to(ROOT).as_posix(),
-        "domains": domains_for(str(p), src),
-        "file_sha1": file_sha1(p),
-        "anchors": extract_anchors(p),
-    })
+    entries.append(
+        {
+            "path": p.relative_to(ROOT).as_posix(),
+            "domains": domains_for(str(p), src),
+            "file_sha1": file_sha1(p),
+            "anchors": extract_anchors(p),
+        }
+    )
 
 lines = []
 lines.append("version: 1")
@@ -115,14 +125,14 @@ lines.append("files:")
 for e in entries:
     lines.append(f"- path: {e['path']}")
     lines.append(f"  domains: {e['domains']}")
-    lines.append(f"  file_sha1: \"{e['file_sha1']}\"")
+    lines.append(f'  file_sha1: "{e["file_sha1"]}"')
     lines.append("  anchors:")
     for a in e["anchors"]:
-        lines.append(f"    - anchor: \"{yaml_escape(a['anchor'])}\"")
+        lines.append(f'    - anchor: "{yaml_escape(a["anchor"])}"')
         lines.append(f"      first_line: {a['first_line']}")
         lines.append(f"      count: {a['count']}")
-        lines.append(f"      context_before: \"{yaml_escape(a['context_before'])}\"")
-        lines.append(f"      context_after: \"{yaml_escape(a['context_after'])}\"")
+        lines.append(f'      context_before: "{yaml_escape(a["context_before"])}"')
+        lines.append(f'      context_after: "{yaml_escape(a["context_after"])}"')
 
 OUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
 print(f"OK: wrote {OUT}")

@@ -839,8 +839,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
         die(f"Invalid configuration: clean_inbox must be one of ask|yes|no, got: {clean_inbox_mode!r}")
     if (state.OPTS and state.OPTS.yes) and clean_inbox_mode == "ask":
         die(
-            "Non-interactive run requires an explicit inbox cleanup decision: "
-            "set --clean-inbox yes|no (or config clean_inbox: yes|no)"
+            "Non-interactive run requires an explicit inbox cleanup decision: set --clean-inbox yes|no (or config clean_inbox: yes|no)"
         )
 
     drop_root = get_drop_root(cfg)
@@ -1207,10 +1206,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     ar = validate_author(author)
                     if getattr(state, "DEBUG", False):
                         out(
-                            f"[ol] author result: ok={getattr(ar, 'ok', None)} "
-                            f"status={getattr(ar, 'status', None)!r} "
-                            f"hits={getattr(ar, 'hits', None)} "
-                            f"top={getattr(ar, 'top', None)!r}"
+                            f"[ol] author result: ok={getattr(ar, 'ok', None)} status={getattr(ar, 'status', None)!r} hits={getattr(ar, 'hits', None)} top={getattr(ar, 'top', None)!r}"
                         )
                     author = _ol_offer_top("author", author, ar, cfg=cfg, key="normalize_author")
             if not author:
@@ -1251,10 +1247,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                             out(f"[ol] book not found: author='{author}' title='{title}'")
                         if getattr(state, "DEBUG", False):
                             out(
-                                f"[ol] book result: ok={getattr(br, 'ok', None)} "
-                                f"status={getattr(br, 'status', None)!r} "
-                                f"hits={getattr(br, 'hits', None)} "
-                                f"top={getattr(br, 'top', None)!r}"
+                                f"[ol] book result: ok={getattr(br, 'ok', None)} status={getattr(br, 'status', None)!r} hits={getattr(br, 'hits', None)} top={getattr(br, 'top', None)!r}"
                             )
                         title = _ol_offer_top("book title", title, br, cfg=cfg, key="normalize_book_title")
 

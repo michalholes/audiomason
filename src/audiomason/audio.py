@@ -8,11 +8,11 @@ from pathlib import Path
 import audiomason.state as state
 from audiomason.util import die, ensure_dir, out, run_cmd
 
+
 def _opts():
     opts = state.OPTS
     assert opts is not None
     return opts
-
 
 
 def ffprobe_json(path: Path) -> dict:
@@ -20,8 +20,10 @@ def ffprobe_json(path: Path) -> dict:
         die("ffprobe not found (install ffmpeg package)")
     cmd = [
         "ffprobe",
-        "-v", "error",
-        "-print_format", "json",
+        "-v",
+        "error",
+        "-print_format",
+        "json",
         "-show_format",
         "-show_streams",
         "-show_chapters",
@@ -43,6 +45,7 @@ def m4a_chapters(path: Path) -> list[dict]:
 
 def ffmpeg_common_input() -> list[str]:
     import os
+
     cores = getattr(state.OPTS, "cpu_cores", None) or os.cpu_count() or 1
     # Deterministic conservative default (RPi-safe)
     threads = min(2, max(1, int(cores) // 2))
@@ -112,23 +115,37 @@ def m4a_split_by_chapters(src: Path, outdir: Path) -> list[Path]:
     out(f"[split] splitting by chapters: {len(times)} tracks (single-pass)")
 
     dst_pat = outdir / "%02d.mp3"
-    cmd = ["ffmpeg"] + ffmpeg_common_input() + [
-        "-y",
-        "-ss", str(start0),
-        "-i", str(src),
-        "-vn",
-        "-t", str(total),
-        "-map", "0:a:0",
-    ]
+    cmd = (
+        ["ffmpeg"]
+        + ffmpeg_common_input()
+        + [
+            "-y",
+            "-ss",
+            str(start0),
+            "-i",
+            str(src),
+            "-vn",
+            "-t",
+            str(total),
+            "-map",
+            "0:a:0",
+        ]
+    )
     if _opts().loudnorm:
         cmd += ["-af", "loudnorm=I=-16:LRA=11:TP=-1.5"]
     cmd += [
-        "-codec:a", "libmp3lame",
-        "-q:a", _opts().q_a,
-        "-f", "segment",
-        "-segment_times", ",".join(str(x) for x in split_points),
-        "-segment_start_number", "1",
-        "-reset_timestamps", "1",
+        "-codec:a",
+        "libmp3lame",
+        "-q:a",
+        _opts().q_a,
+        "-f",
+        "segment",
+        "-segment_times",
+        ",".join(str(x) for x in split_points),
+        "-segment_start_number",
+        "1",
+        "-reset_timestamps",
+        "1",
         str(dst_pat),
     ]
 

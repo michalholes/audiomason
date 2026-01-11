@@ -39,11 +39,11 @@ def test_future_law_included_in_list_and_check(tmp_path: Path) -> None:
     _write(repo_root / "docs" / "governance" / "NEW_LAW.md", "Future\n\nVersion: v1.0\n")
 
     r_list = _run(repo_root, ["--list"])
-    assert r_list.returncode == 0, (r_list.stdout + r_list.stderr)
+    assert r_list.returncode == 0, r_list.stdout + r_list.stderr
     assert "NEW_LAW.md" in r_list.stdout
 
     r_check = _run(repo_root, ["--check"])
-    assert r_check.returncode == 0, (r_check.stdout + r_check.stderr)
+    assert r_check.returncode == 0, r_check.stdout + r_check.stderr
     assert r_check.stdout.strip().endswith("OK")
 
 
@@ -56,7 +56,7 @@ def test_set_version_updates_future_law(tmp_path: Path) -> None:
     _write(repo_root / "docs" / "governance" / "NEW_LAW.md", "Future\n\nVersion: v1.0\n")
 
     r = _run(repo_root, ["--set-version", "v3.0"])
-    assert r.returncode == 0, (r.stdout + r.stderr)
+    assert r.returncode == 0, r.stdout + r.stderr
 
     assert "Version: v3.0" in (repo_root / "docs" / "governance" / "A.md").read_text(encoding="utf-8")
     assert "Version: v3.0" in (repo_root / "docs" / "governance" / "NEW_LAW.md").read_text(encoding="utf-8")

@@ -5,6 +5,7 @@ import unicodedata
 
 # Read-only normalization helper (NO FS changes)
 
+
 def normalize_name(s: str) -> str:
     if not s:
         return s
@@ -28,6 +29,7 @@ def normalize_name(s: str) -> str:
     s = " ".join(parts)
 
     return s
+
 
 def normalize_sentence(s: str) -> str:
     """

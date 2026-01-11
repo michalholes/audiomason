@@ -14,7 +14,6 @@ DEFAULT_ORDER = [
 ]
 
 REQUIRED = {
-
     "unpack",
     "convert",
     "rename",
@@ -45,6 +44,7 @@ def _validate_step_order(steps: list[str]) -> None:
     for a, b in ORDER_CONSTRAINTS:
         if a in idx and b in idx and idx[a] > idx[b]:
             raise AmConfigError(f"invalid pipeline_steps order: '{a}' must come before '{b}'")
+
 
 def resolve_pipeline_steps(cfg: dict) -> list[str]:
     steps = cfg.get("pipeline_steps")

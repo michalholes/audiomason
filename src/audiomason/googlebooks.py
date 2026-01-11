@@ -16,6 +16,7 @@ UA = "AudioMason/1.0 (https://github.com/michalholes/audiomason)"
 def _dry_run() -> bool:
     try:
         import audiomason.state as state
+
         return bool(getattr(getattr(state, "OPTS", None), "dry_run", False))
     except Exception:
         return False
@@ -27,7 +28,7 @@ def _norm(s: str) -> str:
     s = s.lower()
     s = re.sub(r"\s+", " ", s).strip()
     # deterministic token normalization (helps minor CZ/SK preposition diffs)
-    stop = {"a","i","v","vo","na","do","od","po","pri","ku","k","z","zo","s","so","u"}
+    stop = {"a", "i", "v", "vo", "na", "do", "od", "po", "pri", "ku", "k", "z", "zo", "s", "so", "u"}
     toks = [t for t in s.split(" ") if t and t not in stop]
     s = " ".join(toks).strip()
     return s
@@ -101,9 +102,11 @@ def _pick_best(entered_title: str, author: str, items: list[dict[str, Any]]) -> 
     if best_s >= 0.98:
         top = [t for (sc, t) in cand if sc >= 0.98]
         if len(top) >= 2:
+
             def _dia_score(x: str) -> tuple[int, int, str]:
                 non_ascii = sum(1 for ch in x if ord(ch) > 127)
                 return (non_ascii, len(x), x)
+
             top.sort(key=_dia_score, reverse=True)
             return top[0]
 
@@ -121,20 +124,23 @@ def suggest_title(author: str, title: str) -> str | None:
         return None
 
     # deterministic, limited, language-restricted
-    q = f'intitle:{t} inauthor:{a}'
+    q = f"intitle:{t} inauthor:{a}"
     fields = "items(volumeInfo/title,volumeInfo/authors,volumeInfo/language)"
 
     for lang in ("cs", "sk"):
         # be polite; deterministic delay
         time.sleep(0.2)
         try:
-            data = _get_json("/volumes", {
-                "q": q,
-                "maxResults": 20,
-                "langRestrict": lang,
-                "printType": "books",
-                "fields": fields,
-            })
+            data = _get_json(
+                "/volumes",
+                {
+                    "q": q,
+                    "maxResults": 20,
+                    "langRestrict": lang,
+                    "printType": "books",
+                    "fields": fields,
+                },
+            )
         except Exception:
             continue
         items = data.get("items") or []

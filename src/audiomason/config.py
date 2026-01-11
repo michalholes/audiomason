@@ -33,6 +33,7 @@ DEFAULTS: dict[str, object] = {
     },
 }
 
+
 def _deep_merge(a: dict, b: dict) -> dict:
     out = dict(a)
     for k, v in (b or {}).items():
@@ -41,6 +42,7 @@ def _deep_merge(a: dict, b: dict) -> dict:
         else:
             out[k] = v
     return out
+
 
 def _load_yaml(p: Path) -> dict:
     if not p.exists():
@@ -53,13 +55,17 @@ def _load_yaml(p: Path) -> dict:
             raise AmConfigError(f"Invalid configuration root in {p}: expected mapping, got {type(data).__name__}")
         return data
 
+
 SYSTEM_CONFIG_PATH = Path("/etc/audiomason/config.yaml")
+
+
 def user_config_path() -> Path:
     """Deterministic user-space config path (XDG preferred)."""
     xdg = os.environ.get("XDG_CONFIG_HOME")
     if xdg:
         return Path(xdg) / "audiomason" / "config.yaml"
     return Path.home() / ".config" / "audiomason" / "config.yaml"
+
 
 # Issue #76: global prompt disable (config validation)
 PROMPT_DISABLE_KEYS = {
@@ -81,6 +87,7 @@ PROMPT_DISABLE_KEYS = {
     "choose_cover",
     "cover_input",
 }
+
 
 def _validate_prompts_disable(cfg: dict) -> None:
     prm = cfg.get("prompts", {})
@@ -140,22 +147,34 @@ def load_config(config_path: Path | None = None) -> dict:
 
     cfg = _deep_merge(DEFAULTS, _load_yaml(p))
     # Issue #76: validate prompts.disable (global prompt disable)
-    _pr = cfg.get('prompts', {})
+    _pr = cfg.get("prompts", {})
     if not isinstance(_pr, dict):
-        raise AmConfigError('Invalid config: prompts must be a mapping')
-    _disable = _pr.get('disable', [])
+        raise AmConfigError("Invalid config: prompts must be a mapping")
+    _disable = _pr.get("disable", [])
     if _disable is None:
         _disable = []
     if not isinstance(_disable, list):
-        raise AmConfigError('Invalid config: prompts.disable must be a list of keys')
+        raise AmConfigError("Invalid config: prompts.disable must be a list of keys")
 
     _allowed = {
-        '*',
+        "*",
         # preflight keys
-        'publish','wipe_id3','clean_stage','clean_inbox','reuse_stage','use_manifest_answers',
-        'normalize_author','normalize_book_title','cover',
+        "publish",
+        "wipe_id3",
+        "clean_stage",
+        "clean_inbox",
+        "reuse_stage",
+        "use_manifest_answers",
+        "normalize_author",
+        "normalize_book_title",
+        "cover",
         # non-preflight keys
-        'choose_source','choose_books','skip_processed_books','enter_author','enter_book_title','dest_overwrite',
+        "choose_source",
+        "choose_books",
+        "skip_processed_books",
+        "enter_author",
+        "enter_book_title",
+        "dest_overwrite",
     }
     _seen: set[str] = set()
     for x in _disable:
@@ -163,26 +182,25 @@ def load_config(config_path: Path | None = None) -> dict:
         if not k:
             continue
         if k not in _allowed:
-            raise AmConfigError(f'Invalid config: unknown prompts.disable key: {k}')
+            raise AmConfigError(f"Invalid config: unknown prompts.disable key: {k}")
         if k in _seen:
-            raise AmConfigError(f'Invalid config: duplicate prompts.disable key: {k}')
+            raise AmConfigError(f"Invalid config: duplicate prompts.disable key: {k}")
         _seen.add(k)
-    if '*' in _seen and len(_seen) != 1:
+    if "*" in _seen and len(_seen) != 1:
         raise AmConfigError("Invalid config: prompts.disable cannot combine '*' with other keys")
     # Issue #82: validate openlibrary config
     _validate_prompts_disable(cfg)
-    _ol = cfg.get('openlibrary', {})
+    _ol = cfg.get("openlibrary", {})
     if not isinstance(_ol, dict):
-        raise AmConfigError('Invalid config: openlibrary must be a mapping')
-    if 'enabled' in _ol and not isinstance(_ol.get('enabled'), bool):
-        raise AmConfigError('Invalid config: openlibrary.enabled must be boolean')
-    cfg['loaded_from'] = str(p)
+        raise AmConfigError("Invalid config: openlibrary must be a mapping")
+    if "enabled" in _ol and not isinstance(_ol.get("enabled"), bool):
+        raise AmConfigError("Invalid config: openlibrary.enabled must be boolean")
+    cfg["loaded_from"] = str(p)
     # Feature #72: expose runtime version (single source of truth)
-    _rt = cfg.get('runtime', {})
+    _rt = cfg.get("runtime", {})
     if not isinstance(_rt, dict):
         _rt = {}
     _rt = dict(_rt)
-    _rt['version'] = AM_VERSION
-    cfg['runtime'] = _rt
+    _rt["version"] = AM_VERSION
+    cfg["runtime"] = _rt
     return cfg
-

@@ -117,12 +117,11 @@ def validate(versions: List[DocVersion], mode: str) -> None:
         raise GovVersionError(f"inconsistent versions (lockstep): {pairs}")
 
 
-
 def format_table(rows: List[Tuple[str, str]]) -> str:
     col1 = max(len(r[0]) for r in rows) if rows else 4
     lines: List[str] = []
     lines.append(f"{'FILE'.ljust(col1)}  VERSION")
-    lines.append(f"{'-'*col1}  -------")
+    lines.append(f"{'-' * col1}  -------")
     for f, v in rows:
         lines.append(f"{f.ljust(col1)}  {v}")
     return "\n".join(lines)

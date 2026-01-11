@@ -17,9 +17,7 @@ def test_cli_disable_prompt_overrides_config(monkeypatch, tmp_path):
 
     cfg_path = tmp_path / "configuration.yaml"
     cfg_path.write_text(
-        "prompts:\n"
-        "  disable:\n"
-        "    - choose_source\n",
+        "prompts:\n  disable:\n    - choose_source\n",
         encoding="utf-8",
     )
 

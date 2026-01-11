@@ -17,6 +17,7 @@ def test_cli_import_accepts_path(monkeypatch, tmp_path):
     (tmp_path / "abooks").mkdir(parents=True, exist_ok=True)
     # parse_args is internal; we only assert that argparse accepts the positional PATH.
     import audiomason.cli as cli
+
     monkeypatch.setattr(sys, "argv", ["audiomason", "import", "/some/where/SomeBook"])
     ns = cli._parse_args()
     assert ns.cmd == "import"
