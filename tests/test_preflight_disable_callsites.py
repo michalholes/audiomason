@@ -15,8 +15,7 @@ def test_preflight_disable_callsites_do_not_bypass_pf_prompt_yes_no() -> None:
     assert 'publish = prompt_yes_no("Publish after import?", default_no=(not default_publish))' not in txt
     assert 'wipe = prompt_yes_no("Full wipe ID3 tags before tagging?", default_no=(not default_wipe))' not in txt
     assert (
-        'clean_stage = prompt_yes_no("Clean stage after successful import?", default_no=(not default_clean))'
-        not in txt
+        'clean_stage = prompt_yes_no("Clean stage after successful import?", default_no=(not default_clean))' not in txt
     )
 
     # Formatting-robust: expect the _pf_prompt_yes_no variants to be present, regardless of wrapping/newlines.

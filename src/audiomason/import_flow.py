@@ -56,11 +56,11 @@ PREFLIGHT_DISABLE_KEYS = {
 }
 
 
-
 def _opts():
     if state.OPTS is None:
         die("Internal error: OPTS not initialized")
     return state.OPTS
+
 
 # Issue #66: configurable preflight question order (deterministic, validated)
 PREFLIGHT_STEP_KEYS = list(DEFAULT_PREFLIGHT_STEPS)
@@ -1235,12 +1235,12 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             assert wipe is not None
 
             _publish = bool(publish)
-            
+
             # Determine WORK root (where PROCESS writes).
             # If publishing, we always work in output_root.
             # Otherwise, process directly into the chosen final root.
             # (Avoid Optional[Path] here; dest_root2 is always a Path.)
-            
+
             # preflight per-book metadata (must happen before touching output)
             # ISSUE #12: unify decisions upfront (title + cover choice). Processing must not prompt.
             meta: list[tuple[BookGroup, str, str, Path, str, bool, Path]] = []
