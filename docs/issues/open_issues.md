@@ -728,7 +728,7 @@ NOTES
 - Assignees: —
 - Milestone: —
 - Created: 2026-01-10T20:55:23Z
-- Updated: 2026-01-10T20:55:23Z
+- Updated: 2026-01-11T09:57:21Z
 
 SCOPE
 - Resolve all remaining mypy errors in `src/audiomason`.
