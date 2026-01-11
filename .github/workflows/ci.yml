@@ -8,6 +8,9 @@ jobs:
   tests:
     runs-on: ubuntu-latest
 
+    env:
+      AUDIOMASON_CONFIG: ${{ github.workspace }}/debian/config.yaml
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4

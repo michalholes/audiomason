@@ -118,13 +118,33 @@ def _validate_prompts_disable(cfg: dict) -> None:
 def load_config(config_path: Path | None = None) -> dict:
     tried: list[Path] = []
 
+    # Config precedence:
+    # 1) --config (explicit path)
+    # 2) $AUDIOMASON_CONFIG (CI/daemon-friendly override)
+    # 3) user config ($XDG_CONFIG_HOME/audiomason/config.yaml)
+    # 4) system config (/etc/audiomason/config.yaml)
+    if config_path is None:
+        env = os.environ.get("AUDIOMASON_CONFIG")
+        if env:
+            config_path = Path(env)
+
+    # Config precedence:
+    # 1) --config (explicit path)
+    # 2) $AUDIOMASON_CONFIG (CI/daemon-friendly override)
+    # 3) user config ($XDG_CONFIG_HOME/audiomason/config.yaml)
+    # 4) system config (/etc/audiomason/config.yaml)
+    if config_path is None:
+        env = os.environ.get("AUDIOMASON_CONFIG")
+        if env:
+            config_path = Path(env)
+
     if config_path is not None:
         p = config_path
         tried.append(p)
         if not p.exists():
             raise AmConfigError(
                 f"Config not found: {p}. "
-                "Resolution order: --config, $XDG_CONFIG_HOME/audiomason/config.yaml "
+                "Resolution order: --config, $AUDIOMASON_CONFIG, $XDG_CONFIG_HOME/audiomason/config.yaml "
                 "(or ~/.config/audiomason/config.yaml), /etc/audiomason/config.yaml."
             )
     else:
@@ -140,7 +160,7 @@ def load_config(config_path: Path | None = None) -> dict:
                 tried_s = ", ".join(str(x) for x in tried)
                 raise AmConfigError(
                     "Config not found. Tried (in order): " + tried_s + ". "
-                    "Provide --config or create a user-space config under "
+                    "Provide --config, set $AUDIOMASON_CONFIG, or create a user-space config under "
                     "$XDG_CONFIG_HOME/audiomason/config.yaml (or ~/.config/audiomason/config.yaml), "
                     "or install /etc/audiomason/config.yaml."
                 )

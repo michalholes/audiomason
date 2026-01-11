@@ -1,8 +1,14 @@
 # Configuration
 
-AudioMason uses a single system configuration file:
+AudioMason loads configuration using this precedence order:
 
-- /etc/audiomason/config.yaml
+1) CLI: `--config /path/to/config.yaml` (highest priority)
+2) Environment: `AUDIOMASON_CONFIG=/path/to/config.yaml`
+3) User (XDG): `$XDG_CONFIG_HOME/audiomason/config.yaml` (typically `~/.config/audiomason/config.yaml`)
+4) System: `/etc/audiomason/config.yaml`
+
+This supports both future daemon usage (system config in `/etc`) and per-user usage (XDG config),
+while keeping CI hermetic via `AUDIOMASON_CONFIG`.
 
 This file is installed by the package and is safe by default, but you must set real paths before first use.
 
