@@ -55,6 +55,13 @@ PREFLIGHT_DISABLE_KEYS = {
     "cover",
 }
 
+
+
+def _opts():
+    if state.OPTS is None:
+        die("Internal error: OPTS not initialized")
+    return state.OPTS
+
 # Issue #66: configurable preflight question order (deterministic, validated)
 PREFLIGHT_STEP_KEYS = list(DEFAULT_PREFLIGHT_STEPS)
 
@@ -503,17 +510,17 @@ def _collect_audio_files(group_root: Path) -> list[Path]:
 
 def _preflight_global(cfg: dict) -> tuple[bool, bool]:
     # publish (placeholder, but must be decided before processing)
-    if state.OPTS.publish is None:
+    if _opts().publish is None:
         pub = _pf_prompt_yes_no(cfg, "publish", "Publish after import?", default_no=True)
     else:
-        pub = bool(state.OPTS.publish)
+        pub = bool(_opts().publish)
 
     # wipe ID3 decision
-    if state.OPTS.wipe_id3 is None:
+    if _opts().wipe_id3 is None:
         wipe = _pf_prompt_yes_no(cfg, "wipe_id3", "Full wipe ID3 tags before tagging?", default_no=True)
 
     else:
-        wipe = bool(state.OPTS.wipe_id3)
+        wipe = bool(_opts().wipe_id3)
 
     return (pub, wipe)
 
@@ -682,16 +689,16 @@ def _process_book(
     outdir = _output_dir(dest_root, author, out_title)
     if _is_dir_nonempty(outdir):
         if overwrite:
-            if state.OPTS and state.OPTS.dry_run:
+            if _opts().dry_run:
                 out(f"[dest] would overwrite: {outdir}")
             else:
                 out(f"[dest] overwrite: {outdir}")
-            if not (state.OPTS and state.OPTS.dry_run):
+            if not (_opts().dry_run):
                 shutil.rmtree(outdir, ignore_errors=True)
         else:
             die(f"Conflict: output already exists and is not empty: {outdir}")
 
-    if state.OPTS.dry_run:
+    if _opts().dry_run:
         out(f"[dry-run] would create: {outdir}")
         # ISSUE #2: write human-readable dry-run summary file (per book)
         lines = [
@@ -752,7 +759,7 @@ def _process_book(
     # [issue_86] publish-at-end: copy finalized book dir to final_root (archive) only after all PROCESS steps
     if final_root != dest_root:
         final_outdir = _output_dir(final_root, author, out_title)
-        if state.OPTS and state.OPTS.dry_run:
+        if _opts().dry_run:
             out(f"[dry-run] would publish: {outdir} -> {final_outdir}")
         else:
             ensure_dir(final_outdir.parent)
@@ -799,7 +806,7 @@ def _resolved_pipeline_steps(cfg: dict) -> list[str]:
 
 def _is_interactive() -> bool:
     # Interactive = prompts are allowed (not --yes)
-    return not (state.OPTS and state.OPTS.yes)
+    return not (_opts().yes)
 
 
 def _stage_cover_from_raw(cfg: dict, raw: str, group_root: Path) -> Path | None:
@@ -814,7 +821,7 @@ def _stage_cover_from_raw(cfg: dict, raw: str, group_root: Path) -> Path | None:
         return None
     ext = img.suffix.lower() or ".jpg"
     dst = group_root / f"cover{ext}"
-    if state.OPTS and state.OPTS.dry_run:
+    if _opts().dry_run:
         out(f"[dry-run] would stage cover: {img} -> {dst}")
         return dst
     ensure_dir(dst.parent)
@@ -837,7 +844,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
     clean_inbox_mode = str(getattr(getattr(state, "OPTS", None), "clean_inbox_mode", cfg.get("clean_inbox", "no")))
     if clean_inbox_mode not in {"ask", "yes", "no"}:
         die(f"Invalid configuration: clean_inbox must be one of ask|yes|no, got: {clean_inbox_mode!r}")
-    if (state.OPTS and state.OPTS.yes) and clean_inbox_mode == "ask":
+    if (_opts().yes) and clean_inbox_mode == "ask":
         die(
             "Non-interactive run requires an explicit inbox cleanup decision: "
             "set --clean-inbox yes|no (or config clean_inbox: yes|no)"
@@ -923,7 +930,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
         _pl_util_prompt_yes_no0 = None
         try:
             _pl_target = _pl_resolve_target(cfg, stage_run, src)
-            if _pl_target is not None and not (state.OPTS and state.OPTS.dry_run):
+            if _pl_target is not None and not (_opts().dry_run):
                 # Ensure stage_run exists so we can log immediately.
                 ensure_dir(stage_run)
                 ensure_dir(_pl_target.parent)
@@ -948,7 +955,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             except Exception:
                 _pl_util = None
 
-            def _pl_prompt(q: str, default: str) -> str:
+            def _pl_prompt(q: str, default: str | None) -> str:
                 try:
                     _pl_fh.write(f"[prompt] {q} [default={default}]\n")
                 except Exception:
@@ -1134,18 +1141,18 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     publish = bool(dec.get("publish"))
                     wipe = bool(dec.get("wipe_id3"))
                     return
-                if state.OPTS.publish is None:
+                if _opts().publish is None:
                     publish = _pf_prompt_yes_no(
                         cfg, "publish", "Publish after import?", default_no=(not default_publish)
                     )
                 else:
-                    publish = bool(state.OPTS.publish)
-                if state.OPTS.wipe_id3 is None:
+                    publish = bool(_opts().publish)
+                if _opts().wipe_id3 is None:
                     wipe = _pf_prompt_yes_no(
                         cfg, "wipe_id3", "Full wipe ID3 tags before tagging?", default_no=(not default_wipe)
                     )
                 else:
-                    wipe = bool(state.OPTS.wipe_id3)
+                    wipe = bool(_opts().wipe_id3)
                 update_manifest(stage_run, {"decisions": {"publish": bool(publish), "wipe_id3": bool(wipe)}})
 
             def _step_clean_stage() -> None:
@@ -1222,12 +1229,21 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             # Issue #66: resolve destination roots (work vs final)
             # publish=True => process into output_root, then (optionally) publish to archive_root at end
             # publish=False => process directly into chosen final root
-            _publish = bool(publish)
-            _work_root_default = output_root if _publish else None
+            if publish is None or wipe is None:
+                die("Internal error: missing required preflight decisions (publish/wipe_id3)")
+            assert publish is not None
+            assert wipe is not None
 
+            _publish = bool(publish)
+            
+            # Determine WORK root (where PROCESS writes).
+            # If publishing, we always work in output_root.
+            # Otherwise, process directly into the chosen final root.
+            # (Avoid Optional[Path] here; dest_root2 is always a Path.)
+            
             # preflight per-book metadata (must happen before touching output)
             # ISSUE #12: unify decisions upfront (title + cover choice). Processing must not prompt.
-            meta: list[tuple[BookGroup, str, str, Path, str, bool]] = []
+            meta: list[tuple[BookGroup, str, str, Path, str, bool, Path]] = []
             for bi, b in enumerate(picked_books, 1):
                 # title
                 bm_entry2 = bm.get(b.label, {}) if isinstance(bm, dict) else {}
@@ -1237,7 +1253,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     title = default_title
                 else:
                     # NOTE: during --dry-run, keep deterministic and do not prompt for title.
-                    if state.OPTS and state.OPTS.dry_run:
+                    if _opts().dry_run:
                         title = default_title or b.label
                     else:
                         title = _preflight_book(cfg, bi, len(picked_books), b, default_title=default_title)
@@ -1377,7 +1393,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                         else:
                             # No detected cover => ask once
                             # NOTE: during --dry-run, keep deterministic and do not prompt for cover.
-                            if state.OPTS and state.OPTS.dry_run:
+                            if _opts().dry_run:
                                 cover_mode = "skip"
                                 cover_src = "skip"
                             else:
@@ -1415,7 +1431,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     final_root2 = archive_root
 
                 # Determine WORK root (where PROCESS writes). If publishing, we always work in output_root.
-                dest_root2 = _work_root_default if _publish else final_root2
+                dest_root2 = output_root if _publish else final_root2
 
                 out_title = m_out_title or title
                 overwrite = m_overwrite
@@ -1423,7 +1439,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                 outdir = _output_dir(dest_root2, author, out_title)
                 if _is_dir_nonempty(outdir) and not (reuse_stage and use_manifest_answers):
                     # 1) offer overwrite (interactive only)
-                    if not (state.OPTS and state.OPTS.yes):
+                    if not (_opts().yes):
                         out(f"[dest] exists: {outdir}")
                         overwrite = _pf_prompt_yes_no(
                             cfg, "overwrite_destination", "Destination exists. Overwrite?", default_no=True
@@ -1496,14 +1512,14 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
 
             # FEATURE #26: clean stage at end (successful run only)
             # FEATURE #51: mark processed source as ignored
-            if not (state.OPTS and state.OPTS.dry_run):
+            if not (_opts().dry_run):
                 add_ignore(drop_root, src.name)
                 out(f"[ignore] added: {src.name}")
             # FEATURE #65: inbox cleanup control (run-level decision)
             do_clean_inbox = bool(run_clean_inbox)
 
             if do_clean_inbox:
-                if state.OPTS and state.OPTS.dry_run:
+                if _opts().dry_run:
                     out(f"[inbox] would clean: {src}")
                 else:
                     if src.is_dir():
@@ -1516,7 +1532,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             dec2 = load_manifest(stage_run).get("decisions", {})
             do_clean = bool(dec2.get("clean_stage"))
             if do_clean:
-                if state.OPTS and state.OPTS.dry_run:
+                if _opts().dry_run:
                     out(f"[stage] would clean: {stage_run}")
                 else:
                     shutil.rmtree(stage_run, ignore_errors=True)
@@ -1586,6 +1602,6 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                 src, si, len(picked_sources), phase=phase, do_process=do_process, run_clean_inbox=run_clean_inbox
             )
     # ISSUE #18: machine-readable report (printed at end; human output unchanged)
-    if state.OPTS and getattr(state.OPTS, "json", False):
+    if getattr(_opts(), "json", False):
         report = _build_json_report(stage_runs_for_json)
         print(json.dumps(report, ensure_ascii=False, sort_keys=True), flush=True)
