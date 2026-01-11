@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import unicodedata
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TypeAlias, cast
 
 
 # ======================
@@ -264,7 +264,8 @@ def enable_trace() -> None:
     _sub_run = subprocess.run
     _sub_cc = subprocess.check_call
     _sub_co = subprocess.check_output
-    _sub_popen = subprocess.Popen
+    _SubprocessPopen: TypeAlias = type[subprocess.Popen]
+    _sub_popen: _SubprocessPopen = subprocess.Popen
 
     def run(*args, **kwargs):
         _t(f"subprocess.run args={args!r} kwargs={kwargs!r}")
@@ -286,7 +287,7 @@ def enable_trace() -> None:
     subprocess.run = run
     subprocess.check_call = check_call
     subprocess.check_output = check_output
-    subprocess.Popen = Popen
+    subprocess.Popen = cast(_SubprocessPopen, Popen)
 
     # --- shutil ---
     for name in [
