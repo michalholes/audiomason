@@ -1,5 +1,18 @@
 # Closed Issues
 
+## #121 – Bug: Tests rely on brittle source-code string matching (break on formatting)
+- State: **CLOSED**
+- Labels: bug, cleanup
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-11T10:48:31Z
+- Updated: 2026-01-11T12:54:22Z
+- Closed: 2026-01-11T12:54:22Z
+
+Several tests fail after ruff format because they assert exact source-code string layouts instead of semantic behavior.\n\nExamples:\n- test_pipeline_steps_wired_into_process_book\n- test_preflight_disable_callsites_do_not_bypass_pf_prompt_yes_no\n- test_preflight_disable_cover_override_is_routed_via_pf_prompt\n\nUnderlying behavior is unchanged; only formatting/layout differs. Tests should assert semantics, not raw text.
+
+---
+
 ## #107 – CI: avoid writing /etc/audiomason/config.yaml; use --config with repo config
 - State: **CLOSED**
 - Labels: —
