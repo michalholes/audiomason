@@ -728,7 +728,7 @@ NOTES
 - Assignees: —
 - Milestone: —
 - Created: 2026-01-10T20:55:22Z
-- Updated: 2026-01-10T20:55:22Z
+- Updated: 2026-01-11T08:44:54Z
 
 SCOPE
 - Fix mypy errors related to return types, helper utilities, and implicit Any.
@@ -844,5 +844,62 @@ while minimizing regression risk.
 - `ruff check src/audiomason/import_flow.py` has no E501
 - `pytest -q` passes (101 tests)
 - Clear module boundaries and a simpler import graph
+
+---
+
+## #118 – Refactor test suite to reduce execution time
+- State: **OPEN**
+- Labels: bug, tech-debt, performance, tests
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-11T09:17:01Z
+- Updated: 2026-01-11T09:17:01Z
+
+### Problem
+
+The current test suite execution time is excessively long (multiple minutes),
+which significantly slows down iterative development and cleanup work.
+
+This is a practical developer productivity issue: frequent `pytest -q` runs
+are required during refactors and typing fixes, and test runtime dominates
+feedback time.
+
+### Scope (this issue)
+
+This issue is **test-only refactor / hygiene**:
+- No production code changes
+- No behavior changes
+- No reduction of test coverage
+
+The goal is **performance and structure**, not semantics.
+
+### Observations
+
+Likely contributors (to be confirmed during implementation):
+- Repeated expensive setup across tests
+- Integration-style tests mixed with unit tests
+- Heavy filesystem and subprocess usage
+- Missing or suboptimal fixture scoping
+- No clear separation between fast and slow tests
+
+### Non-goals
+
+- Do NOT change application behavior
+- Do NOT weaken assertions just to gain speed
+- Do NOT mix this work with unrelated refactors (typing, ruff, core logic)
+
+### Expected outcomes
+
+- Significantly reduced wall-clock time for default `pytest` runs
+- Clear separation of fast unit tests vs slow integration tests
+- Ability to run a fast test subset during development
+- Optional markers (e.g. `@pytest.mark.slow`) for expensive tests
+
+### Notes
+
+This issue is intentionally deferred until after current cleanup work
+(#109 / #114 / #115 / #117). It should be addressed once the codebase
+is structurally clean and typing noise is reduced.
+
 
 ---
