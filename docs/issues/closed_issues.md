@@ -1,5 +1,25 @@
 # Closed Issues
 
+## #115 – Mypy: resolve remaining typing errors
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:23Z
+- Updated: 2026-01-11T10:24:28Z
+- Closed: 2026-01-11T10:24:28Z
+
+SCOPE
+- Resolve all remaining mypy errors in `src/audiomason`.
+- Use minimal, explicit typing fixes; avoid architecture changes.
+
+ACCEPTANCE CRITERIA
+- `mypy src/audiomason` passes.
+- Tests pass.
+
+
+---
+
 ## #114 – Mypy: fix return types & helpers
 - State: **CLOSED**
 - Labels: —

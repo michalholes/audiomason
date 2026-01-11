@@ -722,25 +722,6 @@ NOTES
 
 ---
 
-## #115 – Mypy: resolve remaining typing errors
-- State: **OPEN**
-- Labels: —
-- Assignees: —
-- Milestone: —
-- Created: 2026-01-10T20:55:23Z
-- Updated: 2026-01-11T09:57:21Z
-
-SCOPE
-- Resolve all remaining mypy errors in `src/audiomason`.
-- Use minimal, explicit typing fixes; avoid architecture changes.
-
-ACCEPTANCE CRITERIA
-- `mypy src/audiomason` passes.
-- Tests pass.
-
-
----
-
 ## #116 – CI: re-enable push-triggered runs
 - State: **OPEN**
 - Labels: —
