@@ -891,24 +891,24 @@ is structurally clean and typing noise is reduced.
 - Assignees: —
 - Milestone: —
 - Created: 2026-01-11T09:55:39Z
-- Updated: 2026-01-11T09:55:39Z
+- Updated: 2026-01-11T09:58:25Z
 
 Problem
-- cover download from URL should accept more image types (e.g., PNG, GIF, AVIF) and normalize to a single on-disk format for consistency.
+- Cover download from URL should accept more image types (e.g., PNG, GIF, AVIF) and normalize to a single on-disk format for consistency.
 
 Scope
 - When a cover is provided via URL, allow common image formats (at least: jpg/jpeg, png, gif, avif).
-- Normalize output to a single format (default: JPEG) using existing conversion mechanism (ffmpeg), preserving current cover filename conventions.
-- Maintain existing behavior for existing supported formats; extend support without regressions.
+- Normalize output to a single format (default: JPEG) using the existing conversion mechanism (ffmpeg), preserving current cover filename conventions.
+- Maintain existing behavior for non-URL cover selection modes.
 
 Acceptance criteria
 - URL-based covers work for png/gif/avif (when ffmpeg supports the input).
-- Output is always normalized to the chosen standard format (JPEG), unless current behavior already writes JPEG as-is.
-- No behavior changes for non-URL cover selection modes.
-- pytest remains green; mypy improvements welcome but not required unless errors are introduced.
+- Output is normalized to the chosen standard format (JPEG) whenever conversion is required.
+- No behavior changes for non-URL modes.
+- pytest stays green.
 
 Notes
-- If ffmpeg is missing, behavior must remain consistent with existing conversion behavior (hard-fail via die(...) where conversion is required).
+- If ffmpeg is missing, behavior must remain consistent with current conversion behavior (hard-fail via die(...) where conversion is required).
 
 ---
 
