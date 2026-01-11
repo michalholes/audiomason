@@ -8,7 +8,7 @@ import yaml
 from audiomason.util import AmConfigError
 from audiomason.version import __version__ as AM_VERSION
 
-DEFAULTS = {
+DEFAULTS: dict[str, object] = {
     "pipeline_steps": None,
     "cpu_cores": None,
     "split_chapters": True,

@@ -62,7 +62,7 @@ def load_manifest(stage_run: Path) -> Dict[str, Any]:
 def _deep_merge(dst: Dict[str, Any], src: Dict[str, Any]) -> Dict[str, Any]:
     for k, v in src.items():
         if isinstance(v, dict) and isinstance(dst.get(k), dict):
-            _deep_merge(dst[k], v)  # type: ignore[index]
+            _deep_merge(dst[k], v)  
         else:
             dst[k] = v
     return dst
