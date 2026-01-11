@@ -809,22 +809,59 @@ ACCEPTANCE CRITERIA
 - Assignees: —
 - Milestone: —
 - Created: 2026-01-10T23:58:24Z
-- Updated: 2026-01-10T23:58:24Z
+- Updated: 2026-01-11T00:02:12Z
 
-Goal: Refactor-only. Split src/audiomason/import_flow.py into smaller modules and eliminate E501 structurally.
+## Refactor proposal (discussion draft, not a final decision)
 
-Scope:
-- No behavior change / no feature change.
-- Keep public entrypoints stable (e.g., run_import(cfg)).
-- Work in small patches; keep pytest green.
+Note: This is intentionally a **proposal for discussion**, not a final design.
+The goal is to address E501 in `src/audiomason/import_flow.py` **structurally**
+(by reducing complexity and responsibilities), not by mechanical line wrapping,
+while minimizing regression risk.
 
-Definition of done:
-- ruff check src/audiomason/import_flow.py has no E501
-- pytest -q passes (101)
-- import_flow responsibilities are separated into cohesive modules.
+### Why split the monolith at all
+- E501 often appears where multiple concerns are mixed in a single function/file
+  (discovery, unpacking, preflight, publishing, manifest updates).
+- Separating responsibilities naturally shortens call sites and expressions.
+- Improves readability, testability, and long-term maintainability.
 
-Notes:
-- Avoid sweeping mechanical wrapping.
-- Prefer helper vars/functions + module extraction.
+### Proposed responsibility-based split (indicative names)
+1) `import_types.py`
+   - `@dataclass` definitions, constants, lightweight types.
+   - Minimal logic.
+
+2) `import_discovery.py`
+   - Source listing and selection (e.g. `_list_sources(drop_root)`).
+   - Directory scanning and input filtering.
+   - Replace long `sorted(..., key=lambda ...)` with named helper functions.
+
+3) `import_unpack.py`
+   - Unpack / prepare stage logic.
+   - Stage directory handling and cleanup policy.
+
+4) `import_preflight.py`
+   - Preflight orchestration (step registry, ordering, prompt call-sites).
+   - Reduce deeply nested or long inline expressions.
+
+5) `import_publish.py`
+   - Publishing/move-to-destination logic.
+   - Overwrite policy and manifest updates.
+
+6) `import_flow.py` as a thin orchestrator
+   - Keep `run_import(cfg)` as the main entrypoint.
+   - Compose high-level steps without embedding detailed logic.
+   - Public API remains stable.
+
+### Safe execution strategy
+- One patch = one thematic extraction (e.g. discovery only).
+- No sweeping reformatting.
+- After each step:
+  - `pytest -q` must pass,
+  - `ruff check` on touched files (or full repo).
+- Prefer helper variables/functions over mechanical line wrapping.
+
+### Definition of done (proposal)
+- `ruff check src/audiomason/import_flow.py` has no E501
+- `pytest -q` passes (101 tests)
+- Clear module boundaries and a simpler import graph
 
 ---
