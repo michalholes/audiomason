@@ -462,11 +462,9 @@ def _static_validate_patch_script(path: Path) -> None:
 
 # Header formats supported (top of patch script; scanned in the first N lines):
 #  1) Comment header (recommended; robust):
-#       # TARGET_HEAD: <sha>
 #       # TARGET_BRANCH: <branch>
 #       # PROOF_ANCHOR: <path> :: <snippet>
 #  2) Simple Python assignment header (supported for compatibility):
-#       TARGET_HEAD = "<sha>"
 #       TARGET_BRANCH = "<branch>"
 #       PROOF_ANCHOR = "<path> :: <snippet>"
 #
@@ -485,7 +483,7 @@ def _parse_patch_header(patch_path: Path) -> tuple[dict[str, list[str]], list[st
       (meta, parse_notes)
 
     parse_notes is a short list of human-readable observations used to improve
-    preflight error messages (e.g. "found TARGET_HEAD but in unsupported format").
+    preflight error messages (e.g. "found TARGET_BRANCH (optional) but in unsupported format").
     """
     try:
         raw = patch_path.read_bytes()
@@ -536,8 +534,8 @@ def _parse_patch_header(patch_path: Path) -> tuple[dict[str, list[str]], list[st
             break
 
     # Near-miss notes for better diagnostics.
-    wanted = {"TARGET_HEAD", "TARGET_BRANCH", "PROOF_ANCHOR"}
-    if not (meta.get("TARGET_HEAD") or meta.get("TARGET_BRANCH") or meta.get("PROOF_ANCHOR")):
+    wanted = {"TARGET_BRANCH", "PROOF_ANCHOR"}
+    if not (meta.get("TARGET_BRANCH (optional)") or meta.get("TARGET_BRANCH") or meta.get("PROOF_ANCHOR")):
         for i, line in enumerate(lines[:scan_limit], start=1):
             if any(k in line for k in wanted):
                 notes.append(f"found potential header token on line {i} but in unsupported format")
@@ -548,20 +546,18 @@ def _parse_patch_header(patch_path: Path) -> tuple[dict[str, list[str]], list[st
 
 
 def _preflight_check_patch_compatibility(root: Path, patch_path: Path) -> None:
+    """Preflight compatibility checks.
+
+    Policy (v2.16+):
+    - TARGET_BRANCH (optional) is NOT supported and is ignored if present in patch scripts.
+    - TARGET_BRANCH is optional (warn-only if it mismatches).
+    - PROOF_ANCHOR is REQUIRED and is the primary compatibility contract.
+    """
     meta, parse_notes = _parse_patch_header(patch_path)
 
-    target_heads = meta.get("TARGET_HEAD", [])
     target_branches = meta.get("TARGET_BRANCH", [])
     proof_anchors = meta.get("PROOF_ANCHOR", [])
 
-    if not (target_heads or target_branches):
-        note = ("; " + "; ".join(parse_notes)) if parse_notes else ""
-        _die(
-            "patch script missing required compatibility header field: TARGET_HEAD or TARGET_BRANCH" + note,
-            stage="PRE_FLIGHT",
-            category="PRE_FLIGHT_MISSING_TARGET",
-            next_action="REGENERATE_PATCH_WITH_HEADER",
-        )
     if not proof_anchors:
         note = ("; " + "; ".join(parse_notes)) if parse_notes else ""
         _die(
@@ -571,23 +567,12 @@ def _preflight_check_patch_compatibility(root: Path, patch_path: Path) -> None:
             next_action="REGENERATE_PATCH_WITH_HEADER",
         )
 
-    head = _git_head_sha(root)
     branch = _git_branch(root)
 
-    if target_heads and head not in [t.strip() for t in target_heads]:
-        _die(
-            f"TARGET_HEAD mismatch (expected one of {target_heads}, got {head})",
-            stage="PRE_FLIGHT",
-            category="PRE_FLIGHT_TARGET_HEAD_MISMATCH",
-            next_action="REGENERATE_PATCH_FOR_CURRENT_HEAD",
-        )
-
+    # TARGET_BRANCH is a soft hint. Mismatch does NOT block execution.
     if target_branches and branch not in [t.strip() for t in target_branches]:
-        _die(
-            f"TARGET_BRANCH mismatch (expected one of {target_branches}, got {branch})",
-            stage="PRE_FLIGHT",
-            category="PRE_FLIGHT_TARGET_BRANCH_MISMATCH",
-            next_action="CHECKOUT_EXPECTED_BRANCH_OR_REGENERATE_PATCH",
+        print(
+            f"[am_patch] WARN: TARGET_BRANCH mismatch (expected one of {target_branches}, got {branch}); proceeding"
         )
 
     for raw in proof_anchors:

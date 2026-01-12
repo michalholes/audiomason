@@ -108,8 +108,8 @@ Semantics:
 
 ```python
 #!/usr/bin/env python3
-# TARGET_HEAD: <git sha>
 # PROOF_ANCHOR: <repo-relative path> :: <stable snippet>
+# TARGET_BRANCH: <branch-name>  # optional
 
 """FILE MANIFEST (repo-relative)
 - <path 1>
@@ -127,8 +127,8 @@ if __name__ == "__main__":
 **Also accepted (simple assignments; compatibility mode):**
 
 ```python
-TARGET_HEAD = "<git sha>"
 PROOF_ANCHOR = "<repo-relative path> :: <stable snippet>"
+TARGET_BRANCH = "<branch-name>"  # optional
 
 """FILE MANIFEST (repo-relative)
 - <path 1>
@@ -136,6 +136,7 @@ PROOF_ANCHOR = "<repo-relative path> :: <stable snippet>"
 ```
 
 Notes:
+
 - The runner performs **text-only** preflight scanning; it does **not** import or execute the patch script.
 - The header may be preceded by a shebang, encoding cookie, blank lines, or comments.
 - The runner scans only the **top region** of the file (currently up to 200 lines). Keep the header near the top.
