@@ -168,8 +168,6 @@ If the canonical patch filename cannot be used for technical reasons, the consul
 allow the use of the runner's optional patch filename argument.
 
 
-If the canonical patch filename cannot be used for technical reasons, the consultant MUST
-allow the use of the runner's optional patch filename argument.
 
 
 ---
