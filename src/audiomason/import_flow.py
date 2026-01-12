@@ -4,7 +4,6 @@ import io
 import json
 import shutil
 import sys
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
@@ -18,6 +17,7 @@ from audiomason.covers import (
     find_file_cover,
 )
 from audiomason.ignore import add_ignore, load_ignore
+from audiomason.import_types import BookGroup
 from audiomason.manifest import load_manifest, source_fingerprint, update_manifest
 from audiomason.naming import normalize_name, normalize_sentence
 from audiomason.openlibrary import validate_author, validate_book
@@ -203,14 +203,6 @@ _AUDIO_EXTS = {".mp3", ".m4a", ".opus"}
 # Issue #75: prefix destination with source name when importing all sources ('a')
 _SOURCE_PREFIX: Optional[str] = None
 
-
-@dataclass(frozen=True)
-class BookGroup:
-    label: str
-    group_root: Path  # directory containing audio (non-recursive)
-    stage_root: Path  # stage src root
-    rel_path: Path = field(default_factory=lambda: Path("."))
-    m4a_hint: Optional[Path] = None
 
 
 def _build_json_report(stage_runs: list[Path]) -> dict:
