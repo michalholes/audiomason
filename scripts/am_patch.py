@@ -6,22 +6,18 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-
 def run(cmd):
     return subprocess.run(cmd, cwd=REPO_ROOT)
-
 
 def fail(msg, code=1):
     print(msg, file=sys.stderr)
     print("AM_PATCH_RESULT=FAIL_PRECHECK")
     sys.exit(code)
 
-
 def ensure_dirty():
     r = subprocess.run(["git", "status", "--porcelain"], cwd=REPO_ROOT, text=True, capture_output=True)
     if r.returncode != 0 or not r.stdout.strip():
         fail("Dirty tree required for finalize mode")
-
 
 def run_tests():
     cmds = [
@@ -35,7 +31,6 @@ def run_tests():
             print("AM_PATCH_RESULT=FAIL_TESTS")
             sys.exit(r.returncode)
 
-
 def finalize(message):
     ensure_dirty()
     run_tests()
@@ -46,7 +41,6 @@ def finalize(message):
         sys.exit(r.returncode)
     run(["git", "push"])
     print("AM_PATCH_RESULT=SUCCESS")
-
 
 def main():
     ap = argparse.ArgumentParser()
@@ -63,7 +57,6 @@ def main():
         return
 
     fail("Patch mode not implemented in this stub")
-
 
 if __name__ == "__main__":
     main()
