@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """AudioMason canonical patch runner (Python core).
 
-This is the canonical execution engine invoked by:
-  scripts/am_patch.sh
+This is the canonical execution engine.
 
 Patch scripts are staged under:
   /home/pi/apps/patches/
@@ -122,6 +121,25 @@ def _run(cmd: Sequence[str], *, cwd: Path, capture: bool = False) -> subprocess.
     return subprocess.run(list(cmd), cwd=str(cwd), text=True, capture_output=capture)
 
 
+def _run_logged(cmd: Sequence[str], *, cwd: Path, label: str) -> subprocess.CompletedProcess:
+    """Run a subprocess with capture_output=True and echo stdout/stderr into the main log.
+
+    Rationale: The runner redirects Python stdout/stderr via a Tee implementation.
+    Subprocesses write to OS-level fds, so relying on Python stream replacement is insufficient.
+    Capturing and replaying guarantees that ALL subprocess output ends up in the single run log.
+    """
+    r = subprocess.run(list(cmd), cwd=str(cwd), text=True, capture_output=True)
+    if r.stdout:
+        print(f"[am_patch] {label} stdout (full):")
+        for ln in r.stdout.splitlines():
+            print(ln)
+    if r.stderr:
+        print(f"[am_patch] {label} stderr (full):", file=sys.stderr)
+        for ln in r.stderr.splitlines():
+            print(ln, file=sys.stderr)
+    return r
+
+
 def _ensure_filename_only(name: str) -> None:
     if "/" in name or "\\" in name or ".." in name:
         _die(
@@ -133,7 +151,10 @@ def _ensure_filename_only(name: str) -> None:
 
 
 def _git(root: Path, args: Sequence[str], *, capture: bool = False) -> subprocess.CompletedProcess:
-    return _run(["git", *args], cwd=root, capture=capture)
+    cmd = ["git", *args]
+    if capture:
+        return _run(cmd, cwd=root, capture=True)
+    return _run_logged(cmd, cwd=root, label=f"git {' '.join(args)}")
 
 
 def _git_porcelain(root: Path) -> str:
@@ -534,7 +555,7 @@ def _run_tests(root: Path, *, tests: str, no_ruff: bool, no_mypy: bool) -> None:
 
     if want_ruff:
         print("[am_patch] running ruff in venv")
-        r = _run([str(tools["ruff"]), "check", "."], cwd=root)
+        r = _run_logged([str(tools["ruff"]), "check", "."], cwd=root, label="ruff check .")
         if r.returncode != 0:
             _emit_failure_fingerprint(
                 stage="TESTS",
@@ -550,7 +571,7 @@ def _run_tests(root: Path, *, tests: str, no_ruff: bool, no_mypy: bool) -> None:
             raise SystemExit(r.returncode)
 
     print("[am_patch] running pytest in venv")
-    r = _run([str(tools["python"]), "-m", "pytest", "-q"], cwd=root)
+    r = _run_logged([str(tools["python"]), "-m", "pytest", "-q"], cwd=root, label="pytest -q")
     if r.returncode != 0:
         _emit_failure_fingerprint(
             stage="TESTS",
@@ -567,7 +588,7 @@ def _run_tests(root: Path, *, tests: str, no_ruff: bool, no_mypy: bool) -> None:
 
     if want_mypy:
         print("[am_patch] running mypy in venv")
-        r = _run([str(tools["mypy"]), "src"], cwd=root)
+        r = _run_logged([str(tools["mypy"]), "src"], cwd=root, label="mypy src")
         if r.returncode != 0:
             _emit_failure_fingerprint(
                 stage="TESTS",
@@ -681,15 +702,14 @@ def _archive_failed_patch(patch_path: Path, *, reason_tag: str) -> Path | None:
 
 
 def _print_patch_output_tail(label: str, text: str) -> None:
-    lines = text.splitlines()
-    if len(lines) <= PATCH_OUTPUT_TAIL_LINES:
-        print(f"[am_patch] {label} (full):")
-        for ln in lines:
-            print(ln)
-        return
+    """Print full captured output into the main run log.
 
-    print(f"[am_patch] {label} (tail {PATCH_OUTPUT_TAIL_LINES} lines; see saved sidecar file):")
-    for ln in lines[-PATCH_OUTPUT_TAIL_LINES:]:
+    NOTE: Despite the historical name, this function prints the FULL output.
+    The project contract requires a single per-run log containing everything.
+    """
+    print(f"[am_patch] {label} (full):")
+    # Print verbatim; do not re-wrap or truncate.
+    for ln in text.splitlines():
         print(ln)
 
 
@@ -1000,7 +1020,7 @@ def main(argv: list[str] | None = None) -> None:
 
         if not args.issue or not args.message:
             _die(
-                'usage: am_patch.sh <ISSUE> "<COMMIT MESSAGE>" [<PATCH_FILENAME>]',
+                'usage: am_patch.py <ISSUE> "<COMMIT MESSAGE>" [<PATCH_FILENAME>]',
                 result="FAIL_PRECHECK",
                 stage="PRE_FLIGHT",
                 category="PRE_FLIGHT_MISSING_ARGS",

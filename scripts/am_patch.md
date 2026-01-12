@@ -42,6 +42,30 @@ Rules:
 
 ---
 
+## 2.1 Logging Contract (HARD RULE)
+
+Each runner execution MUST produce exactly **one** primary log file under:
+
+- `/home/pi/apps/patches/logs/`
+
+The primary log MUST contain:
+- all runner stdout/stderr,
+- full output from the patch script (stdout + stderr),
+- full output from verification tools (pytest / ruff / mypy),
+- full output from all invoked subprocesses (including git commands),
+- all error context and failure fingerprints.
+
+The runner MUST maintain a stable symlink to the latest primary log:
+
+- `/home/pi/apps/patches/am_patch.log`
+
+No additional “sidecar” output files are permitted for a run.
+All output MUST be contained in the single primary log.
+
+Retention:
+- The runner MUST retain at most **20** primary log files under `/home/pi/apps/patches/logs/`.
+- Older log files beyond the retention limit MUST be deleted deterministically.
+
 ## 3. Invocation Contract
 
 ### 3.1 Standard execution (default)
