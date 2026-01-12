@@ -6,10 +6,7 @@ import shutil
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, cast, Callable
-
-PromptFn = Callable[[str, Optional[str]], str]
-PromptYesNoFn = Callable[[str, bool], bool]
+from typing import Optional
 
 import audiomason.state as state
 from audiomason.archives import unpack
@@ -919,18 +916,12 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
     def _process_one_source(
         src: Path, si: int, total: int, *, phase: str, do_process: bool, run_clean_inbox: bool
     ) -> None:
-        global prompt, prompt_yes_no
         # Issue #74: streaming per-source log (during run)
         stage_run = stage_root / slug(src.name)
         _pl_target = None
         _pl_fh = None
         _pl_stdout0 = sys.stdout
         _pl_stderr0 = sys.stderr
-        _pl_prompt0 = prompt
-        _pl_prompt_yes_no0 = prompt_yes_no
-        _pl_util = None
-        _pl_util_prompt0 = None
-        _pl_util_prompt_yes_no0 = None
         try:
             _pl_target = _pl_resolve_target(cfg, stage_run, src)
             if _pl_target is not None and not (_opts().dry_run):
@@ -949,49 +940,6 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             sys.stdout = _pl_tee
             sys.stderr = _pl_tee_err
 
-            # Wrap prompts to explicitly log questions + user answers.
-            try:
-                import audiomason.util as _pl_util  # type: ignore[assignment]
-
-                _pl_util_prompt0 = getattr(_pl_util, "prompt", None)
-                _pl_util_prompt_yes_no0 = getattr(_pl_util, "prompt_yes_no", None)
-            except Exception:
-                _pl_util = None
-
-            def _pl_prompt(q: str, default: str | None) -> str:
-                try:
-                    _pl_fh.write(f"[prompt] {q} [default={default}]\n")
-                except Exception:
-                    pass
-                ans = _pl_prompt0(q, default)
-                try:
-                    _pl_fh.write(f"[answer] {ans}\n")
-                except Exception:
-                    pass
-                return ans
-
-            def _pl_prompt_yes_no(q: str, default_no: bool = True) -> bool:
-                try:
-                    _pl_fh.write(f"[prompt_yes_no] {q} [default={'no' if default_no else 'yes'}]\n")
-                except Exception:
-                    pass
-                ansb = _pl_prompt_yes_no0(q, default_no=default_no)
-                try:
-                    _pl_fh.write(f"[answer] {'yes' if ansb else 'no'}\n")
-                except Exception:
-                    pass
-                return ansb
-
-            # IMPORTANT: override module globals so all callers use wrappers.
-            prompt = cast(PromptFn, _pl_prompt)
-            prompt_yes_no = cast(PromptYesNoFn, _pl_prompt_yes_no)
-            try:
-                if _pl_util is not None and _pl_util_prompt0 is not None:
-                    _pl_util.prompt = cast(PromptFn, _pl_prompt)
-                if _pl_util is not None and _pl_util_prompt_yes_no0 is not None:
-                    _pl_util.prompt_yes_no = cast(PromptYesNoFn, _pl_prompt_yes_no)
-            except Exception:
-                pass
 
         try:
             out(f"[source] {si}/{len(picked_sources)}: {src.name}")
@@ -1545,19 +1493,6 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             # Issue #74: finalize streaming per-source log
             sys.stdout = _pl_stdout0
             sys.stderr = _pl_stderr0
-            # restore prompt functions
-            try:
-                prompt = _pl_prompt0
-                prompt_yes_no = _pl_prompt_yes_no0
-            except Exception:
-                pass
-            try:
-                if _pl_util is not None and _pl_util_prompt0 is not None:
-                    _pl_util.prompt = _pl_util_prompt0
-                if _pl_util is not None and _pl_util_prompt_yes_no0 is not None:
-                    _pl_util.prompt_yes_no = _pl_util_prompt_yes_no0
-            except Exception:
-                pass
             try:
                 if _pl_fh is not None:
                     _pl_fh.flush()
