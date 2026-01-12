@@ -1,5 +1,69 @@
 # Closed Issues
 
+## #122 – am_patch: consolidate runner upgrades (logs, validation, guards, verify-only, lock, tests)
+- State: **CLOSED**
+- Labels: tooling
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-12T10:11:25Z
+- Updated: 2026-01-12T10:45:47Z
+- Closed: 2026-01-12T10:45:47Z
+
+## Goal
+Upgrade the am_patch runner in a single, consolidated change set.
+
+This issue intentionally groups multiple accepted improvements to avoid fragmented runner behavior and repeated migrations.
+
+---
+
+## Scope (ACCEPTED)
+
+### 1) Pre-flight guards
+- Fail if HEAD is detached
+- Fail if branch has no upstream (before push)
+- Fail early if venv / required tools are missing
+
+### 2) Verify-only mode
+- Run patch + tests
+- No commit, no push
+- Explicit READY / NOT READY output
+
+### 3) Logs: dedicated directory + retention
+- Log dir: `/home/pi/apps/patches/logs/`
+- Per-run logs: `am_patch_<ISSUE>_<YYYYmmdd_HHMMSS>.log`
+- Stable symlink: `/home/pi/apps/patches/am_patch.log` → latest log
+- Automatic retention: keep last **20** logs
+- Prune only files matching `am_patch_*_*.log`
+
+### 4) Static validation of patch scripts (pre-exec gate)
+- Enforce required sections / anchors
+- Reject dangerous operations (e.g. shell-outs, destructive ops, network)
+
+### 5) Git diff / stat outputs
+- Print `git diff --name-status`
+- Print `git diff --stat`
+- Emit on success and on failure paths
+
+### 6) Lock outside patches directory
+- Primary: `/run/audiomason/am_patch.lock`
+- Fallback: `/tmp/audiomason/am_patch.lock`
+
+### 7) Test policy switches (safe-by-default)
+- Default remains strict (all tests)
+- Optional flags: `--tests`, `--no-mypy`, `--no-ruff`
+
+---
+
+## Non-goals
+- No change to core patch semantics beyond what is listed
+- No JSON summary output (explicitly deferred)
+
+## Notes
+- All changes must be deterministic, idempotent, and fully documented.
+- Documentation (`scripts/am_patch.md`) and repo manifest must be updated accordingly.
+
+---
+
 ## #121 – Bug: Tests rely on brittle source-code string matching (break on formatting)
 - State: **CLOSED**
 - Labels: bug, cleanup

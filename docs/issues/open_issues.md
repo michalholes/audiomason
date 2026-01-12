@@ -705,60 +705,94 @@ ACCEPTANCE CRITERIA
 - Assignees: —
 - Milestone: —
 - Created: 2026-01-10T23:58:24Z
-- Updated: 2026-01-11T00:02:12Z
+- Updated: 2026-01-11T15:31:34Z
 
-## Refactor proposal (discussion draft, not a final decision)
+## Refactor plan: split `import_flow.py` monolith (structural E501 + maintainability)
 
-Note: This is intentionally a **proposal for discussion**, not a final design.
-The goal is to address E501 in `src/audiomason/import_flow.py` **structurally**
-(by reducing complexity and responsibilities), not by mechanical line wrapping,
-while minimizing regression risk.
+### Goal
+Split `src/audiomason/import_flow.py` into smaller, responsibility-based modules to:
+- reduce complexity and long lines (E501) structurally,
+- improve testability and mypy friendliness,
+- preserve user-facing behavior and CLI UX.
 
-### Why split the monolith at all
-- E501 often appears where multiple concerns are mixed in a single function/file
-  (discovery, unpacking, preflight, publishing, manifest updates).
-- Separating responsibilities naturally shortens call sites and expressions.
-- Improves readability, testability, and long-term maintainability.
+This is a refactor, not a feature change.
 
-### Proposed responsibility-based split (indicative names)
-1) `import_types.py`
-   - `@dataclass` definitions, constants, lightweight types.
-   - Minimal logic.
+### Non-goals
+- No new features.
+- No behavior changes.
+- No new runtime dependencies.
+- No changes to discovery semantics, manifest format, or log semantics unless strictly necessary.
 
-2) `import_discovery.py`
-   - Source listing and selection (e.g. `_list_sources(drop_root)`).
-   - Directory scanning and input filtering.
-   - Replace long `sorted(..., key=lambda ...)` with named helper functions.
+### Constraints / invariants (must remain true)
+- Public entrypoints remain stable (e.g. `run_import(cfg)` stays the same externally).
+- Determinism preserved:
+  - same inputs => same outputs/artifacts (paths, ordering, decisions resolution).
+- Interactive prompts remain unchanged in default mode.
+- Existing test suite stays green at every step.
 
-3) `import_unpack.py`
-   - Unpack / prepare stage logic.
-   - Stage directory handling and cleanup policy.
+### Strategy: incremental “strangler” refactor
+Do NOT do a big-bang rewrite. Extract modules one by one and keep `import_flow.py` as a thin orchestrator.
 
-4) `import_preflight.py`
-   - Preflight orchestration (step registry, ordering, prompt call-sites).
-   - Reduce deeply nested or long inline expressions.
+Each step must be a small, auditable patch:
+- `pytest -q` must pass
+- `ruff check .` and `ruff format --check .` must pass
+- `mypy src/audiomason` should not get worse (ideally improves)
 
-5) `import_publish.py`
-   - Publishing/move-to-destination logic.
-   - Overwrite policy and manifest updates.
+### Step 0 — Baseline & safety rails
+- Confirm current behavior with tests (already green in #109 context).
+- Identify boundaries of concerns:
+  - discovery / selection
+  - staging
+  - preflight decision resolution
+  - processing pipeline
+  - publishing / output layout
+  - manifest persistence
+  - logging / tee / stdout redirection
 
-6) `import_flow.py` as a thin orchestrator
-   - Keep `run_import(cfg)` as the main entrypoint.
-   - Compose high-level steps without embedding detailed logic.
-   - Public API remains stable.
+### Step 1 — Extract types & small pure helpers
+Create `src/audiomason/import_types.py`:
+- dataclasses / TypedDicts / enums currently embedded in `import_flow.py`
+- pure helpers without filesystem or prompt I/O
 
-### Safe execution strategy
-- One patch = one thematic extraction (e.g. discovery only).
-- No sweeping reformatting.
-- After each step:
-  - `pytest -q` must pass,
-  - `ruff check` on touched files (or full repo).
-- Prefer helper variables/functions over mechanical line wrapping.
+### Step 2 — Extract discovery & selection
+Create `src/audiomason/import_discovery.py`:
+- source listing logic
+- source selection prompt parsing + validation
+- book detection logic
 
-### Definition of done (proposal)
-- `ruff check src/audiomason/import_flow.py` has no E501
-- `pytest -q` passes (101 tests)
-- Clear module boundaries and a simpler import graph
+### Step 3 — Extract staging / workspace management
+Create `src/audiomason/import_stage.py`:
+- stage directory naming/layout
+- staging copy operations
+- cleanup policies
+
+### Step 4 — Extract preflight resolution
+Create `src/audiomason/import_preflight.py`:
+- preflight step registry
+- decision resolution and persistence
+- separate prompt I/O from core logic
+
+### Step 5 — Extract publishing / output layout
+Create `src/audiomason/import_publish.py`:
+- output directory computation
+- overwrite policy handling
+- manifest updates related to publishing
+
+### Step 6 — Extract logging / tee
+Create `src/audiomason/import_logging.py`:
+- context manager for tee + stdout/stderr handling
+- avoid monkey-patching modules
+
+### Step 7 — Make `import_flow.py` a thin orchestrator
+- high-level orchestration only
+- minimal inline logic
+
+### Definition of done
+- responsibilities clearly separated
+- ruff + mypy clean
+- pytest green
+- no user-facing behavior changes
+
 
 ---
 
