@@ -167,7 +167,7 @@ for chat-based diagnosis.
 2. Truncate and start a **single rotating log**
 3. Discover repository root
 4. Execute patch script
-5. Always delete patch script
+5. On SUCCESS: delete patch script; on FAIL: archive patch script to `/home/pi/apps/patches/failed/`
 6. On failure:
    - print forensic information
    - explain next steps

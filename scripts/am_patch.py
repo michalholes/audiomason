@@ -424,12 +424,13 @@ def _parse_patch_header(patch_path: Path) -> dict[str, list[str]]:
     out: dict[str, list[str]] = {}
     # Scan first ~80 lines only; header must be near the top.
     for line in lines[:80]:
+        # Allow shebang and blank lines in the header region.
+        if line.startswith("#!"):
+            continue
+        if line.strip() == "":
+            continue
         if not line.startswith("#"):
-            # stop scanning at first non-comment/non-shebang code line
-            if line.startswith("#!"):
-                continue
-            if line.strip() == "":
-                continue
+            # Stop scanning at first non-comment code line.
             break
         m = _HEADER_RE.match(line)
         if not m:
@@ -687,7 +688,7 @@ def _print_patch_output_tail(label: str, text: str) -> None:
             print(ln)
         return
 
-    print(f"[am_patch] {label} (tail {PATCH_OUTPUT_TAIL_LINES} lines; see full output above):")
+    print(f"[am_patch] {label} (tail {PATCH_OUTPUT_TAIL_LINES} lines; see saved sidecar file):")
     for ln in lines[-PATCH_OUTPUT_TAIL_LINES:]:
         print(ln)
 
@@ -717,6 +718,7 @@ def _run_patch_subprocess(root: Path, patch_path: Path) -> tuple[int, str, str, 
 def _patch_mode(
     *,
     root: Path,
+    log_path: Path,
     issue: str,
     commit_msg: str,
     patch_filename: str,
@@ -753,12 +755,19 @@ def _patch_mode(
     print("[am_patch] running patch...")
     rc, out, err, patch_cmd, interpreter_used = _run_patch_subprocess(root, patch_path)
 
+    # Avoid bloating the main log/console with huge patch output.
+    # Write full stdout/stderr to sidecar files next to the log, and print only a tail.
     if out:
-        print("[am_patch] patch stdout (full):")
-        print(out, end="" if out.endswith("\n") else "\n")
+        stdout_path = log_path.parent / f"{log_path.stem}.patch_stdout.txt"
+        stdout_path.write_text(out, encoding="utf-8")
+        print(f"[am_patch] patch stdout saved: {stdout_path}")
+        _print_patch_output_tail("patch stdout", out)
+
     if err:
-        print("[am_patch] patch stderr (full):")
-        print(err, end="" if err.endswith("\n") else "\n")
+        stderr_path = log_path.parent / f"{log_path.stem}.patch_stderr.txt"
+        stderr_path.write_text(err, encoding="utf-8")
+        print(f"[am_patch] patch stderr saved: {stderr_path}")
+        _print_patch_output_tail("patch stderr", err)
 
     if rc != 0:
         archived = _archive_failed_patch(patch_path, reason_tag="FAIL")
@@ -850,6 +859,7 @@ def _patch_mode(
 def _finalize_mode(
     *,
     root: Path,
+    log_path: Path,
     commit_msg: str,
     verify_only: bool,
     tests: str,
@@ -1001,6 +1011,7 @@ def main(argv: list[str] | None = None) -> None:
 
         _patch_mode(
             root=root,
+            log_path=log_path,
             issue=args.issue,
             commit_msg=args.message,
             patch_filename=patch_filename,
