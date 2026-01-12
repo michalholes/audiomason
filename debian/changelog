@@ -1,0 +1,11 @@
+audiomason (1.3.6beta1) UNRELEASED; urgency=medium
+
+  * Release 1.3.6beta1
+
+ --  <pi@michal.holes.sk>  Fri, 02 Jan 2026 18:03:57 +0100
+
+audiomason (1.3.4) unstable; urgency=medium
+
+  * Debian packaging skeleton.
+
+ -- AudioMason Maintainers <maintainers@example.invalid>  Thu, 02 Jan 2026 00:00:00 +0000

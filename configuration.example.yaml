@@ -1,0 +1,91 @@
+# AudioMason configuration.yaml (example)
+#
+# BEST PRACTICE
+# -------------
+# export AUDIOMASON_DATA_ROOT="$HOME/audiomason_data"
+#
+# If AUDIOMASON_DATA_ROOT is set:
+#   all relative paths resolve relative to it.
+# Otherwise:
+#   paths resolve relative to AUDIOMASON_ROOT.
+
+paths:
+  # Inbox for new sources (directories or archives)
+  # Examples: abooksinbox | inbox | data/incoming
+  inbox: abooksinbox
+
+  # Temporary stage directory (safe to delete)
+  # Examples: _am_stage | stage
+  stage: _am_stage
+
+  # Non-published output
+  # Examples: abooks_ready | output
+  output: abooks_ready
+
+  # Published library
+  # Examples: abooks | library
+  archive: abooks
+
+  # Cache (URL covers, future cached assets)
+  # Examples: am_cache | .cache/audiomason
+  cache: am_cache
+
+
+# Explicit pipeline order (null = internal defaults)
+# Valid steps:
+# unpack, convert, chapters, split, rename, tags, cover, publish
+#
+# Example:
+# pipeline_steps:
+#   - unpack
+#   - convert
+#   - chapters
+#   - split
+#   - rename
+#   - tags
+#   - cover
+#   - publish
+pipeline_steps: null
+
+
+# PERFORMANCE / BEHAVIOR
+
+# CPU core hint (reserved for future tuning)
+# Examples: null | 2 | 4
+cpu_cores: null
+
+# Split chapterized M4A into multiple MP3 tracks
+# Accepted: true | false
+split_chapters: true
+
+# Default publish behavior (CLI can override)
+# Accepted: ask | yes | no
+publish: ask
+
+
+# COVERS
+cover:
+  # Cover cache backend (reserved)
+  # Accepted: memory | disk
+  cache: memory
+
+  # Explicit cover cache directory
+  # Examples: null | covers | .cache/covers
+  cache_dir: null
+
+
+# FFMPEG / AUDIO
+ffmpeg:
+  # ffmpeg loglevel
+  # Accepted:
+  # quiet | panic | fatal | error | warning | info | verbose | debug
+  loglevel: warning
+
+  # Loudness normalization (EBU R128)
+  # Accepted: true | false
+  loudnorm: false
+
+  # MP3 quality (libmp3lame -q:a)
+  # Typical values:
+  # "0" best | "2" high | "4" balanced | "6" smaller
+  q_a: "2"

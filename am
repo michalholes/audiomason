@@ -1,0 +1,40 @@
+#!/bin/sh
+# Portable AudioMason launcher (no hardcoded repo path).
+# Repo root discovery:
+#   1) AM_REPO_ROOT env var (if set)
+#   2) walk up from this script location until pyproject.toml is found
+
+set -eu
+
+if [ "${AM_REPO_ROOT:-}" != "" ]; then
+  REPO_ROOT="$AM_REPO_ROOT"
+else
+  SCRIPT="$0"
+
+  # Prefer resolving symlinks when readlink supports -f (GNU coreutils).
+  if command -v readlink >/dev/null 2>&1; then
+    if readlink -f "$SCRIPT" >/dev/null 2>&1; then
+      SCRIPT="$(readlink -f "$SCRIPT")"
+    fi
+  fi
+
+  SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$SCRIPT")" && pwd)"
+  REPO_ROOT="$SCRIPT_DIR"
+
+  while [ ! -f "$REPO_ROOT/pyproject.toml" ]; do
+    PARENT="$(dirname -- "$REPO_ROOT")"
+    if [ "$PARENT" = "$REPO_ROOT" ]; then
+      echo "am: ERROR: could not locate AudioMason repo root (pyproject.toml) from $SCRIPT_DIR; set AM_REPO_ROOT." >&2
+      exit 2
+    fi
+    REPO_ROOT="$PARENT"
+  done
+fi
+
+PY="$REPO_ROOT/.venv/bin/python"
+if [ ! -x "$PY" ]; then
+  echo "am: ERROR: missing venv python at $PY" >&2
+  exit 2
+fi
+
+exec "$PY" -c "from audiomason.cli import main; raise SystemExit(main())" "$@"

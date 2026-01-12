@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    env:
+      AUDIOMASON_CONFIG: ${{ github.workspace }}/debian/config.yaml
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Create venv and install deps
+        run: |
+          python -m venv .venv
+          . .venv/bin/activate
+          pip install -U pip
+          pip install -e ".[test,dev]"
+
+      - name: Ruff lint
+        run: |
+          . .venv/bin/activate
+          ruff check .
+
+      - name: Ruff format check
+        run: |
+          . .venv/bin/activate
+          ruff format --check .
+
+      - name: Mypy (src/audiomason)
+        run: |
+          . .venv/bin/activate
+          mypy src/audiomason
+
+      - name: Tests
+        run: |
+          . .venv/bin/activate
+          pytest

@@ -1,0 +1,41 @@
+# macOS AppleDouble / metadata
+._*
+.DS_Store
+
+build/
+debian/*.log
+# pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# editors
+.vscode/
+.idea/
+
+# local config overrides
+.env
+.env.*
+.DS_Store
+.venv/
+__pycache__/
+*.egg-info/
+.pybuild/
+debian/.debhelper/
+debian/audiomason/
+debian/*.debhelper
+debian/*.substvars
+debian/debhelper-build-stamp
+debian/files
+*.zip
+*.buildinfo
+*.changes
+*.dsc
+*.tar.*
+logs_*.zip
+
+# Local deterministic patch scripts (per-issue)
+tools/patches/issue_*.py
+
+# Local deterministic patch scripts (per-issue)
+tools/patches/issue_*.py

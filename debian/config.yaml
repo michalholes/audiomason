@@ -1,0 +1,58 @@
+# Bugs & feature requests:
+# https://github.com/michalholes/audiomason/issues
+
+# ============================================================
+# AudioMason system configuration
+#
+# This file documents all available options.
+# By default, everything is commented out.
+#
+# ============================================================
+
+# ------------------------------------------------------------
+# Filesystem paths
+# ------------------------------------------------------------
+# paths:
+#   # Directory where new audiobooks are dropped for import
+#   drop_root: /path/to/abooks_inbox
+#
+#   # Temporary staging area used during processing
+#   stage_root: /path/to/abooks_stage
+#
+#   # Final output directory for processed audiobooks
+#   output_root: /path/to/abooks_ready
+#
+#   # Optional archive directory for processed source files
+#   archive_root: /path/to/abooks_archive
+
+# ------------------------------------------------------------
+# Import behaviour
+# ------------------------------------------------------------
+# import:
+#   # Publish mode:
+#   #   yes  = always publish without asking
+#   #   no   = never publish automatically
+#   #   ask  = ask interactively (default)
+#   publish: ask
+#
+#   # Whether to wipe all existing ID3 tags before tagging
+#   wipe_id3: false
+#
+#   # Apply EBU R128 loudness normalization
+#   loudnorm: false
+
+# ------------------------------------------------------------
+# Advanced / optional settings
+# ------------------------------------------------------------
+# debug:
+#   # Enable verbose debug logging
+#   enabled: false
+#
+# pipeline:
+#   # Explicit pipeline step order (advanced)
+#   # Example:
+#   # steps:
+#   #   - STAGE
+#   #   - PROCESS
+#   #   - TAG
+#   #   - PUBLISH

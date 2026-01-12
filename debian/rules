@@ -1,0 +1,25 @@
+#!/usr/bin/make -f
+
+export PYBUILD_SYSTEM=pyproject
+
+%:
+	dh $@ --with python3 --buildsystem=pybuild
+
+override_dh_installman:
+	VER=$$(dpkg-parsechangelog -SVersion | cut -d- -f1); \
+	sed -e "s/@VERSION@/$${VER}/g" docs/man/audiomason.1 > debian/audiomason.1; \
+	dh_installman debian/audiomason.1
+
+override_dh_clean:
+	dh_clean
+	rm -rf debian/audiomason debian/.debhelper debian/files debian/debhelper-build-stamp
+
+override_dh_autoreconf:
+	true
+
+override_dh_installdeb:
+	dh_installdeb
+	if [ -f debian/audiomason/DEBIAN/conffiles ]; then \
+	  awk '!seen[$$0]++' debian/audiomason/DEBIAN/conffiles > debian/audiomason/DEBIAN/conffiles.new && \
+	  mv debian/audiomason/DEBIAN/conffiles.new debian/audiomason/DEBIAN/conffiles; \
+	fi
