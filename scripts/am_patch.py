@@ -1047,7 +1047,13 @@ def main(argv: list[str] | None = None) -> None:
 
     ap.add_argument("issue", nargs="?", help="Issue number (patch mode)")
     ap.add_argument("message", nargs="?", help="Commit message (patch mode)")
-    ap.add_argument("patch", nargs="?", help="Patch script path (patch mode; must resolve under /home/pi/apps/patches/)")
+    ap.add_argument(
+    "patch",
+    nargs="?",
+    help=(
+        "Patch script path (patch mode; must resolve under /home/pi/apps/patches/)"
+    ),
+)
 
     args = ap.parse_args(argv)
 
