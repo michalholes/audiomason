@@ -6,7 +6,7 @@ import shutil
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional, Protocol
+from typing import Optional
 
 import audiomason.state as state
 from audiomason.archives import unpack
@@ -34,62 +34,6 @@ from audiomason.preflight_registry import DEFAULT_PREFLIGHT_STEPS, validate_step
 from audiomason.rename import natural_sort, rename_sequential
 from audiomason.tags import wipe_id3, write_cover, write_tags
 from audiomason.util import AmConfigError, die, ensure_dir, out, prompt, prompt_yes_no, slug
-
-
-class PromptIO(Protocol):
-    def prompt(self, question: str, default: str | None = None) -> str: ...
-    def prompt_yes_no(self, question: str, *, default_no: bool = True) -> bool: ...
-
-
-@dataclass(frozen=True)
-class _DefaultPromptIO:
-    def prompt(self, question: str, default: str | None = None) -> str:
-        io2 = io or _make_prompt_io(None)
-
-    return io2.prompt(question, default)
-
-    def prompt_yes_no(self, question: str, *, default_no: bool = True) -> bool:
-        io2 = io or _make_prompt_io(None)
-
-    return io2.prompt_yes_no(question, default_no=default_no)
-
-
-@dataclass(frozen=True)
-class _LoggedPromptIO:
-    fh: io.TextIOBase
-    base: PromptIO
-
-    def prompt(self, question: str, default: str | None = None) -> str:
-        try:
-            self.fh.write(f"[prompt] {question} [default={default}]\n")
-        except Exception:
-            pass
-        ans = self.base.prompt(question, default)
-        try:
-            self.fh.write(f"[answer] {ans}\n")
-        except Exception:
-            pass
-        return ans
-
-    def prompt_yes_no(self, question: str, *, default_no: bool = True) -> bool:
-        try:
-            self.fh.write(f"[prompt_yes_no] {question} [default={'no' if default_no else 'yes'}]\n")
-        except Exception:
-            pass
-        ansb = self.base.prompt_yes_no(question, default_no=default_no)
-        try:
-            self.fh.write(f"[answer] {'yes' if ansb else 'no'}\n")
-        except Exception:
-            pass
-        return ansb
-
-
-def _make_prompt_io(fh: io.TextIOBase | None) -> PromptIO:
-    base: PromptIO = _DefaultPromptIO()
-    if fh is None:
-        return base
-    return _LoggedPromptIO(fh=fh, base=base)
-
 
 # FEATURE #67: disable selected preflight prompts (skip prompts deterministically)
 
@@ -235,7 +179,7 @@ def _pf_disabled(cfg: dict, key: str) -> bool:
     return _prompt_disabled(cfg, key) or (key in _resolved_preflight_disable(cfg))
 
 
-def _pf_prompt_yes_no(cfg: dict, key: str, question: str, *, default_no: bool, io: PromptIO | None = None) -> bool:
+def _pf_prompt_yes_no(cfg: dict, key: str, question: str, *, default_no: bool) -> bool:
     # Disabled => behave like pressing Enter (use existing defaults).
     if _pf_disabled(cfg, key):
         ret = not default_no
@@ -245,7 +189,7 @@ def _pf_prompt_yes_no(cfg: dict, key: str, question: str, *, default_no: bool, i
     return prompt_yes_no(question, default_no=default_no)
 
 
-def _pf_prompt(cfg: dict, key: str, question: str, default: str, io: PromptIO | None = None) -> str:
+def _pf_prompt(cfg: dict, key: str, question: str, default: str) -> str:
     # Disabled => behave like pressing Enter (use default argument).
     if _pf_disabled(cfg, key):
         if state.DEBUG:
@@ -347,7 +291,7 @@ def _build_json_report(stage_runs: list[Path]) -> dict:
     }
 
 
-def _ol_offer_top(kind: str, entered: str, res, *, cfg: dict, key: str, io: PromptIO | None = None) -> str:
+def _ol_offer_top(kind: str, entered: str, res, *, cfg: dict, key: str) -> str:
     if not _ol_enabled(cfg):
         return entered
     top = getattr(res, "top", None)
@@ -361,7 +305,7 @@ def _ol_offer_top(kind: str, entered: str, res, *, cfg: dict, key: str, io: Prom
     from audiomason.util import out
 
     out(f"[ol] {kind} suggestion: '{e}' -> '{top}'")
-    if _pf_prompt_yes_no(cfg, key, f"Use suggested {kind} '{top}'?", default_no=True, io=io):
+    if _pf_prompt_yes_no(cfg, key, f"Use suggested {kind} '{top}'?", default_no=True):
         return top
     return entered
 
@@ -567,13 +511,13 @@ def _collect_audio_files(group_root: Path) -> list[Path]:
 def _preflight_global(cfg: dict) -> tuple[bool, bool]:
     # publish (placeholder, but must be decided before processing)
     if _opts().publish is None:
-        pub = _pf_prompt_yes_no(cfg, "publish", "Publish after import?", default_no=True, io=io)
+        pub = _pf_prompt_yes_no(cfg, "publish", "Publish after import?", default_no=True)
     else:
         pub = bool(_opts().publish)
 
     # wipe ID3 decision
     if _opts().wipe_id3 is None:
-        wipe = _pf_prompt_yes_no(cfg, "wipe_id3", "Full wipe ID3 tags before tagging?", default_no=True, io=io)
+        wipe = _pf_prompt_yes_no(cfg, "wipe_id3", "Full wipe ID3 tags before tagging?", default_no=True)
 
     else:
         wipe = bool(_opts().wipe_id3)
@@ -587,11 +531,11 @@ def _preflight_book(cfg: dict, i: int, n: int, b: BookGroup, default_title: str 
     if _prompt_disabled(cfg, "book_title"):
         title = default_title.strip()
     else:
-        title = _pf_prompt(cfg, "book_title", f"[book {i}/{n}] Book title", default_title, io=io).strip()
+        title = prompt(f"[book {i}/{n}] Book title", default_title).strip()
     nt = normalize_sentence(title)
     if nt != title:
         out(f"[name] book suggestion: '{title}' -> '{nt}'")
-        if _pf_prompt_yes_no(cfg, "normalize_book_title", "Apply suggested book title?", default_no=True, io=io):
+        if _pf_prompt_yes_no(cfg, "normalize_book_title", "Apply suggested book title?", default_no=True):
             title = nt
 
     if not title:
@@ -996,8 +940,6 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             sys.stdout = _pl_tee
             sys.stderr = _pl_tee_err
 
-        io = _make_prompt_io(_pl_fh)
-
         try:
             out(f"[source] {si}/{len(picked_sources)}: {src.name}")
 
@@ -1045,17 +987,13 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             else:
                 if reuse_possible:
                     reuse_stage = _pf_prompt_yes_no(
-                        cfg, "reuse_stage", "[stage] Reuse existing staged source?", default_no=False, io=io
+                        cfg, "reuse_stage", "[stage] Reuse existing staged source?", default_no=False
                     )
 
                 if reuse_stage:
                     out("[stage] reuse")
                     use_manifest_answers = _pf_prompt_yes_no(
-                        cfg,
-                        "use_manifest_answers",
-                        "[manifest] Use saved answers (skip prompts)?",
-                        default_no=False,
-                        io=io,
+                        cfg, "use_manifest_answers", "[manifest] Use saved answers (skip prompts)?", default_no=False
                     )
                 else:
                     if reuse_possible:
@@ -1127,9 +1065,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                 already = [x for x in before if x in done]
                 if already:
                     out(f"[books] resume: already processed: {', '.join(already)}")
-                    if _pf_prompt_yes_no(
-                        cfg, "skip_processed_books", "Skip already processed books?", default_no=True, io=io
-                    ):
+                    if _pf_prompt_yes_no(cfg, "skip_processed_books", "Skip already processed books?", default_no=True):
                         picked_books = [b for b in picked_books if b.label not in done]
                         if not picked_books:
                             out("[books] resume: nothing left to process")
@@ -1157,13 +1093,13 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     return
                 if _opts().publish is None:
                     publish = _pf_prompt_yes_no(
-                        cfg, "publish", "Publish after import?", default_no=(not default_publish), io=io
+                        cfg, "publish", "Publish after import?", default_no=(not default_publish)
                     )
                 else:
                     publish = bool(_opts().publish)
                 if _opts().wipe_id3 is None:
                     wipe = _pf_prompt_yes_no(
-                        cfg, "wipe_id3", "Full wipe ID3 tags before tagging?", default_no=(not default_wipe), io=io
+                        cfg, "wipe_id3", "Full wipe ID3 tags before tagging?", default_no=(not default_wipe)
                     )
                 else:
                     wipe = bool(_opts().wipe_id3)
@@ -1178,7 +1114,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     clean_stage = bool(dec.get("clean_stage"))
                     return
                 clean_stage = _pf_prompt_yes_no(
-                    cfg, "clean_stage", "Clean stage after successful import?", default_no=(not default_clean), io=io
+                    cfg, "clean_stage", "Clean stage after successful import?", default_no=(not default_clean)
                 )
                 update_manifest(stage_run, {"decisions": {"clean_stage": bool(clean_stage)}})
 
@@ -1216,11 +1152,11 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                 author = default_author
             else:
                 dflt_author = default_author or str(getattr(src, "name", "") or "").strip() or src.name
-                author = _pf_prompt(cfg, "source_author", "[source] Author", dflt_author, io=io).strip()
+                author = _pf_prompt(cfg, "source_author", "[source] Author", dflt_author).strip()
                 na = normalize_name(author)
                 if na != author:
                     out(f"[name] author suggestion: '{author}' -> '{na}'")
-                    if _pf_prompt_yes_no(cfg, "normalize_author", "Apply suggested author?", default_no=True, io=io):
+                    if _pf_prompt_yes_no(cfg, "normalize_author", "Apply suggested author?", default_no=True):
                         author = na
                 if _ol_enabled(cfg):
                     if getattr(state, "DEBUG", False):
@@ -1233,7 +1169,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                             f"hits={getattr(ar, 'hits', None)} "
                             f"top={getattr(ar, 'top', None)!r}"
                         )
-                    author = _ol_offer_top("author", author, ar, cfg=cfg, key="normalize_author", io=io)
+                    author = _ol_offer_top("author", author, ar, cfg=cfg, key="normalize_author")
             if not author:
                 die("Author is required")
             update_manifest(stage_run, {"decisions": {"author": author}})
@@ -1270,7 +1206,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     if _opts().dry_run:
                         title = default_title or b.label
                     else:
-                        title = _preflight_book(cfg, bi, len(picked_books), b, default_title=default_title, io=io)
+                        title = _preflight_book(cfg, bi, len(picked_books), b, default_title=default_title)
 
                     # OpenLibrary suggestion (book title)
                     if _ol_enabled(cfg):
@@ -1286,7 +1222,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                                 f"hits={getattr(br, 'hits', None)} "
                                 f"top={getattr(br, 'top', None)!r}"
                             )
-                        title = _ol_offer_top("book title", title, br, cfg=cfg, key="normalize_book_title", io=io)
+                        title = _ol_offer_top("book title", title, br, cfg=cfg, key="normalize_book_title")
 
                 # cover decision (Issue #43: choose/add cover during preflight; processing must not prompt)
                 default_cover_mode = (
@@ -1337,7 +1273,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                                     d = "1"
                                 elif default_cover_mode == "skip":
                                     d = "s"
-                                ans = _pf_prompt(cfg, "cover", "Choose cover [1/2/s/u]", d, io=io).strip().lower()
+                                ans = _pf_prompt(cfg, "cover", "Choose cover [1/2/s/u]", d).strip().lower()
                                 if ans == "1":
                                     cover_mode = "embedded"
                                     cover_src = "embedded"
@@ -1345,9 +1281,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                                     cover_mode = "skip"
                                     cover_src = "skip"
                                 elif ans == "u":
-                                    raw = _pf_prompt(
-                                        cfg, "cover", "Cover URL or file path (Enter=skip)", "", io=io
-                                    ).strip()
+                                    raw = _pf_prompt(cfg, "cover", "Cover URL or file path (Enter=skip)", "").strip()
                                     if not raw:
                                         cover_mode = "skip"
                                         cover_src = "skip"
@@ -1366,15 +1300,13 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                                 # Only one detected => keep by default, allow override
                                 if file_cover:
                                     out(f"Cover detected: {file_cover.name}")
-                                    keep = _pf_prompt_yes_no(
-                                        cfg, "cover", "Use detected cover?", default_no=False, io=io
-                                    )
+                                    keep = _pf_prompt_yes_no(cfg, "cover", "Use detected cover?", default_no=False)
                                     if keep:
                                         cover_mode = "file"
                                         cover_src = str(file_cover.name)
                                     else:
                                         raw = _pf_prompt(
-                                            cfg, "cover", "Cover URL or file path (Enter=skip)", "", io=io
+                                            cfg, "cover", "Cover URL or file path (Enter=skip)", ""
                                         ).strip()
                                         if not raw:
                                             cover_mode = "skip"
@@ -1389,15 +1321,13 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                                                 cover_src = raw
                                 else:
                                     out("Cover detected: embedded")
-                                    keep = _pf_prompt_yes_no(
-                                        cfg, "cover", "Use embedded cover?", default_no=False, io=io
-                                    )
+                                    keep = _pf_prompt_yes_no(cfg, "cover", "Use embedded cover?", default_no=False)
                                     if keep:
                                         cover_mode = "embedded"
                                         cover_src = "embedded"
                                     else:
                                         raw = _pf_prompt(
-                                            cfg, "cover", "Cover URL or file path (Enter=skip)", "", io=io
+                                            cfg, "cover", "Cover URL or file path (Enter=skip)", ""
                                         ).strip()
                                         if not raw:
                                             cover_mode = "skip"
@@ -1418,7 +1348,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                                 cover_src = "skip"
                             else:
                                 raw = _pf_prompt(
-                                    cfg, "cover", "No cover found. URL or file path (Enter=skip)", "", io=io
+                                    cfg, "cover", "No cover found. URL or file path (Enter=skip)", ""
                                 ).strip()
                                 if not raw:
                                     cover_mode = "skip"
@@ -1462,7 +1392,7 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
                     if not (_opts().yes):
                         out(f"[dest] exists: {outdir}")
                         overwrite = _pf_prompt_yes_no(
-                            cfg, "overwrite_destination", "Destination exists. Overwrite?", default_no=True, io=io
+                            cfg, "overwrite_destination", "Destination exists. Overwrite?", default_no=True
                         )
                     else:
                         overwrite = False
