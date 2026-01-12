@@ -12,7 +12,7 @@ Key properties:
 - exclusive lock (no concurrent runs)
 - per-run logs under /home/pi/apps/patches/logs/ with retention + stable symlink
 - repo root discovery independent of CWD (based on this file location)
-- patch mode: run patch script, always delete it, forensics on failure
+- patch mode: run patch script with pre-flight compatibility checks, forensics on failure
 - verify-only mode: patch + tests, but no commit/push
 - finalize mode: for already-dirty working tree (manual edits), tests then commit/push
 - test policy switches: safe-by-default (all) with opt-outs
@@ -20,20 +20,28 @@ Key properties:
 Exit/summary markers:
 - AM_PATCH_RESULT=SUCCESS | FAIL_PRECHECK | FAIL_PATCH | FAIL_TESTS | FAIL_GIT
 - READY_TO_COMMIT=YES | NO (verify-only / test outcomes)
+
+Failure fingerprint (always appended on FAIL):
+- AM_PATCH_FAILURE_FINGERPRINT: ... (compact diagnostics block)
 """
 
 from __future__ import annotations
 
 import argparse
 import datetime as _dt
+import hashlib
 import os
 import re
 import subprocess
 import sys
+import traceback
 from pathlib import Path
 from typing import NoReturn, Sequence
 
+RUNNER_VERSION = "2.0"
+
 PATCH_DIR = Path("/home/pi/apps/patches")
+FAILED_DIR = PATCH_DIR / "failed"
 LOG_DIR = PATCH_DIR / "logs"
 LAST_LOG_SYMLINK = PATCH_DIR / "am_patch.log"
 
@@ -42,10 +50,63 @@ LOCK_FALLBACK_DIR = Path("/tmp/audiomason")
 LOCK_NAME = "am_patch.lock"
 
 RETENTION_MAX_LOGS = 20
+PATCH_OUTPUT_TAIL_LINES = 60
 
 
-def _die(msg: str, *, result: str = "FAIL_PRECHECK", code: int = 1) -> NoReturn:
+def _single_line(s: str) -> str:
+    return " ".join(s.strip().split())
+
+
+def _sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _emit_failure_fingerprint(
+    *,
+    stage: str,
+    exit_code: int,
+    exception_type: str,
+    message: str,
+    first_traceback_line: str,
+    category: str,
+    next_action: str,
+) -> None:
+    # Keep this block compact and stable; it must be usable without reading the full log.
+    print()
+    print("AM_PATCH_FAILURE_FINGERPRINT:")
+    print(f"- stage: {stage}")
+    print(f"- exit_code: {exit_code}")
+    print(f"- exception_type: {exception_type}")
+    print(f"- message: {_single_line(message) if message else 'NONE'}")
+    print(f"- first_traceback_line: {_single_line(first_traceback_line) if first_traceback_line else 'NONE'}")
+    print(f"- category: {category}")
+    print(f"- next_action: {next_action}")
+
+
+def _die(
+    msg: str,
+    *,
+    result: str = "FAIL_PRECHECK",
+    code: int = 1,
+    stage: str = "PRE_FLIGHT",
+    category: str = "PRE_FLIGHT_ERROR",
+    next_action: str = "UPLOAD_LOG",
+) -> NoReturn:
     print(f"ERROR: {msg}", file=sys.stderr)
+    # Ensure the fingerprint is printed *after* error context.
+    _emit_failure_fingerprint(
+        stage=stage,
+        exit_code=code,
+        exception_type="NONE",
+        message=msg,
+        first_traceback_line="NONE",
+        category=category,
+        next_action=next_action,
+    )
     print(f"AM_PATCH_RESULT={result}")
     if result != "SUCCESS":
         print("READY_TO_COMMIT=NO")
@@ -63,7 +124,12 @@ def _run(cmd: Sequence[str], *, cwd: Path, capture: bool = False) -> subprocess.
 
 def _ensure_filename_only(name: str) -> None:
     if "/" in name or "\\" in name or ".." in name:
-        _die(f"patch filename must be filename-only (no paths): {name}")
+        _die(
+            f"patch filename must be filename-only (no paths): {name}",
+            stage="PRE_FLIGHT",
+            category="PRE_FLIGHT_INVALID_PATCH_NAME",
+            next_action="FIX_PATCH_FILENAME",
+        )
 
 
 def _git(root: Path, args: Sequence[str], *, capture: bool = False) -> subprocess.CompletedProcess:
@@ -80,21 +146,43 @@ def _git_porcelain(root: Path) -> str:
 def _ensure_git_repo(root: Path) -> None:
     r = _git(root, ["rev-parse", "--is-inside-work-tree"], capture=True)
     if r.returncode != 0 or r.stdout.strip() != "true":
-        _die(f"not a git repository: {root}")
+        _die(
+            f"not a git repository: {root}",
+            stage="PRE_FLIGHT",
+            category="PRE_FLIGHT_NOT_GIT_REPO",
+            next_action="RUN_FROM_REPO",
+        )
+
+
+def _git_head_sha(root: Path) -> str:
+    r = _git(root, ["rev-parse", "HEAD"], capture=True)
+    return r.stdout.strip() if r.returncode == 0 else "UNKNOWN"
+
+
+def _git_branch(root: Path) -> str:
+    r = _git(root, ["rev-parse", "--abbrev-ref", "HEAD"], capture=True)
+    return r.stdout.strip() if r.returncode == 0 else "UNKNOWN"
 
 
 def _ensure_not_detached_head(root: Path) -> None:
-    r = _git(root, ["rev-parse", "--abbrev-ref", "HEAD"], capture=True)
-    if r.returncode != 0:
-        _die("unable to determine current branch (git rev-parse failed)")
-    if r.stdout.strip() == "HEAD":
-        _die("detached HEAD is not allowed for commit/push")
+    if _git_branch(root) == "HEAD":
+        _die(
+            "detached HEAD is not allowed for commit/push",
+            stage="GIT",
+            category="GIT_DETACHED_HEAD",
+            next_action="CHECKOUT_BRANCH",
+        )
 
 
 def _ensure_has_upstream(root: Path) -> None:
     r = _git(root, ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"], capture=True)
     if r.returncode != 0:
-        _die("current branch has no upstream configured (refusing to push)")
+        _die(
+            "current branch has no upstream configured (refusing to push)",
+            stage="GIT",
+            category="GIT_NO_UPSTREAM",
+            next_action="SET_UPSTREAM_OR_PUSH_MANUALLY",
+        )
 
 
 def _tool_paths(root: Path) -> dict[str, Path]:
@@ -106,14 +194,36 @@ def _tool_paths(root: Path) -> dict[str, Path]:
     }
 
 
+def _select_patch_python(root: Path) -> Path | None:
+    py = _tool_paths(root)["python"]
+    if py.exists():
+        return py
+    return None
+
+
 def _ensure_venv_tools(root: Path, want_ruff: bool, want_mypy: bool) -> dict[str, Path]:
     tools = _tool_paths(root)
     if not tools["python"].exists():
-        _die(f"venv python not found: {tools['python']}")
+        _die(
+            f"venv python not found: {tools['python']}",
+            stage="TESTS",
+            category="TESTS_NO_VENV",
+            next_action="CREATE_VENV",
+        )
     if want_ruff and not tools["ruff"].exists():
-        _die(f"venv ruff not found: {tools['ruff']}")
+        _die(
+            f"venv ruff not found: {tools['ruff']}",
+            stage="TESTS",
+            category="TESTS_MISSING_RUFF",
+            next_action="INSTALL_RUFF_IN_VENV",
+        )
     if want_mypy and not tools["mypy"].exists():
-        _die(f"venv mypy not found: {tools['mypy']}")
+        _die(
+            f"venv mypy not found: {tools['mypy']}",
+            stage="TESTS",
+            category="TESTS_MISSING_MYPY",
+            next_action="INSTALL_MYPY_IN_VENV",
+        )
     return tools
 
 
@@ -125,7 +235,11 @@ def _make_log_path(issue_tag: str) -> Path:
 
 def _prune_logs() -> None:
     LOG_DIR.mkdir(parents=True, exist_ok=True)
-    logs = [p for p in LOG_DIR.iterdir() if p.is_file() and re.fullmatch(r"am_patch_.+_\d{{8}}_\d{{6}}\.log", p.name)]
+    logs = [
+        p
+        for p in LOG_DIR.iterdir()
+        if p.is_file() and re.fullmatch(r"am_patch_.+_\d{{8}}_\d{{6}}\.log", p.name)
+    ]
     logs.sort(key=lambda p: p.stat().st_mtime, reverse=True)
     for p in logs[RETENTION_MAX_LOGS:]:
         try:
@@ -190,7 +304,12 @@ def _acquire_lock() -> int:
         fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
         os.close(fd)
-        _die(f"another am_patch is already running (lock: {p})")
+        _die(
+            f"another am_patch is already running (lock: {p})",
+            stage="PRE_FLIGHT",
+            category="PRE_FLIGHT_LOCK_HELD",
+            next_action="WAIT_OR_KILL_OTHER_RUN",
+        )
     return fd
 
 
@@ -244,13 +363,23 @@ def _static_validate_patch_script(path: Path) -> None:
     try:
         text = path.read_text(encoding="utf-8")
     except Exception:
-        _die(f"unable to read patch script: {path}", result="FAIL_PRECHECK")
+        _die(
+            f"unable to read patch script: {path}",
+            stage="PRE_FLIGHT",
+            category="PRE_FLIGHT_PATCH_UNREADABLE",
+            next_action="FIX_PATCH_FILE",
+        )
 
     # Minimal structural requirements (cheap and robust)
     required = ["FILE MANIFEST", "repo-relative"]
     for s in required:
         if s not in text:
-            _die(f"patch script missing required marker: {s!r}", result="FAIL_PRECHECK")
+            _die(
+                f"patch script missing required marker: {s!r}",
+                stage="PRE_FLIGHT",
+                category="PRE_FLIGHT_MISSING_MARKER",
+                next_action="REGENERATE_PATCH_WITH_REQUIRED_MARKERS",
+            )
 
     # Denylist (keep permissive enough for normal patch scripts)
     forbidden_patterns = [
@@ -266,7 +395,134 @@ def _static_validate_patch_script(path: Path) -> None:
     ]
     for pat in forbidden_patterns:
         if re.search(pat, text):
-            _die(f"patch script contains forbidden pattern: {pat}", result="FAIL_PRECHECK")
+            _die(
+                f"patch script contains forbidden pattern: {pat}",
+                stage="PRE_FLIGHT",
+                category="PRE_FLIGHT_FORBIDDEN_PATTERN",
+                next_action="REGENERATE_PATCH_WITHOUT_FORBIDDEN_CALLS",
+            )
+
+
+_HEADER_RE = re.compile(r"^#\s*([A-Z_]+)\s*:\s*(.+?)\s*$")
+
+
+def _parse_patch_header(patch_path: Path) -> dict[str, list[str]]:
+    """Parse required compatibility header from patch script.
+
+    Expected format (top of file, comments):
+      # TARGET_HEAD: <sha>
+      # TARGET_BRANCH: <branch>
+      # PROOF_ANCHOR: <path> :: <snippet>
+
+    Multiple PROOF_ANCHOR lines are allowed.
+    """
+    try:
+        lines = patch_path.read_text(encoding="utf-8").splitlines()
+    except Exception:
+        return {}
+
+    out: dict[str, list[str]] = {}
+    # Scan first ~80 lines only; header must be near the top.
+    for line in lines[:80]:
+        if not line.startswith("#"):
+            # stop scanning at first non-comment/non-shebang code line
+            if line.startswith("#!"):
+                continue
+            if line.strip() == "":
+                continue
+            break
+        m = _HEADER_RE.match(line)
+        if not m:
+            continue
+        k, v = m.group(1), m.group(2)
+        out.setdefault(k, []).append(v)
+    return out
+
+
+def _preflight_check_patch_compatibility(root: Path, patch_path: Path) -> None:
+    meta = _parse_patch_header(patch_path)
+
+    target_heads = meta.get("TARGET_HEAD", [])
+    target_branches = meta.get("TARGET_BRANCH", [])
+    proof_anchors = meta.get("PROOF_ANCHOR", [])
+
+    if not (target_heads or target_branches):
+        _die(
+            "patch script missing required compatibility header field: TARGET_HEAD or TARGET_BRANCH",
+            stage="PRE_FLIGHT",
+            category="PRE_FLIGHT_MISSING_TARGET",
+            next_action="REGENERATE_PATCH_WITH_HEADER",
+        )
+    if not proof_anchors:
+        _die(
+            "patch script missing required compatibility header field: PROOF_ANCHOR",
+            stage="PRE_FLIGHT",
+            category="PRE_FLIGHT_MISSING_ANCHOR",
+            next_action="REGENERATE_PATCH_WITH_HEADER",
+        )
+
+    head = _git_head_sha(root)
+    branch = _git_branch(root)
+
+    if target_heads and head not in [t.strip() for t in target_heads]:
+        _die(
+            f"TARGET_HEAD mismatch (expected one of {target_heads}, got {head})",
+            stage="PRE_FLIGHT",
+            category="PRE_FLIGHT_TARGET_HEAD_MISMATCH",
+            next_action="REGENERATE_PATCH_FOR_CURRENT_HEAD",
+        )
+
+    if target_branches and branch not in [t.strip() for t in target_branches]:
+        _die(
+            f"TARGET_BRANCH mismatch (expected one of {target_branches}, got {branch})",
+            stage="PRE_FLIGHT",
+            category="PRE_FLIGHT_TARGET_BRANCH_MISMATCH",
+            next_action="CHECKOUT_EXPECTED_BRANCH_OR_REGENERATE_PATCH",
+        )
+
+    for raw in proof_anchors:
+        if "::" not in raw:
+            _die(
+                f"invalid PROOF_ANCHOR format (expected '<path> :: <snippet>'): {raw}",
+                stage="PRE_FLIGHT",
+                category="PRE_FLIGHT_INVALID_ANCHOR_FORMAT",
+                next_action="REGENERATE_PATCH_WITH_VALID_ANCHOR",
+            )
+        rel_s, snippet = [p.strip() for p in raw.split("::", 1)]
+        if not rel_s or not snippet:
+            _die(
+                f"invalid PROOF_ANCHOR format (empty path or snippet): {raw}",
+                stage="PRE_FLIGHT",
+                category="PRE_FLIGHT_INVALID_ANCHOR_FORMAT",
+                next_action="REGENERATE_PATCH_WITH_VALID_ANCHOR",
+            )
+
+        target_file = root / rel_s
+        if not target_file.is_file():
+            _die(
+                f"PROOF_ANCHOR target file not found: {rel_s}",
+                stage="PRE_FLIGHT",
+                category="PRE_FLIGHT_ANCHOR_FILE_MISSING",
+                next_action="REGENERATE_PATCH_WITH_EXISTING_ANCHOR",
+            )
+
+        try:
+            text = target_file.read_text(encoding="utf-8")
+        except Exception:
+            _die(
+                f"unable to read PROOF_ANCHOR target file: {rel_s}",
+                stage="PRE_FLIGHT",
+                category="PRE_FLIGHT_ANCHOR_FILE_UNREADABLE",
+                next_action="FIX_FILE_PERMISSIONS_OR_REGENERATE_PATCH",
+            )
+
+        if snippet not in text:
+            _die(
+                f"PROOF_ANCHOR snippet not found in {rel_s}: {snippet!r}",
+                stage="PRE_FLIGHT",
+                category="PRE_FLIGHT_ANCHOR_NOT_FOUND",
+                next_action="REGENERATE_PATCH_FOR_CURRENT_TREE",
+            )
 
 
 def _run_tests(root: Path, *, tests: str, no_ruff: bool, no_mypy: bool) -> None:
@@ -279,6 +535,15 @@ def _run_tests(root: Path, *, tests: str, no_ruff: bool, no_mypy: bool) -> None:
         print("[am_patch] running ruff in venv")
         r = _run([str(tools["ruff"]), "check", "."], cwd=root)
         if r.returncode != 0:
+            _emit_failure_fingerprint(
+                stage="TESTS",
+                exit_code=r.returncode,
+                exception_type="NONE",
+                message="ruff check failed",
+                first_traceback_line="NONE",
+                category="TESTS_RUFF_FAILED",
+                next_action="OPEN_LOG_AND_FIX_RUFF",
+            )
             print("AM_PATCH_RESULT=FAIL_TESTS")
             print("READY_TO_COMMIT=NO")
             raise SystemExit(r.returncode)
@@ -286,6 +551,15 @@ def _run_tests(root: Path, *, tests: str, no_ruff: bool, no_mypy: bool) -> None:
     print("[am_patch] running pytest in venv")
     r = _run([str(tools["python"]), "-m", "pytest", "-q"], cwd=root)
     if r.returncode != 0:
+        _emit_failure_fingerprint(
+            stage="TESTS",
+            exit_code=r.returncode,
+            exception_type="NONE",
+            message="pytest failed",
+            first_traceback_line="NONE",
+            category="TESTS_PYTEST_FAILED",
+            next_action="OPEN_LOG_AND_FIX_TESTS",
+        )
         print("AM_PATCH_RESULT=FAIL_TESTS")
         print("READY_TO_COMMIT=NO")
         raise SystemExit(r.returncode)
@@ -294,6 +568,15 @@ def _run_tests(root: Path, *, tests: str, no_ruff: bool, no_mypy: bool) -> None:
         print("[am_patch] running mypy in venv")
         r = _run([str(tools["mypy"]), "src"], cwd=root)
         if r.returncode != 0:
+            _emit_failure_fingerprint(
+                stage="TESTS",
+                exit_code=r.returncode,
+                exception_type="NONE",
+                message="mypy failed",
+                first_traceback_line="NONE",
+                category="TESTS_MYPY_FAILED",
+                next_action="OPEN_LOG_AND_FIX_MYPY",
+            )
             print("AM_PATCH_RESULT=FAIL_TESTS")
             print("READY_TO_COMMIT=NO")
             raise SystemExit(r.returncode)
@@ -308,11 +591,26 @@ def _commit_push(root: Path, msg: str) -> None:
 
     r = _git(root, ["diff", "--cached", "--quiet"])
     if r.returncode == 0:
-        _die("no staged changes; refusing to create empty commit", result="FAIL_GIT")
+        _die(
+            "no staged changes; refusing to create empty commit",
+            result="FAIL_GIT",
+            stage="GIT",
+            category="GIT_EMPTY_COMMIT",
+            next_action="VERIFY_CHANGES_OR_ABORT",
+        )
 
     print(f"[am_patch] committing: {msg}")
     r = _git(root, ["commit", "-m", msg])
     if r.returncode != 0:
+        _emit_failure_fingerprint(
+            stage="GIT",
+            exit_code=r.returncode,
+            exception_type="NONE",
+            message="git commit failed",
+            first_traceback_line="NONE",
+            category="GIT_COMMIT_FAILED",
+            next_action="OPEN_LOG_AND_FIX_GIT",
+        )
         print("AM_PATCH_RESULT=FAIL_GIT")
         print("READY_TO_COMMIT=NO")
         raise SystemExit(r.returncode)
@@ -320,6 +618,15 @@ def _commit_push(root: Path, msg: str) -> None:
     print("[am_patch] pushing")
     r = _git(root, ["push"])
     if r.returncode != 0:
+        _emit_failure_fingerprint(
+            stage="GIT",
+            exit_code=r.returncode,
+            exception_type="NONE",
+            message="git push failed",
+            first_traceback_line="NONE",
+            category="GIT_PUSH_FAILED",
+            next_action="OPEN_LOG_AND_FIX_GIT",
+        )
         print("AM_PATCH_RESULT=FAIL_GIT")
         print("READY_TO_COMMIT=NO")
         raise SystemExit(r.returncode)
@@ -361,6 +668,52 @@ def _sh_quote(s: str) -> str:
     return "'" + s.replace("'", "'\"'\"'") + "'"
 
 
+def _archive_failed_patch(patch_path: Path, *, reason_tag: str) -> Path | None:
+    try:
+        FAILED_DIR.mkdir(parents=True, exist_ok=True)
+        ts = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+        dst = FAILED_DIR / f"{patch_path.stem}_{reason_tag}_{ts}{patch_path.suffix}"
+        patch_path.replace(dst)
+        return dst
+    except Exception:
+        return None
+
+
+def _print_patch_output_tail(label: str, text: str) -> None:
+    lines = text.splitlines()
+    if len(lines) <= PATCH_OUTPUT_TAIL_LINES:
+        print(f"[am_patch] {label} (full):")
+        for ln in lines:
+            print(ln)
+        return
+
+    print(f"[am_patch] {label} (tail {PATCH_OUTPUT_TAIL_LINES} lines; see full output above):")
+    for ln in lines[-PATCH_OUTPUT_TAIL_LINES:]:
+        print(ln)
+
+
+def _run_patch_subprocess(root: Path, patch_path: Path) -> tuple[int, str, str, list[str], str]:
+    """Run patch with captured stdout/stderr.
+
+    Returns:
+      (returncode, stdout, stderr, patch_cmd, interpreter_used)
+    """
+    venv_python = _select_patch_python(root)
+    if venv_python is not None:
+        patch_cmd = [str(venv_python), str(patch_path)]
+        interpreter_used = str(venv_python)
+    else:
+        # Fallback to the current interpreter if possible; otherwise, plain python3.
+        interpreter_used = sys.executable if sys.executable else "python3"
+        patch_cmd = [interpreter_used, str(patch_path)]
+
+    print(f"[am_patch] PATCH_CMD={' '.join(_sh_quote(p) for p in patch_cmd)}")
+    print(f"[am_patch] patch_interpreter={interpreter_used}")
+
+    r = _run(patch_cmd, cwd=root, capture=True)
+    return r.returncode, r.stdout, r.stderr, patch_cmd, interpreter_used
+
+
 def _patch_mode(
     *,
     root: Path,
@@ -375,12 +728,20 @@ def _patch_mode(
     _ensure_filename_only(patch_filename)
     patch_path = PATCH_DIR / patch_filename
     if not patch_path.is_file():
-        _die(f"missing patch script: {patch_path}")
+        _die(
+            f"missing patch script: {patch_path}",
+            stage="PRE_FLIGHT",
+            category="PRE_FLIGHT_PATCH_MISSING",
+            next_action="ENSURE_PATCH_EXISTS_IN_PATCH_DIR",
+        )
 
     _static_validate_patch_script(patch_path)
+    _preflight_check_patch_compatibility(root, patch_path)
 
+    print(f"[am_patch] runner_version={RUNNER_VERSION}")
     print(f"[am_patch] repo_root={root}")
     print(f"[am_patch] patch={patch_path}")
+    print(f"[am_patch] patch_sha256={_sha256_file(patch_path)}")
     print(f"[am_patch] log_dir={LOG_DIR}")
     print(f"[am_patch] lock={_lock_path()}")
     print(f"[am_patch] verify_only={verify_only} tests={tests} no_ruff={no_ruff} no_mypy={no_mypy}")
@@ -390,15 +751,22 @@ def _patch_mode(
     before = _snapshot_files(root)
 
     print("[am_patch] running patch...")
-    rc = _run(["python3", str(patch_path)], cwd=root).returncode
+    rc, out, err, patch_cmd, interpreter_used = _run_patch_subprocess(root, patch_path)
 
-    print(f"[am_patch] deleting patch script (always): {patch_path}")
-    try:
-        patch_path.unlink(missing_ok=True)
-    except Exception:
-        pass
+    if out:
+        print("[am_patch] patch stdout (full):")
+        print(out, end="" if out.endswith("\n") else "\n")
+    if err:
+        print("[am_patch] patch stderr (full):")
+        print(err, end="" if err.endswith("\n") else "\n")
 
     if rc != 0:
+        archived = _archive_failed_patch(patch_path, reason_tag="FAIL")
+        if archived is not None:
+            print(f"[am_patch] archived failed patch script: {archived}")
+        else:
+            print(f"[am_patch] WARNING: failed to archive patch script (leaving as-is): {patch_path}")
+
         after = _snapshot_files(root)
         print(f"[am_patch] PATCH FAILED (exit={rc})")
         print("[am_patch] files touched before patch failure (best-effort filesystem diff):")
@@ -414,9 +782,32 @@ def _patch_mode(
         else:
             print("[am_patch] git shows no changes (tracked/untracked) to discard.")
 
+        # Try to extract a likely exception type / first traceback line from stderr.
+        exc_type = "NONE"
+        first_tb = "NONE"
+        for ln in err.splitlines():
+            if ln.startswith("Traceback (most recent call last):"):
+                first_tb = ln
+                break
+        m = re.search(r"^([A-Za-z_][A-Za-z0-9_]*Error|AssertionError):", err, flags=re.M)
+        if m:
+            exc_type = m.group(1)
+
+        _emit_failure_fingerprint(
+            stage="PATCH_EXEC",
+            exit_code=rc,
+            exception_type=exc_type,
+            message=f"patch exited non-zero (exit={rc})",
+            first_traceback_line=first_tb,
+            category="PATCH_EXEC_NONZERO_EXIT",
+            next_action="UPLOAD_LOG_AND_ARCHIVED_PATCH",
+        )
+
         print("[am_patch] NEXT STEPS (choose one):")
-        print("  A) Upload changed files (listed above) + the log file:")
+        print("  A) Upload changed files (listed above) + the log file + archived patch script:")
         print(f"     {LAST_LOG_SYMLINK}  (symlink to latest run log)")
+        if archived is not None:
+            print(f"     {archived}")
         print("  B) Discard local changes (optional):")
         if porcelain:
             _print_discard_commands_from_porcelain(porcelain)
@@ -426,6 +817,12 @@ def _patch_mode(
         print("AM_PATCH_RESULT=FAIL_PATCH")
         print("READY_TO_COMMIT=NO")
         raise SystemExit(1)
+
+    print(f"[am_patch] deleting patch script (success): {patch_path}")
+    try:
+        patch_path.unlink(missing_ok=True)
+    except Exception:
+        pass
 
     patched_status = _git_porcelain(root)
 
@@ -459,6 +856,7 @@ def _finalize_mode(
     no_ruff: bool,
     no_mypy: bool,
 ) -> None:
+    print(f"[am_patch] runner_version={RUNNER_VERSION}")
     print(f"[am_patch] repo_root={root}")
     print(f"[am_patch] log_dir={LOG_DIR}")
     print(f"[am_patch] lock={_lock_path()}")
@@ -468,7 +866,13 @@ def _finalize_mode(
 
     porcelain = _git_porcelain(root)
     if not porcelain:
-        _die("dirty tree required for finalize mode (no changes detected)", result="FAIL_PRECHECK")
+        _die(
+            "dirty tree required for finalize mode (no changes detected)",
+            result="FAIL_PRECHECK",
+            stage="PRE_FLIGHT",
+            category="PRE_FLIGHT_FINALIZE_CLEAN_TREE",
+            next_action="MAKE_CHANGES_OR_USE_PATCH_MODE",
+        )
 
     _print_git_diff_outputs(root)
 
@@ -486,6 +890,29 @@ def _finalize_mode(
     _commit_push(root, commit_msg)
     print("AM_PATCH_RESULT=SUCCESS")
     print("READY_TO_COMMIT=YES")
+
+
+def _print_context(root: Path, *, patch_filename: str | None) -> None:
+    branch = _git_branch(root)
+    head = _git_head_sha(root)
+    porcelain = _git_porcelain(root)
+    clean = "clean" if not porcelain else "dirty"
+    print("AM_PATCH_CONTEXT:")
+    print(f"- branch: {branch}")
+    print(f"- head: {head}")
+    print(f"- status: {clean}")
+    print(f"- runner_version: {RUNNER_VERSION}")
+    print(f"- log_dir: {LOG_DIR}")
+    if patch_filename:
+        _ensure_filename_only(patch_filename)
+        patch_path = PATCH_DIR / patch_filename
+        if patch_path.exists():
+            print(f"- patch: {patch_path.name}")
+            print(f"- patch_sha256: {_sha256_file(patch_path)}")
+        else:
+            print(f"- patch: {patch_path.name} (MISSING)")
+    else:
+        print("- patch: NONE")
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -511,6 +938,12 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--no-mypy", action="store_true", help="Skip mypy (only relevant with --tests all).")
     ap.add_argument("--no-ruff", action="store_true", help="Skip ruff (only relevant with --tests all).")
 
+    ap.add_argument(
+        "--print-context",
+        action="store_true",
+        help="Print compact context block (branch/SHA/status/log dir/patch sha256) and exit.",
+    )
+
     ap.add_argument("issue", nargs="?", help="Issue number (patch mode)")
     ap.add_argument("message", nargs="?", help="Commit message (patch mode)")
     ap.add_argument("patch", nargs="?", help="Patch filename (patch mode; filename-only under /home/pi/apps/patches/)")
@@ -520,7 +953,13 @@ def main(argv: list[str] | None = None) -> None:
     root = _repo_root()
     _ensure_git_repo(root)
 
-    # prepare logs + lock (for all modes)
+    # Context printer is intentionally lightweight; no lock/log required.
+    if args.print_context:
+        patch_filename = args.patch or (f"issue_{args.issue}.py" if args.issue else None)
+        _print_context(root, patch_filename=patch_filename)
+        return
+
+    # prepare logs + lock (for all normal modes)
     _prune_logs()
 
     issue_tag = args.issue if args.issue else ("finalize" if args.finalize else "unknown")
@@ -532,7 +971,13 @@ def main(argv: list[str] | None = None) -> None:
     try:
         if args.finalize:
             if args.issue or args.message or args.patch:
-                _die("Finalize mode cannot be combined with patch mode arguments", result="FAIL_PRECHECK")
+                _die(
+                    "Finalize mode cannot be combined with patch mode arguments",
+                    result="FAIL_PRECHECK",
+                    stage="PRE_FLIGHT",
+                    category="PRE_FLIGHT_INVALID_ARGS",
+                    next_action="FIX_COMMAND_LINE",
+                )
             _finalize_mode(
                 root=root,
                 commit_msg=args.finalize,
@@ -544,7 +989,13 @@ def main(argv: list[str] | None = None) -> None:
             return
 
         if not args.issue or not args.message:
-            _die('usage: am_patch.sh <ISSUE> "<COMMIT MESSAGE>" [<PATCH_FILENAME>]', result="FAIL_PRECHECK")
+            _die(
+                'usage: am_patch.sh <ISSUE> "<COMMIT MESSAGE>" [<PATCH_FILENAME>]',
+                result="FAIL_PRECHECK",
+                stage="PRE_FLIGHT",
+                category="PRE_FLIGHT_MISSING_ARGS",
+                next_action="FIX_COMMAND_LINE",
+            )
 
         patch_filename = args.patch or f"issue_{args.issue}.py"
 
@@ -558,6 +1009,25 @@ def main(argv: list[str] | None = None) -> None:
             no_ruff=args.no_ruff,
             no_mypy=args.no_mypy,
         )
+    except SystemExit:
+        # Ensure we do not double-print anything; _die/_emit_failure_fingerprint already handled it.
+        raise
+    except Exception as e:  # unexpected runner failure
+        tb = traceback.format_exc()
+        first_line = tb.splitlines()[0] if tb.splitlines() else "NONE"
+        print(tb, file=sys.stderr)
+        _emit_failure_fingerprint(
+            stage="GIT" if "git" in str(e).lower() else "PATCH_EXEC",
+            exit_code=1,
+            exception_type=type(e).__name__,
+            message=str(e) or repr(e),
+            first_traceback_line=first_line,
+            category="RUNNER_EXCEPTION",
+            next_action="UPLOAD_LOG",
+        )
+        print("AM_PATCH_RESULT=FAIL_GIT")
+        print("READY_TO_COMMIT=NO")
+        raise SystemExit(1)
     finally:
         _release_lock(lock_fd)
 

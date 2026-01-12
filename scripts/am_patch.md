@@ -97,6 +97,68 @@ You can opt out:
 - `--no-ruff` (skip ruff; only relevant with `--tests all`)
 - `--no-mypy` (skip mypy; only relevant with `--tests all`)
 
+
+---
+
+## Patch Script Header (REQUIRED FOR COMPATIBILITY)
+
+Every patch script executed by `am_patch.py` **MUST** declare explicit compatibility metadata
+in a comment header near the top of the file.
+
+This header defines the **assumptions** under which the patch was authored.
+If the assumptions do not match the current repository state, the runner will **reject**
+the patch during pre-flight **without executing any patch code**.
+
+### Required fields
+
+At least **one** of:
+
+- `TARGET_HEAD: <git SHA>`  (exact `git rev-parse HEAD` value)
+- `TARGET_BRANCH: <branch name>`  (exact `git rev-parse --abbrev-ref HEAD` value)
+
+And at least **one**:
+
+- `PROOF_ANCHOR: <repo-relative path> :: <short, stable snippet>`
+
+Rules:
+
+- At least one of `TARGET_HEAD` or `TARGET_BRANCH` MUST be present.
+- At least one `PROOF_ANCHOR` MUST be present.
+- Multiple `PROOF_ANCHOR` lines are allowed.
+- `PROOF_ANCHOR` is validated by checking that:
+  - the referenced file exists, and
+  - the snippet appears as a substring in that file.
+
+### Minimal valid header example
+
+```python
+# TARGET_HEAD: 74b2752c0b1f4d3c0d9e0c4b1a2b3c4d5e6f7890
+# PROOF_ANCHOR: src/audiomason/import_flow.py :: def run_import(
+```
+
+### Example pre-flight failure + fingerprint
+
+If you try to run the patch on a different commit/branch, you will get a deterministic rejection:
+
+```text
+AM_PATCH_FAILURE_FINGERPRINT:
+- stage: PRE_FLIGHT
+- exit_code: 1
+- exception_type: NONE
+- message: TARGET_HEAD mismatch (expected one of [...], got <current head>)
+- first_traceback_line: NONE
+- category: PRE_FLIGHT_TARGET_HEAD_MISMATCH
+- next_action: REGENERATE_PATCH_FOR_CURRENT_HEAD
+```
+
+### Why this exists
+
+This contract prevents “patch guessing” and repeated trial-and-error runs.
+
+Instead of executing an incompatible patch (and producing confusing partial edits),
+the runner fails fast with an explicit reason and a compact fingerprint that is sufficient
+for chat-based diagnosis.
+
 ## Execution model
 
 ### High‑level flow
