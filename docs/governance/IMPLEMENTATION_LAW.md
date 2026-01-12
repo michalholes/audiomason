@@ -1,6 +1,6 @@
 # IMPLEMENTATION LAW – AudioMason
 # AUTHORITATIVE – AudioMason
-Version: 2.14
+Version: 2.15
 # STATUS: ACTIVE
 
 This document is an execution law subordinate to the Project Constitution.
@@ -23,6 +23,14 @@ This law governs **how implementation must be performed**, not what should be im
 ---
 
 ## 2. Implementation chat scope
+
+Implementation Law applies whenever repository state
+is modified or execution is performed,
+regardless of the active role.
+
+Role declaration does not relax or bypass
+any mandatory Implementation Law requirements.
+
 
 An implementation chat is used **exclusively** to execute changes explicitly approved by the User.
 

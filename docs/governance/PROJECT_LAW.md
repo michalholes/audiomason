@@ -1,6 +1,6 @@
 # PROJECT LAW – AudioMason
 # AUTHORITATIVE – AudioMason
-Version: 2.14
+Version: 2.15
 # Status: active
 
 This document is a project governance law subordinate to the Project Constitution.
@@ -19,6 +19,14 @@ This law defines:
 ---
 
 ## 2. Project chat scope
+
+Explicit role declarations by the User
+take precedence over informal chat naming.
+
+Project chat restrictions remain fully applicable
+unless execution is explicitly transitioned
+into an Implementation Law–compliant context.
+
 
 Project chats are used exclusively for:
 - creating and managing issues,

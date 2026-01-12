@@ -2,7 +2,7 @@
 
 AUTHORITATIVE – AudioMason  
 Status: active  
-Version: 2.14
+Version: 2.15
 This document is an execution law subordinate to the Project Constitution.
 It governs the Solution Engineer role.
 
@@ -23,6 +23,19 @@ All final decisions remain exclusively with the User.
 ---
 
 ## 2. Applicable Role(s)
+
+## Role Primacy Clarification (NORMATIVE)
+
+The Solution Engineer role is independent of chat type naming.
+
+If the User explicitly declares the Solution Engineer (SE) role,
+the assistant MUST follow the behavioral rules of the SE role,
+regardless of the chat label.
+
+Execution that modifies repository state is permitted
+only when all applicable requirements of the Implementation Law
+are explicitly satisfied.
+
 
 This law applies to:
 - Solution Engineer (SE)

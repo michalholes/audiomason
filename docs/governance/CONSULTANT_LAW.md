@@ -2,7 +2,7 @@
 
 AUTHORITATIVE – AudioMason  
 Status: active  
-Version: 2.14
+Version: 2.15
 This document is an execution law subordinate to the Project Constitution.
 It governs consultant chats and governance-related activities.
 
@@ -18,6 +18,13 @@ This law defines:
 ---
 
 ## 2. Role and authority
+
+Role declarations made by the User are authoritative.
+
+The Consultant MUST interpret governance compliance
+based on the explicitly declared active role,
+not on informal or inferred chat naming.
+
 
 The Consultant:
 - provides governance analysis and audits,

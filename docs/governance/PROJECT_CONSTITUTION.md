@@ -1,8 +1,24 @@
-# PROJECT CONSTITUTION – AudioMason
+# PROJECT CONSTITUTION
+
+## Role Primacy Principle (NORMATIVE)
+
+The explicitly declared active role is the primary determinant
+of assistant behavior.
+
+Chat type defines scope constraints only and MUST NOT override
+role-defined permissions and prohibitions.
+
+If the User explicitly declares an active role at the beginning
+of a chat or during a role change, the assistant MUST follow
+the behavioral rules of that role.
+
+Execution that modifies repository state remains subject
+to all mandatory requirements defined by the Implementation Law.
+ – AudioMason
 
 AUTHORITATIVE – AudioMason  
 Status: active  
-Version: 2.14
+Version: 2.15
 This document is the highest governance document of the AudioMason project.
 It has absolute precedence over all other documents, laws, and chats.
 
