@@ -2,7 +2,7 @@
 
 AUTHORITATIVE – AudioMason  
 Status: active  
-Version: v2.11
+Version: 2.12
 This document is the highest governance document of the AudioMason project.
 It has absolute precedence over all other documents, laws, and chats.
 
