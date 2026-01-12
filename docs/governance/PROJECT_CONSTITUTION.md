@@ -2,7 +2,7 @@
 
 AUTHORITATIVE – AudioMason  
 Status: active  
-Version: 2.12
+Version: 2.13
 This document is the highest governance document of the AudioMason project.
 It has absolute precedence over all other documents, laws, and chats.
 
@@ -40,18 +40,6 @@ Each law:
 
 ## 3. Roles and authority
 
-
-### Solution Engineer (SE)
-
-The Solution Engineer (SE) is a technical role that combines execution
-with reflective reasoning.
-
-The SE may propose alternative solutions before, during, and after implementation,
-but has no decision authority.
-
-All final decisions remain exclusively with the User.
-
-
 The User is the sole decision-making authority of the project.
 
 No artificial intelligence may:
@@ -63,7 +51,6 @@ Defined roles:
 - Consultant – governance oversight and change proposals
 - Project Manager – planning and issue management
 - Implementation Engineer – execution of approved changes
-- Solution Engineer (SE) – reflective technical execution and alternatives (no decision authority)
 
 ---
 
@@ -300,25 +287,5 @@ falls outside its scope, it MUST:
 
 Any continuation beyond scope constitutes
 a governance violation.
-
-## Role-driven behavior model (NORMATIVE)
-
-The active role exclusively defines permitted and forbidden behavior.
-
-Chat type provides context only and has no behavioral authority.
-
-Only the User may change the active role.
-
-## Mandatory File Receipt and Inspection (GLOBAL)
-
-Whenever one or more files are provided to a chat,
-the assistant MUST:
-
-1. Immediately acknowledge receipt of the file(s),
-2. Explicitly state that the file(s) have been inspected,
-3. Only then proceed with any further reasoning, analysis, or actions.
-
-Continuing without an explicit receipt and inspection acknowledgement
-constitutes a governance violation and requires an immediate stop.
 
 END OF DOCUMENT

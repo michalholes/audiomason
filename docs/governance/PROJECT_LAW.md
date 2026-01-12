@@ -1,20 +1,12 @@
 # PROJECT LAW – AudioMason
 # AUTHORITATIVE – AudioMason
-Version: 2.12
+Version: 2.13
 # Status: active
 
 This document is a project governance law subordinate to the Project Constitution.
 It governs project chats, issue management, and operational conventions.
 
 ---
-
-
-## Applicable Role(s)
-
-This law applies to:
-- Project Manager (PM)
-- Solution Engineer (SE) (technical input only)
-
 
 ## 1. Purpose
 
@@ -263,11 +255,11 @@ for artifacts referenced in consultant or implementation chats.
 ## §Z. Canonical Patch Runner Location (NEW)
 
 The canonical patch runner MUST be stored in the repository and referenced
-using the absolute path:
+using the absolute command line:
 
-    /home/pi/apps/audiomason/scripts/am_patch.sh
+    python3 /home/pi/apps/audiomason/scripts/am_patch.py
 
-Implementation chats MUST use this path verbatim when providing the runner
+Implementation chats MUST use this command line verbatim when providing the runner
 invocation line.
 
 The canonical patch runner supports an optional patch filename argument when the
@@ -317,7 +309,7 @@ ARTIFACT DIRECTORY (CANONICAL):
 /home/pi/apps/patches
 
 CANONICAL PATCH RUNNER (REPO-BACKED):
-/home/pi/apps/audiomason/scripts/am_patch.sh
+python3 /home/pi/apps/audiomason/scripts/am_patch.py
 
 (OPTIONAL PATCH FILENAME ARGUMENT SUPPORTED)
 
@@ -347,9 +339,5 @@ DELIVERABLE (STRICT):
   A) COMPLETE (with SHA + confirmation tests + docs + manifest)
   B) NOT COMPLETE / FAIL-FAST (explicit missing items, repo-relative paths)
 ```
-
-Any project-level action based on uploaded files
-is invalid unless a prior file receipt and inspection
-acknowledgement has been issued in the same chat.
 
 END OF DOCUMENT
