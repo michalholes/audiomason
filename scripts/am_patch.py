@@ -35,6 +35,15 @@ import subprocess
 import sys
 import traceback
 from pathlib import Path
+
+def _resolve_patch_path(patch_arg: str) -> Path:
+    """Resolve patch script path.
+    Accepts absolute paths, repo-relative paths, and relative paths (e.g. ../patches/x.py).
+    """
+    p = Path(patch_arg).expanduser()
+    if not p.is_absolute():
+        p = (Path.cwd() / p).resolve()
+    return p
 from typing import NoReturn, Sequence
 
 RUNNER_VERSION = "2.0"
@@ -424,60 +433,112 @@ def _static_validate_patch_script(path: Path) -> None:
             )
 
 
-_HEADER_RE = re.compile(r"^#\s*([A-Z_]+)\s*:\s*(.+?)\s*$")
+# Header formats supported (top of patch script; scanned in the first N lines):
+#  1) Comment header (recommended; robust):
+#       # TARGET_HEAD: <sha>
+#       # TARGET_BRANCH: <branch>
+#       # PROOF_ANCHOR: <path> :: <snippet>
+#  2) Simple Python assignment header (supported for compatibility):
+#       TARGET_HEAD = "<sha>"
+#       TARGET_BRANCH = "<branch>"
+#       PROOF_ANCHOR = "<path> :: <snippet>"
+#
+# Notes:
+# - Multiple PROOF_ANCHOR entries are allowed (repeat the line).
+# - Header scanning is tolerant to shebang, encoding cookies, blank lines, and comments.
+# - The runner does NOT import/execute the patch script during preflight.
+_HEADER_COMMENT_RE = re.compile(r"^#\s*([A-Z_]+)\s*:\s*(.+?)\s*$")
+_HEADER_ASSIGN_RE = re.compile(r"^\s*([A-Z_]+)\s*=\s*([\"'])(.+?)\2\s*$")
 
 
-def _parse_patch_header(patch_path: Path) -> dict[str, list[str]]:
-    """Parse required compatibility header from patch script.
+def _parse_patch_header(patch_path: Path) -> tuple[dict[str, list[str]], list[str]]:
+    """Parse compatibility header from patch script.
 
-    Expected format (top of file, comments):
-      # TARGET_HEAD: <sha>
-      # TARGET_BRANCH: <branch>
-      # PROOF_ANCHOR: <path> :: <snippet>
+    Returns:
+      (meta, parse_notes)
 
-    Multiple PROOF_ANCHOR lines are allowed.
+    parse_notes is a short list of human-readable observations used to improve
+    preflight error messages (e.g. "found TARGET_HEAD but in unsupported format").
     """
     try:
-        lines = patch_path.read_text(encoding="utf-8").splitlines()
+        raw = patch_path.read_bytes()
     except Exception:
-        return {}
+        return {}, ["unable to read patch bytes"]
 
-    out: dict[str, list[str]] = {}
-    # Scan first ~80 lines only; header must be near the top.
-    for line in lines[:80]:
-        # Allow shebang and blank lines in the header region.
-        if line.startswith("#!"):
+    # Be tolerant to UTF-8 BOM.
+    notes: list[str] = []
+    if raw.startswith(b"\xef\xbb\xbf"):
+        raw = raw[3:]
+        notes.append("stripped UTF-8 BOM")
+
+    try:
+        lines = raw.decode("utf-8").splitlines()
+    except Exception:
+        lines = raw.decode("utf-8", errors="replace").splitlines()
+        notes.append("decoded with replacement (non-utf8 bytes present)")
+
+    meta: dict[str, list[str]] = {}
+
+    scan_limit = 200
+    for i, line in enumerate(lines[:scan_limit], start=1):
+        # Allow shebang and blank/comment lines in the header region.
+        if i == 1 and line.startswith("#!"):
+            continue
+        if re.match(r"^#.*coding[:=]\s*[-\w.]+", line):
             continue
         if line.strip() == "":
             continue
-        if not line.startswith("#"):
-            # Stop scanning at first non-comment code line.
-            break
-        m = _HEADER_RE.match(line)
-        if not m:
+
+        # Preferred form: comment header.
+        if line.lstrip().startswith("#"):
+            m = _HEADER_COMMENT_RE.match(line)
+            if m:
+                k, v = m.group(1), m.group(2)
+                meta.setdefault(k, []).append(v)
             continue
-        k, v = m.group(1), m.group(2)
-        out.setdefault(k, []).append(v)
-    return out
+
+        # Compatibility form: simple assignments.
+        m2 = _HEADER_ASSIGN_RE.match(line)
+        if m2:
+            k, v = m2.group(1), m2.group(3)
+            meta.setdefault(k, []).append(v)
+            continue
+
+        # Stop early once we reach clear "real code".
+        if re.match(r"^\s*(def|class)\s+\w+", line):
+            break
+
+    # Near-miss notes for better diagnostics.
+    wanted = {"TARGET_HEAD", "TARGET_BRANCH", "PROOF_ANCHOR"}
+    if not (meta.get("TARGET_HEAD") or meta.get("TARGET_BRANCH") or meta.get("PROOF_ANCHOR")):
+        for i, line in enumerate(lines[:scan_limit], start=1):
+            if any(k in line for k in wanted):
+                notes.append(f"found potential header token on line {i} but in unsupported format")
+                if len(notes) >= 4:
+                    break
+
+    return meta, notes
 
 
 def _preflight_check_patch_compatibility(root: Path, patch_path: Path) -> None:
-    meta = _parse_patch_header(patch_path)
+    meta, parse_notes = _parse_patch_header(patch_path)
 
     target_heads = meta.get("TARGET_HEAD", [])
     target_branches = meta.get("TARGET_BRANCH", [])
     proof_anchors = meta.get("PROOF_ANCHOR", [])
 
     if not (target_heads or target_branches):
+        note = ("; " + "; ".join(parse_notes)) if parse_notes else ""
         _die(
-            "patch script missing required compatibility header field: TARGET_HEAD or TARGET_BRANCH",
+            "patch script missing required compatibility header field: TARGET_HEAD or TARGET_BRANCH" + note,
             stage="PRE_FLIGHT",
             category="PRE_FLIGHT_MISSING_TARGET",
             next_action="REGENERATE_PATCH_WITH_HEADER",
         )
     if not proof_anchors:
+        note = ("; " + "; ".join(parse_notes)) if parse_notes else ""
         _die(
-            "patch script missing required compatibility header field: PROOF_ANCHOR",
+            "patch script missing required compatibility header field: PROOF_ANCHOR" + note,
             stage="PRE_FLIGHT",
             category="PRE_FLIGHT_MISSING_ANCHOR",
             next_action="REGENERATE_PATCH_WITH_HEADER",
