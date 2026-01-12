@@ -1,6 +1,6 @@
 # IMPLEMENTATION LAW – AudioMason
 # AUTHORITATIVE – AudioMason
-Version: 2.15
+Version: 2.16
 # STATUS: ACTIVE
 
 This document is an execution law subordinate to the Project Constitution.
@@ -23,6 +23,43 @@ This law governs **how implementation must be performed**, not what should be im
 ---
 
 ## 2. Implementation chat scope
+
+## Mandatory Patch Execution Mechanism (NORMATIVE)
+
+All repository-modifying patches MUST be executed exclusively
+using the canonical patch runner provided by the project.
+
+Direct application of patches via:
+- `git apply`,
+- `git am`,
+- manual file editing,
+- ad-hoc scripts,
+- or any other execution mechanism
+
+is STRICTLY PROHIBITED.
+
+The canonical patch runner is:
+    python3 /home/pi/apps/audiomason/scripts/am_patch.py
+
+---
+
+## Mandatory Patch Contract Awareness (NORMATIVE)
+
+Any role performing or assisting with implementation
+(including Implementation Engineer and Solution Engineer)
+MUST be familiar with and MUST follow the official patch
+contract documented in:
+
+    scripts/am_patch.md
+
+Patch scripts that do not comply with the documented contract,
+including required compatibility headers and pre-flight checks,
+MUST NOT be executed.
+
+Failure to use the canonical patch runner or failure to respect
+the documented patch contract constitutes a governance violation
+and requires an immediate STOP.
+
 
 Implementation Law applies whenever repository state
 is modified or execution is performed,
