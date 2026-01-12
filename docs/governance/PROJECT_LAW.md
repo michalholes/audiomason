@@ -8,6 +8,14 @@ It governs project chats, issue management, and operational conventions.
 
 ---
 
+
+## Applicable Role(s)
+
+This law applies to:
+- Project Manager (PM)
+- Solution Engineer (SE) (technical input only)
+
+
 ## 1. Purpose
 
 This law defines:
@@ -339,5 +347,9 @@ DELIVERABLE (STRICT):
   A) COMPLETE (with SHA + confirmation tests + docs + manifest)
   B) NOT COMPLETE / FAIL-FAST (explicit missing items, repo-relative paths)
 ```
+
+Any project-level action based on uploaded files
+is invalid unless a prior file receipt and inspection
+acknowledgement has been issued in the same chat.
 
 END OF DOCUMENT

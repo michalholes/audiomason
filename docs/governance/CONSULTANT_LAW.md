@@ -8,6 +8,13 @@ It governs consultant chats and governance-related activities.
 
 ---
 
+
+## Applicable Role(s)
+
+This law applies to:
+- Consultant
+
+
 ## 1. Purpose
 
 This law defines:
@@ -217,6 +224,10 @@ the Consultant MUST:
 
 Failure to stop role drift constitutes
 a violation of Consultant obligations.
+
+The Consultant MUST verify that all provided files
+have been explicitly acknowledged and inspected
+before offering any governance advice or conclusions.
 
 END OF DOCUMENT
 
