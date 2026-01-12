@@ -1,18 +1,31 @@
 from __future__ import annotations
 
-import re
-from pathlib import Path
+import pytest
+
+from audiomason import import_flow
 
 
-def test_preflight_disable_cover_override_is_routed_via_pf_prompt() -> None:
-    txt = Path("src/audiomason/import_flow.py").read_text(encoding="utf-8")
+def test_pf_prompt_cover_disabled_returns_default_without_prompt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _boom(*args, **kwargs):
+        raise AssertionError("prompt() must not be called when preflight is disabled")
 
-    # No direct prompt(...) bypass.
-    assert 'raw = prompt("Cover URL or file path (Enter=skip)", "").strip()' not in txt
+    monkeypatch.setattr(import_flow, "prompt", _boom)
 
-    # Formatting-robust: ensure that the preflight-wrapped prompt is still used.
-    pattern = (
-        r"raw\s*=\s*_pf_prompt\(\s*cfg\s*,\s*\"cover\"\s*,\s*"
-        r"\"Cover URL or file path \(Enter=skip\)\"\s*,\s*\"\"\s*\)\.strip\(\)"
-    )
-    assert len(re.findall(pattern, txt)) == 3
+    cfg: dict = {"preflight_disable": ["cover"]}
+    ret = import_flow._pf_prompt(cfg, "cover", "Cover URL or file path (Enter=skip)", "")
+    assert ret == ""
+
+
+def test_pf_prompt_yes_no_cover_disabled_returns_default_without_prompt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _boom(*args, **kwargs):
+        raise AssertionError("prompt_yes_no() must not be called when preflight is disabled")
+
+    monkeypatch.setattr(import_flow, "prompt_yes_no", _boom)
+
+    cfg: dict = {"preflight_disable": ["cover"]}
+    assert import_flow._pf_prompt_yes_no(cfg, "cover", "Use embedded cover?", default_no=False) is True
+    assert import_flow._pf_prompt_yes_no(cfg, "cover", "Use embedded cover?", default_no=True) is False

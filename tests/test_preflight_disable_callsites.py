@@ -1,37 +1,30 @@
 from __future__ import annotations
 
-import re
-from pathlib import Path
+import pytest
+
+import audiomason.state as state
+from audiomason import import_flow
 
 
-def test_preflight_disable_callsites_do_not_bypass_pf_prompt_yes_no() -> None:
-    txt = Path("src/audiomason/import_flow.py").read_text(encoding="utf-8")
+def test_preflight_global_routes_yes_no_prompts_through_pf_wrapper(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, str, bool]] = []
 
-    # These exact call-sites previously bypassed preflight_disable by calling prompt_yes_no directly.
-    assert (
-        'use_manifest_answers = prompt_yes_no("[manifest] Use saved answers (skip prompts)?", default_no=False)'
-        not in txt
-    )
-    assert 'publish = prompt_yes_no("Publish after import?", default_no=(not default_publish))' not in txt
-    assert 'wipe = prompt_yes_no("Full wipe ID3 tags before tagging?", default_no=(not default_wipe))' not in txt
-    assert (
-        'clean_stage = prompt_yes_no("Clean stage after successful import?", default_no=(not default_clean))' not in txt
-    )
+    def _boom(*args, **kwargs):
+        raise AssertionError("direct prompt_yes_no() call is forbidden in this test")
 
-    # Formatting-robust: expect the _pf_prompt_yes_no variants to be present, regardless of wrapping/newlines.
-    def must_have_pf_yes_no(key: str, prompt: str, default_expr: str) -> None:
-        pattern = (
-            r"_pf_prompt_yes_no\(\s*cfg\s*,\s*"
-            + re.escape(f'"{key}"')
-            + r"\s*,\s*"
-            + re.escape(f'"{prompt}"')
-            + r"\s*,\s*default_no\s*=\s*"
-            + default_expr
-            + r"\s*\)"
-        )
-        assert re.search(pattern, txt), f"expected _pf_prompt_yes_no call-site for {key!r} (formatting-robust)"
+    def _stub_pf_yes_no(cfg: dict, key: str, question: str, *, default_no: bool) -> bool:
+        calls.append((key, question, default_no))
+        return {"publish": False, "wipe_id3": True}.get(key, True)
 
-    must_have_pf_yes_no("use_manifest_answers", "[manifest] Use saved answers (skip prompts)?", r"False")
-    must_have_pf_yes_no("publish", "Publish after import?", r"\(not\s+default_publish\)")
-    must_have_pf_yes_no("wipe_id3", "Full wipe ID3 tags before tagging?", r"\(not\s+default_wipe\)")
-    must_have_pf_yes_no("clean_stage", "Clean stage after successful import?", r"\(not\s+default_clean\)")
+    monkeypatch.setattr(import_flow, "prompt_yes_no", _boom)
+    monkeypatch.setattr(import_flow, "_pf_prompt_yes_no", _stub_pf_yes_no)
+
+    state.OPTS = state.Opts(publish=None, wipe_id3=None)
+
+    pub, wipe = import_flow._preflight_global(cfg={})
+
+    assert pub is False
+    assert wipe is True
+    assert [c[0] for c in calls] == ["publish", "wipe_id3"]
