@@ -100,6 +100,47 @@ Semantics:
 
 ---
 
+
+
+### Minimal template (copy/paste)
+
+**Recommended (comment header; most robust):**
+
+```python
+#!/usr/bin/env python3
+# TARGET_HEAD: <git sha>
+# PROOF_ANCHOR: <repo-relative path> :: <stable snippet>
+
+"""FILE MANIFEST (repo-relative)
+- <path 1>
+- <path 2>
+"""
+
+def main() -> None:
+    # ...
+    return
+
+if __name__ == "__main__":
+    main()
+```
+
+**Also accepted (simple assignments; compatibility mode):**
+
+```python
+TARGET_HEAD = "<git sha>"
+PROOF_ANCHOR = "<repo-relative path> :: <stable snippet>"
+
+"""FILE MANIFEST (repo-relative)
+- <path 1>
+"""
+```
+
+Notes:
+- The runner performs **text-only** preflight scanning; it does **not** import or execute the patch script.
+- The header may be preceded by a shebang, encoding cookie, blank lines, or comments.
+- The runner scans only the **top region** of the file (currently up to 200 lines). Keep the header near the top.
+- Multiple `PROOF_ANCHOR` lines are allowed (repeat the line).
+
 ## 4. Patch Script Requirements (NORMATIVE)
 
 Patch scripts MUST:
