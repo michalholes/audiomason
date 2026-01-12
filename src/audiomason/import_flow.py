@@ -940,7 +940,6 @@ def run_import(cfg: dict, src_path: Optional[Path] = None) -> None:
             sys.stdout = _pl_tee
             sys.stderr = _pl_tee_err
 
-
         try:
             out(f"[source] {si}/{len(picked_sources)}: {src.name}")
 
