@@ -7,6 +7,61 @@ rules:
   fail_fast_on_missing_anchor: true
   fail_fast_on_missing_file: true
 files:
+- path: scripts/am_patch.md
+  domains: ['tooling']
+  file_sha1: "ab0158042519bd3599643ef6b91ea1ff10b74a2c"
+  anchors:
+  - anchor: '## Options'
+    first_line: 1
+    count: 1
+    context_before: ""
+    context_after: ""
+  - anchor: 'Retention (automatic)'
+    first_line: 1
+    count: 1
+    context_before: ""
+    context_after: ""
+  - anchor: 'Lock file location'
+    first_line: 1
+    count: 1
+    context_before: ""
+    context_after: ""
+
+- path: scripts/am_patch.py
+  domains: ['tooling']
+  file_sha1: "24b55dd9330f1f19c38f3a0a8dd5d58ed0ddbc48"
+  anchors:
+  - anchor: '--verify-only'
+    first_line: 1
+    count: 1
+    context_before: ""
+    context_after: ""
+  - anchor: 'RETENTION_MAX_LOGS'
+    first_line: 1
+    count: 1
+    context_before: ""
+    context_after: ""
+  - anchor: 'LOCK_PRIMARY_DIR'
+    first_line: 1
+    count: 1
+    context_before: ""
+    context_after: ""
+
+- path: scripts/am_patch.sh
+  domains: ['tooling']
+  file_sha1: "4b479b498159405246d637657eb162050450289f"
+  anchors:
+  - anchor: 'exec python3'
+    first_line: 1
+    count: 1
+    context_before: ""
+    context_after: ""
+  - anchor: 'am_patch.py'
+    first_line: 1
+    count: 1
+    context_before: ""
+    context_after: ""
+
 - path: src/audiomason/__init__.py
   domains: ['audio']
   file_sha1: "bd38f401c097a02af233a12333e72ed91d4fae77"

@@ -67,6 +67,36 @@ am_patch.sh 79 "Fix: preflight ordering" issue_79_run3_fix2.py
 
 ---
 
+## Options
+
+### Verify-only mode
+
+Run patch/finalize + tests, but **do not** commit or push:
+
+```bash
+/home/pi/apps/audiomason/scripts/am_patch.sh <ISSUE> "<COMMIT MESSAGE>" [<PATCH_FILENAME>] --verify-only
+```
+
+### Finalize mode (dirty tree)
+
+When you have made manual edits (dirty working tree) and want tests + commit/push:
+
+```bash
+/home/pi/apps/audiomason/scripts/am_patch.py -f "<COMMIT MESSAGE>"
+```
+
+### Test policy switches
+
+Default is strict:
+
+- `--tests all` (ruff + pytest + mypy)
+
+You can opt out:
+
+- `--tests pytest` (pytest only)
+- `--no-ruff` (skip ruff; only relevant with `--tests all`)
+- `--no-mypy` (skip mypy; only relevant with `--tests all`)
+
 ## Execution model
 
 ### High‑level flow
@@ -87,26 +117,28 @@ am_patch.sh 79 "Fix: preflight ordering" issue_79_run3_fix2.py
 
 ## Logging
 
-### Single rotating log
+Logs are stored under a dedicated directory:
 
-- Log path:
-  ```
-  /home/pi/apps/patches/am_patch.log
-  ```
-- The log is:
-  - **overwritten on each run**
-  - written simultaneously to terminal and file
-  - suitable for direct upload to IC
+```
+/home/pi/apps/patches/logs/
+```
 
-### Locking
+Each run creates a new per-run log file:
 
-- Lock file:
-  ```
-  /home/pi/apps/patches/am_patch.lock
-  ```
-- Prevents accidental parallel execution.
+```
+am_patch_<ISSUE|finalize>_<YYYYmmdd_HHMMSS>.log
+```
 
----
+A stable symlink always points to the latest run log:
+
+```
+/home/pi/apps/patches/am_patch.log
+```
+
+### Retention (automatic)
+
+The runner automatically keeps the most recent **20** log files and prunes older logs at the start of each run.
+Only files matching the expected log filename pattern are ever deleted.
 
 ## Failure handling (forensic‑only)
 
