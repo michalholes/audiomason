@@ -35,6 +35,15 @@ import subprocess
 import sys
 import traceback
 from pathlib import Path
+
+def _resolve_patch_path(patch_arg: str) -> Path:
+    """Resolve patch script path.
+    Accepts absolute paths, repo-relative paths, and relative paths (e.g. ../patches/x.py).
+    """
+    p = Path(patch_arg).expanduser()
+    if not p.is_absolute():
+        p = (Path.cwd() / p).resolve()
+    return p
 from typing import NoReturn, Sequence
 
 RUNNER_VERSION = "2.0"
