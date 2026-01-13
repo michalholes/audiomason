@@ -41,18 +41,20 @@ Project chats must not:
 
 ---
 
-## §2.1 Architectural Structure Principle
+## §2.1 Architectural Structure Principle (MANDATORY)
 
-The project SHOULD avoid monolithic control flows and SHOULD favor
+The project MUST avoid monolithic control flows and MUST favor
 small, well-bounded, documented modules with explicit responsibilities.
 
-Any intentional deviation from this principle MUST be explicitly
-justified in the corresponding issue description or implementation
-handoff.
+Creation or expansion of monolithic control flows is prohibited by default.
 
-This principle is architectural guidance, not an automatic
-implementation blocker. Its purpose is to preserve long-term
-maintainability, auditability, and reasoning clarity.
+Any intentional deviation from this principle:
+- MUST be explicitly approved by the Project Manager,
+- MUST be documented in the issue description or implementation handoff,
+- MUST include a clear rationale and defined rollback path.
+
+This principle is enforceable and applies to all implementation and refactor work.
+
 
 ## 3. Issue management
 
