@@ -1,6 +1,6 @@
 # PROJECT LAW – AudioMason
 # AUTHORITATIVE – AudioMason
-Version: 2.18
+Version: 2.19
 # Status: active
 
 This document is a project governance law subordinate to the Project Constitution.
@@ -41,20 +41,18 @@ Project chats must not:
 
 ---
 
-## §2.1 Architectural Structure Principle (MANDATORY)
+## §2.1 Architectural Structure Principle
 
-The project MUST avoid monolithic control flows and MUST favor
+The project SHOULD avoid monolithic control flows and SHOULD favor
 small, well-bounded, documented modules with explicit responsibilities.
 
-Creation or expansion of monolithic control flows is prohibited by default.
+Any intentional deviation from this principle MUST be explicitly
+justified in the corresponding issue description or implementation
+handoff.
 
-Any intentional deviation from this principle:
-- MUST be explicitly approved by the Project Manager,
-- MUST be documented in the issue description or implementation handoff,
-- MUST include a clear rationale and defined rollback path.
-
-This principle is enforceable and applies to all implementation and refactor work.
-
+This principle is architectural guidance, not an automatic
+implementation blocker. Its purpose is to preserve long-term
+maintainability, auditability, and reasoning clarity.
 
 ## 3. Issue management
 
@@ -302,65 +300,17 @@ constitutes a project management violation.
 ## §Y. Canonical Implementation Handoff Template (PM Mandatory)
 
 When opening an implementation chat, the Project Manager MUST provide the handoff
-using the **Canonical Implementation Handoff Template** below.
+using the **canonical handoff template** stored at:
+
+    docs/governance/IC_HANDOFF_TEMPLATE.md
 
 The Project Manager MUST:
+- use the template verbatim (no structural omissions),
 - fill in all placeholders,
 - list all authoritative inputs provided in the chat (exact filenames),
 - include the canonical artifact directory,
 - ensure the template is posted as the **first message** of the implementation chat.
 
-Failure to use this template constitutes a project management violation.
-
----
-
-### Canonical Implementation Handoff Template (copy/paste)
-
-```text
-# IMPLEMENTATION HANDOFF (CANONICAL)
-
-CHAT TYPE: IMPLEMENTATION
-
-GOVERNANCE BASIS (MUST PRINT IN EVERY IC RESPONSE):
-- PROJECT_CONSTITUTION vX.Y
-- PROJECT_LAW vX.Y
-- CONSULTANT_LAW vX.Y
-- IMPLEMENTATION_LAW vX.Y
-- This handoff
-
-ARTIFACT DIRECTORY (CANONICAL):
-/home/pi/apps/patches
-
-CANONICAL PATCH RUNNER (REPO-BACKED):
-python3 /home/pi/apps/audiomason/scripts/am_patch.py
-
-(OPTIONAL PATCH FILENAME ARGUMENT SUPPORTED)
-
-AUTHORITATIVE INPUTS (FILES PROVIDED IN THIS CHAT):
-- <list exact filenames, or NONE>
-
-ZIP STATUS:
-- ZIP provided: YES/NO
-- Expected proof in IC: FILE MANIFEST | anchor snippet | extraction error
-
-ISSUE:
-- #NN — <Title>
-- Goal: IMPLEMENTATION | VERIFICATION-ONLY
-- Scope: <exact scope>
-- Non-goals: <explicit exclusions>
-- Dependencies: <if any>
-
-MANDATORY GATES (IC MUST ENFORCE):
-- Hard Gates (GOVERNANCE BASIS + INPUT STATUS + ZIP proof)
-- Docs + Repo Manifest gate (no “complete” without docs/manifest if applicable)
-- Dual checklists:
-  - GATE CHECKLIST (every response)
-  - SELF-AUDIT CHECKLIST (FINAL RESULT only)
-
-DELIVERABLE (STRICT):
-- FINAL RESULT must be exactly one of:
-  A) COMPLETE (with SHA + confirmation tests + docs + manifest)
-  B) NOT COMPLETE / FAIL-FAST (explicit missing items, repo-relative paths)
-```
+Failure to use the canonical template constitutes a project management violation.
 
 END OF DOCUMENT
