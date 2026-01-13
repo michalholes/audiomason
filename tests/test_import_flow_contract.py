@@ -7,6 +7,7 @@ These tests lock behavior as the fixed point for Issue #117 refactor:
 NOTE: Selection input is read via import_flow._pf_prompt (not builtins.input).
 """
 
+# Design doc: docs/design/import_flow_modules.md
 from __future__ import annotations
 
 from pathlib import Path
