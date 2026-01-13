@@ -1104,3 +1104,40 @@ OUT OF SCOPE:
 - Test suite prevents repeating these regressions in future refactors.
 
 ---
+
+## #128 – Refactor: split CLI init and runtime execution
+- State: **OPEN**
+- Labels: refactor
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-13T09:53:30Z
+- Updated: 2026-01-13T09:53:30Z
+
+After recent fixes around logging initialization, it is clear that
+src/audiomason/cli.py mixes:
+
+- argument parsing
+- environment / logging initialization
+- runtime execution
+- error handling (nested try/except)
+
+in a single large control flow.
+
+This makes safe integration of cross-cutting concerns (logging, metrics,
+profiling) fragile and error-prone.
+
+Goal of this issue:
+- split CLI flow into explicit phases:
+  - init / setup
+  - runtime execution
+- reduce indentation depth and nested try/except blocks
+- make the CLI entrypoint structurally safe for future infra changes
+
+Out of scope:
+- behavioral changes
+- logging redesign (already handled elsewhere)
+- feature changes
+
+This is a pure structural refactor.
+
+---
