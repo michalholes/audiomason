@@ -18,7 +18,7 @@ to all mandatory requirements defined by the Implementation Law.
 
 AUTHORITATIVE – AudioMason  
 Status: active  
-Version: 2.18
+Version: 2.19
 This document is the highest governance document of the AudioMason project.
 It has absolute precedence over all other documents, laws, and chats.
 
