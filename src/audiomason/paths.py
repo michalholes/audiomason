@@ -102,7 +102,19 @@ def validate_paths_contract(cfg) -> Path:
     paths = cfg.get("paths", {}) if isinstance(cfg.get("paths", {}), dict) else {}
 
     # validate configured paths (if present)
-    for key in ("inbox", "stage", "output", "ready", "archive", "archive_ro", "cache"):
+    # Backward-compat keys (Issue #123 regression): library/staging/trash
+    for key in (
+        "inbox",
+        "stage",
+        "staging",
+        "output",
+        "ready",
+        "archive",
+        "library",
+        "archive_ro",
+        "cache",
+        "trash",
+    ):
         val = paths.get(key)
         if val:
             p = _resolve_path(val)
@@ -153,15 +165,23 @@ def get_drop_root(cfg) -> Path:
 
 
 def get_stage_root(cfg) -> Path:
-    return _get(cfg, ("stage", "stage_root"), _defaults_for(cfg)["stage"])
+    return _get(cfg, ("stage", "staging", "stage_root", "staging_root"), _defaults_for(cfg)["stage"])
 
 
 def get_output_root(cfg) -> Path:
-    return _get(cfg, ("output", "ready", "output_root"), _defaults_for(cfg)["output"])
+    return _get(
+        cfg,
+        ("output", "ready", "library", "output_root", "library_root"),
+        _defaults_for(cfg)["output"],
+    )
 
 
 def get_archive_root(cfg) -> Path:
-    return _get(cfg, ("archive", "archive_ro", "archive_root"), _defaults_for(cfg)["archive"])
+    return _get(
+        cfg,
+        ("archive", "library", "archive_ro", "archive_root", "library_root"),
+        _defaults_for(cfg)["archive"],
+    )
 
 
 def get_cache_root(cfg) -> Path:
