@@ -1007,3 +1007,61 @@ OUT OF SCOPE:
 - Future tool checks can be added without ad-hoc logic.
 
 ---
+
+## #125 – Bug: logging output missing after refactor (no visible logs)
+- State: **OPEN**
+- Labels: bug
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-13T08:26:21Z
+- Updated: 2026-01-13T08:26:21Z
+
+## Summary
+
+After recent refactors, AudioMason no longer produces visible logging output.
+Logs are missing both in console output and expected log destinations, even
+when running with debug enabled.
+
+This makes troubleshooting and error diagnosis extremely difficult.
+
+## Observed behavior
+
+- Running AudioMason produces little to no log output.
+- Debug mode does not visibly increase logging.
+- No clear indication where logs are written (if at all).
+
+## Expected behavior
+
+- AudioMason must emit logs consistently:
+  - to console (respecting verbosity / debug flags),
+  - and/or to a defined log destination when configured.
+- Logging behavior must be deterministic and documented.
+- Debug mode must visibly increase logging detail.
+
+## Suspected cause
+
+Logging initialization or propagation was lost or altered during refactor:
+- missing or broken logging configuration,
+- logger hierarchy not wired correctly across modules,
+- handlers not attached or log level overridden.
+
+## Scope
+
+IN SCOPE:
+- Restore functional logging
+- Ensure logs are visible and actionable
+- Fix regression introduced by refactor
+
+OUT OF SCOPE:
+- Redesign of logging system
+- New logging features
+- Log format changes (unless strictly required)
+
+## Acceptance criteria
+
+- Logs are visible during normal execution.
+- Debug mode produces clearly more verbose logs.
+- Logging works across refactored modules.
+- No silent execution without logs.
+
+---
