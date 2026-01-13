@@ -1072,37 +1072,60 @@ OUT OF SCOPE:
 - Assignees: —
 - Milestone: —
 - Created: 2026-01-13T08:38:17Z
-- Updated: 2026-01-13T08:38:17Z
+- Updated: 2026-01-13T08:41:00Z
 
 ## Summary
 
-AudioMason writes the "ignored books" artifact file into the inbox directory.
-This is incorrect: inbox is an input area and must not be polluted with run artifacts.
+AudioMason writes the ignored-books state file into the inbox directory.
+Inbox is an input-only area and must never be polluted with runtime or state artifacts.
 
-The ignored-books file must be stored under the run's working directory
-(stage/run dir / state dir) where other run artifacts belong.
+Affected file:
+- .abook_ignore
+
+## Evidence (authoritative)
+
+The following file is present in the inbox after a run:
+/mnt/warez/am/inbox/.abook_ignore
+
+This file is created by AudioMason during processing and is not part of the original input.
 
 ## Actual behavior
 
-- An "ignored books" file is created under the inbox path.
+- .abook_ignore is written directly into the inbox directory.
+- Inbox content is modified as a side effect of a run.
 
 ## Expected behavior
 
-- The ignored-books file must be written into the run working directory:
-  - stage/run directory (or the canonical per-run artifact/state directory),
-  - not into inbox.
-- Inbox must remain an input-only directory.
+- .abook_ignore MUST NOT be written into inbox.
+- It must be stored in the run working directory:
+  - stage directory, or
+  - per-run / per-source state directory,
+  - or another canonical working/state location defined by the pipeline.
+- Inbox must remain input-only and unchanged by runtime artifacts.
 
-## Why this matters
+## Why this is a bug
 
-- Determinism and hygiene: inbox should not contain derived artifacts.
-- Avoids confusing users and breaking automation that assumes inbox contains only inputs.
+- Inbox is a discovery and input contract and must remain clean.
+- Writing state into inbox breaks determinism and hygiene.
+- It can silently affect future runs by changing discovery behavior.
+- Users reasonably expect inbox contents to be user-controlled only.
+
+## Scope
+
+IN SCOPE:
+- Move .abook_ignore out of inbox into the canonical working/state directory.
+- Ensure no runtime artifacts are written into inbox.
+
+OUT OF SCOPE:
+- Redesign of ignore semantics.
+- Changes to ignore file format or naming.
+- Any new features.
 
 ## Acceptance criteria
 
-- The ignored-books file is no longer written into inbox.
-- It is written into the canonical run working directory instead.
-- Regression test asserts the artifact location.
-- No other behavior changes.
+- .abook_ignore is no longer created in inbox.
+- It is written only into the canonical working/state directory.
+- Inbox remains unchanged after a run (except explicit, user-driven actions).
+- A regression test asserts the correct artifact location.
 
 ---
