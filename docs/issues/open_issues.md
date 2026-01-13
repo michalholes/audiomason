@@ -658,93 +658,101 @@ ACCEPTANCE CRITERIA
 - Assignees: —
 - Milestone: —
 - Created: 2026-01-10T23:58:24Z
-- Updated: 2026-01-11T15:31:34Z
+- Updated: 2026-01-13T00:14:46Z
 
-## Refactor plan: split `import_flow.py` monolith (structural E501 + maintainability)
+## 📌 PM SUMMARY — Issue #117
+**Refactor `import_flow` (safety-first, contract-driven)**
 
-### Goal
-Split `src/audiomason/import_flow.py` into smaller, responsibility-based modules to:
-- reduce complexity and long lines (E501) structurally,
-- improve testability and mypy friendliness,
-- preserve user-facing behavior and CLI UX.
+**Status:** ✅ DONE / CLOSED  
+**Dependency:** Issue #118 — Behavior-based contract tests (completed, stable)
 
-This is a refactor, not a feature change.
+---
 
-### Non-goals
-- No new features.
-- No behavior changes.
-- No new runtime dependencies.
-- No changes to discovery semantics, manifest format, or log semantics unless strictly necessary.
+### 1. Goal (PM Perspective)
 
-### Constraints / invariants (must remain true)
-- Public entrypoints remain stable (e.g. `run_import(cfg)` stays the same externally).
-- Determinism preserved:
-  - same inputs => same outputs/artifacts (paths, ordering, decisions resolution).
-- Interactive prompts remain unchanged in default mode.
-- Existing test suite stays green at every step.
+The goal of #117 was **not to change user-visible behavior**, but to:
 
-### Strategy: incremental “strangler” refactor
-Do NOT do a big-bang rewrite. Extract modules one by one and keep `import_flow.py` as a thin orchestrator.
+- reduce technical debt in `import_flow`,
+- separate responsibilities (discovery, preflight, processing, logging),
+- prepare the codebase for future changes,
+- **without any regression risk**.
 
-Each step must be a small, auditable patch:
-- `pytest -q` must pass
-- `ruff check .` and `ruff format --check .` must pass
-- `mypy src/audiomason` should not get worse (ideally improves)
+This work was executed strictly under the protection of **behavior-based contracts introduced in #118**.
 
-### Step 0 — Baseline & safety rails
-- Confirm current behavior with tests (already green in #109 context).
-- Identify boundaries of concerns:
-  - discovery / selection
-  - staging
-  - preflight decision resolution
-  - processing pipeline
-  - publishing / output layout
-  - manifest persistence
-  - logging / tee / stdout redirection
+> From a PM perspective: **#117 is infrastructure work, not a feature.**
 
-### Step 1 — Extract types & small pure helpers
-Create `src/audiomason/import_types.py`:
-- dataclasses / TypedDicts / enums currently embedded in `import_flow.py`
-- pure helpers without filesystem or prompt I/O
+---
 
-### Step 2 — Extract discovery & selection
-Create `src/audiomason/import_discovery.py`:
-- source listing logic
-- source selection prompt parsing + validation
-- book detection logic
+### 2. Key Decisions (Authoritative)
 
-### Step 3 — Extract staging / workspace management
-Create `src/audiomason/import_stage.py`:
-- stage directory naming/layout
-- staging copy operations
-- cleanup policies
+#### 2.1 Contracts are absolute
+- Tests from **#118 are authoritative**.
+- Any refactor that removes symbols, changes importability, or alters behavior is **invalid**, even if architecturally cleaner.
 
-### Step 4 — Extract preflight resolution
-Create `src/audiomason/import_preflight.py`:
-- preflight step registry
-- decision resolution and persistence
-- separate prompt I/O from core logic
+#### 2.2 `import_flow` is NOT a thin orchestrator
+- `import_flow` functions as a **contract façade module**.
+- Many “private” helpers are imported **directly by tests**.
+- Attempting to convert it into a thin orchestrator at this stage was **strategically incorrect**.
 
-### Step 5 — Extract publishing / output layout
-Create `src/audiomason/import_publish.py`:
-- output directory computation
-- overwrite policy handling
-- manifest updates related to publishing
+---
 
-### Step 6 — Extract logging / tee
-Create `src/audiomason/import_logging.py`:
-- context manager for tee + stdout/stderr handling
-- avoid monkey-patching modules
+### 3. Execution Summary
 
-### Step 7 — Make `import_flow.py` a thin orchestrator
-- high-level orchestration only
-- minimal inline logic
+#### Phase A — Preparation (SUCCESS)
+- #118 introduced behavior-based contract tests.
+- A stable, non-negotiable reference point was established.
 
-### Definition of done
-- responsibilities clearly separated
-- ruff + mypy clean
-- pytest green
-- no user-facing behavior changes
+#### Phase B — Safe Refactors (SUCCESS)
+Steps 1–7:
+- helper extraction (discovery, preflight, processing, logging),
+- **no behavior change**,
+- ruff / pytest / mypy remained green.
+
+#### Phase C — Step 8 (CANCELLED)
+- Attempted thin-orchestrator refactor of `import_flow`.
+- Resulted in massive contract breakage (~40 failing tests).
+- **Step 8 was invalidated and reverted**, not fixed.
+
+---
+
+### 4. Final Resolution
+
+- Step 8 is **explicitly cancelled**
+- No Step 8 changes exist on `main`
+- `import_flow` remains a **contract façade**
+
+---
+
+### 5. Outcome
+
+- Branch: `main`
+- Tests: **111/111 passing**
+- Ruff: clean
+- Mypy: clean
+- Zero user-visible behavior change
+- Technical debt reduced safely
+
+---
+
+### 6. Commits Included in #117
+
+```
+a9bf732 Refactor: extract BookGroup type + ruff import ordering (Step 1 fix) (Issue #117)
+1efa9b6 Refactor: fix discovery step ruff issues (unused imports, ordering) (Step 2 fix) (Issue #117)
+c8c540f Refactor: Step 3 final mypy fix — guard state.OPTS None (Issue #117)
+226d4bb Refactor: Step 4 fix — staging imports ruff-clean (Issue #117)
+2ff1be4 Refactor: Step 5 fix — provide full write_tags signature (mypy clean) (Issue #117)
+e1d7f9a Refactor: Step 6 fix — ruff clean imports (Issue #117)
+b0bc6f7 Refactor: Step 7 fix — ruff clean logging imports (Issue #117)
+```
+
+*(Authoritative source: git history)*
+
+---
+
+### 7. One-Sentence PM Summary
+
+Issue #117 successfully reduced technical debt and prepared `import_flow` for future work without changing behavior; an attempted thin-orchestrator refactor was correctly cancelled thanks to contract tests from #118, preventing regressions.
 
 
 ---
