@@ -1332,3 +1332,26 @@ files:
   - anchor: '## Module map'
     first_line: 1
     count: 1
+- path: docs/CONFIGURATION.md
+  domains: ['docs']
+  file_sha1: "f6bb04a0a31145308d66db61bf7692b6199a0936"
+  anchors:
+    - anchor: "## Minimal example"
+      first_line: 37
+      count: 1
+      context_before: ""
+      context_after: "```yaml"
+    - anchor: "### Paths precedence (runtime)"
+      first_line: 50
+      count: 1
+      context_before: "```"
+      context_after: "If you explicitly configure"
+- path: tests/test_paths.py
+  domains: ['tests']
+  file_sha1: "bcb63902c1a186d45f7227bafae34d37f149fd6f"
+  anchors:
+    - anchor: "def test_paths_default_are_paths("
+      first_line: 5
+      count: 1
+      context_before: ""
+      context_after: ""

@@ -47,6 +47,12 @@ import:
   publish: ask
 ```
 
+### Paths precedence (runtime)
+
+If you explicitly configure any `paths.*` values in `config.yaml`, AudioMason must use them at runtime.
+When `paths.*` are present, **no fallback to XDG defaults** is allowed (no writes under `~/.local/share/audiomason/`).
+
+
 ---
 
 ## Guidance
