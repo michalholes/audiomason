@@ -107,6 +107,8 @@ This proof MUST be provided together with the initial hard gate blocks (GOVERNAN
 
 IE MUST include one anchor proof for EACH document in the Governance Basis.
 
+- scripts/am_patch.md MUST be included as a separate anchor proof entry.
+
 Format (one line per document):
 - <FILENAME> :: <SECTION HEADING> :: anchor="<10-20 char unique substring>"
 
