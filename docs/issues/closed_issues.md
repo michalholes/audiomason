@@ -1,5 +1,77 @@
 # Closed Issues
 
+## #123 – Bug: config.yaml is loaded but paths are ignored (fallback to ~/.local/share/audiomason)
+- State: **CLOSED**
+- Labels: bug
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-13T00:40:58Z
+- Updated: 2026-01-13T09:09:33Z
+- Closed: 2026-01-13T09:09:33Z
+
+## Summary
+
+After the recent refactor, AudioMason logs that the user config was loaded, but runtime behavior ignores configured paths and falls back to the default XDG data directory.
+
+## Reproduction
+
+1. Ensure config exists at:
+   /home/pi/.config/audiomason/config.yaml
+2. Run:
+   am --debug
+
+Observed output:
+[TRACE] [config] loaded_from=/home/pi/.config/audiomason/config.yaml
+
+## Actual behavior
+
+Despite the config being reported as loaded, AudioMason writes data to:
+  ~/.local/share/audiomason/
+
+Example:
+  ~/.local/share/audiomason/abooks
+  ~/.local/share/audiomason/abooks_ready
+  ~/.local/share/audiomason/_am_stage
+
+## Expected behavior
+
+Configured paths from config.yaml must be respected.
+
+Expected roots:
+- inbox:   /mnt/warez/am/inbox
+- library: /mnt/warez/abooks
+- staging: /mnt/warez/am/staging
+- cache:   /mnt/warez/am/.audiomason-cache
+- trash:   /mnt/media/am/.audiomason-trash
+
+No writes should occur under ~/.local/share/audiomason unless explicitly configured.
+
+## Config used
+
+paths:
+  inbox: /mnt/warez/am/inbox
+  library: /mnt/warez/abooks
+  staging: /mnt/warez/am/staging
+  cache: /mnt/warez/am/.audiomason-cache
+  trash: /mnt/media/am/.audiomason-trash
+
+## Notes
+
+This looks like a regression introduced by the refactor:
+- config is discovered and parsed (loaded_from is printed),
+- but paths are either not propagated into runtime state,
+  overridden later by defaults, or downstream code reads a different config object.
+
+The bug is observable immediately on am --debug, without running an import.
+
+## Acceptance criteria
+
+- Configured paths.* are applied consistently across runtime.
+- No fallback to XDG data dir when paths are explicitly configured.
+- Add a regression test asserting path propagation.
+
+---
+
 ## #109 – EPIC: Codebase cleanup for strict ruff + mypy compliance
 - State: **CLOSED**
 - Labels: —
