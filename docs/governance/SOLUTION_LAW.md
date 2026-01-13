@@ -2,7 +2,7 @@
 
 AUTHORITATIVE – AudioMason  
 Status: active  
-Version: 2.17
+Version: 2.18
 This document is an execution law subordinate to the Project Constitution.
 It governs the Solution Engineer role.
 

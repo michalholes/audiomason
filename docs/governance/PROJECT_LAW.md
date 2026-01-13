@@ -1,6 +1,6 @@
 # PROJECT LAW – AudioMason
 # AUTHORITATIVE – AudioMason
-Version: 2.17
+Version: 2.18
 # Status: active
 
 This document is a project governance law subordinate to the Project Constitution.
@@ -40,6 +40,19 @@ Project chats must not:
 - modify repository state directly.
 
 ---
+
+## §2.1 Architectural Structure Principle
+
+The project SHOULD avoid monolithic control flows and SHOULD favor
+small, well-bounded, documented modules with explicit responsibilities.
+
+Any intentional deviation from this principle MUST be explicitly
+justified in the corresponding issue description or implementation
+handoff.
+
+This principle is architectural guidance, not an automatic
+implementation blocker. Its purpose is to preserve long-term
+maintainability, auditability, and reasoning clarity.
 
 ## 3. Issue management
 

@@ -3,7 +3,7 @@
 STATUS: NORMATIVE  
 APPLIES TO: All Implementation Chats (IC)  
 AUTHORITY: IMPLEMENTATION_LAW  
-Version: 2.17
+Version: 2.18
 ---
 
 ## PURPOSE
