@@ -450,3 +450,17 @@ Reason (factual, non-propositional):
 Only the User may approve or reject the escalation.
 
 END OF DOCUMENT
+
+---
+
+## Mandatory Implementation Chat Handoff (NORMATIVE)
+
+Every Implementation Chat (IC) MUST begin with a handoff that strictly follows
+the canonical IC handoff template defined in:
+
+    docs/governance/IC_HANDOFF_TEMPLATE.md
+
+The template is NORMATIVE and NON-NEGOTIABLE.
+
+Any IE response that violates the IC handoff template, including missing hard
+gates or documentation compliance, is INVALID and MUST be rejected.
