@@ -31,10 +31,10 @@ CHAT TYPE: IMPLEMENTATION
 ================================================================================
 GOVERNANCE BASIS (MUST BE PRINTED IN EVERY IE RESPONSE)
 ================================================================================
-- PROJECT_CONSTITUTION v2.x
-- PROJECT_LAW v2.x
-- CONSULTANT_LAW v2.x
-- IMPLEMENTATION_LAW v2.x
+- PROJECT_CONSTITUTION v2.19
+- PROJECT_LAW v2.19
+- CONSULTANT_LAW v2.19
+- IMPLEMENTATION_LAW v2.19
 - This handoff
 
 ================================================================================
@@ -98,7 +98,9 @@ If ANY of the above is missing:
 - IE MUST stop immediately,
 - NO implementation steps are allowed.
 
-DOCUMENT COMPLIANCE PROOF (MANDATORY)
+DOCUMENT COMPLIANCE PROOF (MANDATORY — FIRST IE RESPONSE ONLY)
+
+This proof MUST be provided together with the initial hard gate blocks (GOVERNANCE BASIS and INPUT STATUS).
 
 IE MUST include one anchor proof for EACH document in the Governance Basis.
 
@@ -108,7 +110,7 @@ Format (one line per document):
 Rules:
 - The anchor substring MUST appear verbatim in the referenced file.
 - The section heading MUST match an actual heading in that file.
-- If any anchor cannot be found, the response is AUTO-INVALID.
+- If any anchor cannot be found, the response is AUTO-INVALID.\n- This block is required ONLY in the first IE response of the IC.
 
 
 ================================================================================
