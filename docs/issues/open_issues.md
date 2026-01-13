@@ -1065,3 +1065,44 @@ OUT OF SCOPE:
 - No silent execution without logs.
 
 ---
+
+## #126 – Bug: ignored-books file is written into inbox instead of the run working directory
+- State: **OPEN**
+- Labels: bug
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-13T08:38:17Z
+- Updated: 2026-01-13T08:38:17Z
+
+## Summary
+
+AudioMason writes the "ignored books" artifact file into the inbox directory.
+This is incorrect: inbox is an input area and must not be polluted with run artifacts.
+
+The ignored-books file must be stored under the run's working directory
+(stage/run dir / state dir) where other run artifacts belong.
+
+## Actual behavior
+
+- An "ignored books" file is created under the inbox path.
+
+## Expected behavior
+
+- The ignored-books file must be written into the run working directory:
+  - stage/run directory (or the canonical per-run artifact/state directory),
+  - not into inbox.
+- Inbox must remain an input-only directory.
+
+## Why this matters
+
+- Determinism and hygiene: inbox should not contain derived artifacts.
+- Avoids confusing users and breaking automation that assumes inbox contains only inputs.
+
+## Acceptance criteria
+
+- The ignored-books file is no longer written into inbox.
+- It is written into the canonical run working directory instead.
+- Regression test asserts the artifact location.
+- No other behavior changes.
+
+---
