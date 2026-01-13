@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, cast
 
 import audiomason.state as state
 from audiomason.config import _validate_prompts_disable, load_config
@@ -267,189 +267,200 @@ def _ns_to_opts(ns: argparse.Namespace) -> Opts:
     )
 
 
+def _cli_init() -> tuple[argparse.Namespace, set[str], Dict[str, Any] | None]:
+    """Initialize CLI: parse args, apply argv quirks, wire debug/verbose, load config if needed."""
+    ns = _parse_args()
+
+    # argparse quirk: --config can be lost when subparsers are involved
+    _cfgp = _argv_config_path()
+    if _cfgp is not None:
+        setattr(ns, "config", _cfgp)
+
+    argv_set = set(sys.argv[1:])
+
+    # DEBUG wiring must be active before any out()/trace output
+    state.DEBUG = "--debug" in argv_set
+    state.VERBOSE = bool(getattr(ns, "verbose", False))
+    if state.DEBUG:
+        from audiomason.util import enable_trace
+
+        enable_trace()
+
+    # argparse quirk: --json can be lost when subparsers are involved
+    if "--json" in argv_set:
+        setattr(ns, "json", True)
+
+    cfg: Dict[str, Any] | None = None
+    if _cmd_requires_config(ns):
+        # Issue #105: config is loaded lazily ONLY after args are parsed and
+        # only for commands that actually require it.
+        cfg = load_config(getattr(ns, "config", None))
+        validate_paths_contract(cfg)
+        _apply_config_defaults(ns, cfg)
+    else:
+        _apply_builtin_defaults(ns)
+
+    state.OPTS = _ns_to_opts(ns)
+
+    return ns, argv_set, cfg
+
+def _cli_run(ns: argparse.Namespace, argv_set: set[str], cfg: Dict[str, Any] | None) -> int:
+    """Execute runtime command flow. Behavior must match the previous monolithic main()."""
+    opts = cast(Opts, state.OPTS)
+
+    if state.DEBUG:
+        if cfg is not None:
+            print(f"[TRACE] [config] loaded_from={cfg.get('loaded_from', 'unknown')}", flush=True)
+        else:
+            print("[TRACE] [config] not loaded", flush=True)
+
+    # Non-config commands must work without config (Issue #105).
+    if ns.cmd == "inspect":
+        from audiomason.inspect import inspect_source
+
+        inspect_source(ns.path)
+        return 0
+
+    if ns.cmd == "verify" and cfg is None:
+        root = getattr(ns, "root", None) or opts.verify_root
+        if root is None:
+            raise AmConfigError("verify requires --verify-root or config (paths.verify_root)")
+        verify_library(root)
+        return 0
+
+    # From here on, commands are config-dependent.
+    assert cfg is not None
+
+    # Issue #82: resolve OpenLibrary enablement (CLI > config)
+    if "--lookup" in argv_set:
+        _ol_cli = True
+    elif "--no-lookup" in argv_set:
+        _ol_cli = False
+    else:
+        _ol_cli = None
+
+    _ol_cfg = cfg.get("openlibrary", {})
+    if not isinstance(_ol_cfg, dict):
+        raise AmConfigError("Invalid config: openlibrary must be a mapping")
+    _ol_cfg_enabled = bool(_ol_cfg.get("enabled", True))
+    _ol_effective = _ol_cli if _ol_cli is not None else _ol_cfg_enabled
+    opts.lookup = bool(_ol_effective)
+    cfg["_openlibrary_enabled"] = bool(_ol_effective)
+
+    # FEATURE #65: config default for clean_inbox when flag not provided
+    argv_list = list(sys.argv[1:])
+    argv_has_clean_inbox = "--clean-inbox" in argv_list
+    if not argv_has_clean_inbox:
+        cfg_mode = cfg.get("clean_inbox", "no")
+        opts.clean_inbox_mode = str(cfg_mode)
+
+    if state.DEBUG:
+        print(f"[TRACE] [config] argv_has_clean_inbox={argv_has_clean_inbox}", flush=True)
+        print(f"[TRACE] [config] clean_inbox_mode={opts.clean_inbox_mode}", flush=True)
+
+    if str(opts.verify_root) == "__AUDIOMASON_VERIFY_ROOT_UNSET__":
+        opts.verify_root = get_output_root(cfg)
+
+    # Issue #89: resolve prompts.disable (CLI overrides config)
+    _dp = getattr(ns, "disable_prompt", None)
+    if _dp is not None:
+        items: list[str] = []
+        for raw in _dp:
+            for part in str(raw).split(","):
+                k = part.strip()
+                if k:
+                    items.append(k)
+        if not items:
+            raise AmConfigError("Invalid --disable-prompt: no keys specified")
+
+        prm = cfg.get("prompts", {})
+        if prm is None:
+            prm = {}
+        if not isinstance(prm, dict):
+            raise AmConfigError("Invalid config: prompts must be a mapping")
+
+        prm2 = dict(prm)
+        prm2["disable"] = items
+        cfg["prompts"] = prm2
+        if "_prompts_disable_set" in cfg:
+            del cfg["_prompts_disable_set"]
+        _validate_prompts_disable(cfg)
+
+    # Feature #72: version banner (configurable via config.yaml: version-banner)
+    _vb = bool(cfg.get("version-banner", True))
+    if _vb and ((not opts.quiet) or bool(getattr(state.OPTS, "json", False))):
+        print(_version_kv_line(), flush=True)
+
+    if ns.cmd == "verify":
+        root = ns.root or opts.verify_root
+        verify_library(root)
+        return 0
+
+    if ns.cmd == "cache":
+        if getattr(ns, "cache_cmd", None) == "gc":
+            from audiomason.cache_gc import cache_gc
+
+            return int(
+                cache_gc(
+                    cfg,
+                    days=getattr(ns, "days", None),
+                    max_mb=getattr(ns, "max_mb", None),
+                    dry_run=bool(getattr(ns, "dry_run", False)),
+                )
+            )
+        out("[error] unknown cache subcommand")
+        return 2
+
+    # Issue #74: resolve processing_log (CLI overrides config)
+    _pl_cfg = cfg.get("processing_log", {})
+    if not isinstance(_pl_cfg, dict):
+        _pl_cfg = {}
+    _pl_enabled = bool(_pl_cfg.get("enabled", False))
+    _pl_path = _pl_cfg.get("path", None)
+    if getattr(ns, "processing_log_path", None) is not None:
+        _pl_enabled = True
+        _pl_path = str(getattr(ns, "processing_log_path"))
+    elif bool(getattr(ns, "processing_log", False)):
+        _pl_enabled = True
+        _pl_path = None
+    cfg["processing_log"] = {"enabled": bool(_pl_enabled), "path": _pl_path}
+
+    # FEATURE #67: resolve preflight_disable (CLI overrides config)
+    _pd = getattr(ns, "preflight_disable", None)
+    if _pd:
+        _items: list[str] = []
+        for _raw in _pd:
+            for _part in str(_raw).split(","):
+                _k = _part.strip()
+                if _k:
+                    _items.append(_k)
+        cfg["preflight_disable"] = _items
+    else:
+        _d = cfg.get("preflight_disable", [])
+        cfg["preflight_disable"] = list(_d) if isinstance(_d, list) else []
+
+    run_import(cfg, getattr(ns, "path", None))
+
+    # Issue #90 (amended): banner shows by default after successful import.
+    # Disabled in machine/silent modes (--quiet / --json) and when user disables via CLI or config.
+    support_enabled = True
+    if bool(getattr(state.OPTS, "quiet", False)) or bool(getattr(state.OPTS, "json", False)):
+        support_enabled = False
+    if bool(getattr(ns, "no_support", False)):
+        support_enabled = False
+    sup_cfg = cfg.get("support", {}) if isinstance(cfg.get("support", {}), dict) else {}
+    if sup_cfg.get("enabled", True) is False:
+        support_enabled = False
+    if support_enabled:
+        print(SUPPORT_LINE)
+
+    return 0
+
 def main() -> int:
     try:
         try:
-            ns = _parse_args()
-
-            # argparse quirk: --config can be lost when subparsers are involved
-            _cfgp = _argv_config_path()
-            if _cfgp is not None:
-                setattr(ns, "config", _cfgp)
-
-            argv_set = set(sys.argv[1:])
-
-            # DEBUG wiring must be active before any out()/trace output
-            state.DEBUG = "--debug" in argv_set
-            state.VERBOSE = bool(getattr(ns, "verbose", False))
-            if state.DEBUG:
-                from audiomason.util import enable_trace
-
-                enable_trace()
-
-            # argparse quirk: --json can be lost when subparsers are involved
-            if "--json" in argv_set:
-                setattr(ns, "json", True)
-
-            cfg: Dict[str, Any] | None = None
-            if _cmd_requires_config(ns):
-                # Issue #105: config is loaded lazily ONLY after args are parsed and
-                # only for commands that actually require it.
-                cfg = load_config(getattr(ns, "config", None))
-                validate_paths_contract(cfg)
-                _apply_config_defaults(ns, cfg)
-            else:
-                _apply_builtin_defaults(ns)
-
-            state.OPTS = _ns_to_opts(ns)
-
-            if state.DEBUG:
-                if cfg is not None:
-                    print(f"[TRACE] [config] loaded_from={cfg.get('loaded_from', 'unknown')}", flush=True)
-                else:
-                    print("[TRACE] [config] not loaded", flush=True)
-
-            # Non-config commands must work without config (Issue #105).
-            if ns.cmd == "inspect":
-                from audiomason.inspect import inspect_source
-
-                inspect_source(ns.path)
-                return 0
-
-            if ns.cmd == "verify" and cfg is None:
-                root = getattr(ns, "root", None) or state.OPTS.verify_root
-                if root is None:
-                    raise AmConfigError("verify requires --verify-root or config (paths.verify_root)")
-                verify_library(root)
-                return 0
-
-            # From here on, commands are config-dependent.
-            assert cfg is not None
-
-            # Issue #82: resolve OpenLibrary enablement (CLI > config)
-            if "--lookup" in argv_set:
-                _ol_cli = True
-            elif "--no-lookup" in argv_set:
-                _ol_cli = False
-            else:
-                _ol_cli = None
-
-            _ol_cfg = cfg.get("openlibrary", {})
-            if not isinstance(_ol_cfg, dict):
-                raise AmConfigError("Invalid config: openlibrary must be a mapping")
-            _ol_cfg_enabled = bool(_ol_cfg.get("enabled", True))
-            _ol_effective = _ol_cli if _ol_cli is not None else _ol_cfg_enabled
-            state.OPTS.lookup = bool(_ol_effective)
-            cfg["_openlibrary_enabled"] = bool(_ol_effective)
-
-            # FEATURE #65: config default for clean_inbox when flag not provided
-            argv_list = list(sys.argv[1:])
-            argv_has_clean_inbox = "--clean-inbox" in argv_list
-            if not argv_has_clean_inbox:
-                cfg_mode = cfg.get("clean_inbox", "no")
-                state.OPTS.clean_inbox_mode = str(cfg_mode)
-
-            if state.DEBUG:
-                print(f"[TRACE] [config] argv_has_clean_inbox={argv_has_clean_inbox}", flush=True)
-                print(f"[TRACE] [config] clean_inbox_mode={state.OPTS.clean_inbox_mode}", flush=True)
-
-            if str(state.OPTS.verify_root) == "__AUDIOMASON_VERIFY_ROOT_UNSET__":
-                state.OPTS.verify_root = get_output_root(cfg)
-
-            # Issue #89: resolve prompts.disable (CLI overrides config)
-            _dp = getattr(ns, "disable_prompt", None)
-            if _dp is not None:
-                items: list[str] = []
-                for raw in _dp:
-                    for part in str(raw).split(","):
-                        k = part.strip()
-                        if k:
-                            items.append(k)
-                if not items:
-                    raise AmConfigError("Invalid --disable-prompt: no keys specified")
-
-                prm = cfg.get("prompts", {})
-                if prm is None:
-                    prm = {}
-                if not isinstance(prm, dict):
-                    raise AmConfigError("Invalid config: prompts must be a mapping")
-
-                prm2 = dict(prm)
-                prm2["disable"] = items
-                cfg["prompts"] = prm2
-                if "_prompts_disable_set" in cfg:
-                    del cfg["_prompts_disable_set"]
-                _validate_prompts_disable(cfg)
-
-            # Feature #72: version banner (configurable via config.yaml: version-banner)
-            _vb = bool(cfg.get("version-banner", True))
-            if _vb and ((not state.OPTS.quiet) or bool(getattr(state.OPTS, "json", False))):
-                print(_version_kv_line(), flush=True)
-
-            if ns.cmd == "verify":
-                root = ns.root or state.OPTS.verify_root
-                verify_library(root)
-                return 0
-
-            if ns.cmd == "cache":
-                if getattr(ns, "cache_cmd", None) == "gc":
-                    from audiomason.cache_gc import cache_gc
-
-                    return int(
-                        cache_gc(
-                            cfg,
-                            days=getattr(ns, "days", None),
-                            max_mb=getattr(ns, "max_mb", None),
-                            dry_run=bool(getattr(ns, "dry_run", False)),
-                        )
-                    )
-                out("[error] unknown cache subcommand")
-                return 2
-
-            # Issue #74: resolve processing_log (CLI overrides config)
-            _pl_cfg = cfg.get("processing_log", {})
-            if not isinstance(_pl_cfg, dict):
-                _pl_cfg = {}
-            _pl_enabled = bool(_pl_cfg.get("enabled", False))
-            _pl_path = _pl_cfg.get("path", None)
-            if getattr(ns, "processing_log_path", None) is not None:
-                _pl_enabled = True
-                _pl_path = str(getattr(ns, "processing_log_path"))
-            elif bool(getattr(ns, "processing_log", False)):
-                _pl_enabled = True
-                _pl_path = None
-            cfg["processing_log"] = {"enabled": bool(_pl_enabled), "path": _pl_path}
-
-            # FEATURE #67: resolve preflight_disable (CLI overrides config)
-            _pd = getattr(ns, "preflight_disable", None)
-            if _pd:
-                _items: list[str] = []
-                for _raw in _pd:
-                    for _part in str(_raw).split(","):
-                        _k = _part.strip()
-                        if _k:
-                            _items.append(_k)
-                cfg["preflight_disable"] = _items
-            else:
-                _d = cfg.get("preflight_disable", [])
-                cfg["preflight_disable"] = list(_d) if isinstance(_d, list) else []
-
-            run_import(cfg, getattr(ns, "path", None))
-
-            # Issue #90 (amended): banner shows by default after successful import.
-            # Disabled in machine/silent modes (--quiet / --json) and when user disables via CLI or config.
-            support_enabled = True
-            if bool(getattr(state.OPTS, "quiet", False)) or bool(getattr(state.OPTS, "json", False)):
-                support_enabled = False
-            if bool(getattr(ns, "no_support", False)):
-                support_enabled = False
-            sup_cfg = cfg.get("support", {}) if isinstance(cfg.get("support", {}), dict) else {}
-            if sup_cfg.get("enabled", True) is False:
-                support_enabled = False
-            if support_enabled:
-                print(SUPPORT_LINE)
-
-            return 0
+            ns, argv_set, cfg = _cli_init()
+            return _cli_run(ns, argv_set, cfg)
         except KeyboardInterrupt as e:
             raise AmAbort("cancelled by user") from e
     except AmAbort as e:
