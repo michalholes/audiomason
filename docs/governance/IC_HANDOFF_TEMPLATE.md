@@ -98,6 +98,9 @@ If ANY of the above is missing:
 - IE MUST stop immediately,
 - NO implementation steps are allowed.
 
+If ZIP is provided and ZIP ROOT is missing or incorrect, IE MUST FAIL-FAST before any document or code inspection.
+
+
 DOCUMENT COMPLIANCE PROOF (MANDATORY — FIRST IE RESPONSE ONLY)
 
 This proof MUST be provided together with the initial hard gate blocks (GOVERNANCE BASIS and INPUT STATUS).
@@ -123,6 +126,12 @@ FILES PROVIDED IN THIS CHAT:
 ZIP STATUS:
 - ZIP provided: YES / NO
 - Expected proof in IC: YES / NO / N/A
+
+ZIP ROOT (MANDATORY IF ZIP PROVIDED):
+- ZIP root directory: <path inside ZIP, e.g. "audiomason-main/">
+- All paths referenced by IE MUST be interpreted relative to this root.
+- Absence of this field when ZIP provided = AUTO-INVALID handoff.
+
 
 ================================================================================
 ISSUE
