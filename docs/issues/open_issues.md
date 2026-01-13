@@ -1129,3 +1129,49 @@ OUT OF SCOPE:
 - A regression test asserts the correct artifact location.
 
 ---
+
+## #127 – Bug: test suite is green but misses key behaviors (false-green regressions)
+- State: **OPEN**
+- Labels: bug
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-13T08:43:45Z
+- Updated: 2026-01-13T08:43:45Z
+
+## Summary
+
+The test suite can be fully green while core user-visible behaviors are broken.
+This indicates missing or ineffective coverage (false-green regressions), especially after refactors.
+
+## Evidence / recent regressions not caught by tests
+
+- Config is reported as loaded, but configured paths are ignored (fallback to XDG defaults).
+- Logging output missing after refactor.
+- .abook_ignore artifact written into inbox instead of a working/state directory.
+- Missing preflight detection of required external tools/capabilities (7z/unrar/ffmpeg), causing late unclear failures.
+
+## Expected behavior
+
+- For every user-visible contract, tests must fail when the behavior is broken.
+- Refactors must be protected by behavior-based contract tests, not just unit tests of helpers.
+
+## Scope
+
+IN SCOPE:
+- Add/strengthen behavior-based tests that cover the critical contracts:
+  - config path propagation to runtime
+  - logging visibility/initialization contract
+  - artifact placement contract (no writes into inbox)
+  - external tool/capability preflight checks
+- Ensure each regression test fails on the broken state and passes after the fix.
+
+OUT OF SCOPE:
+- Test performance refactor (tracked separately).
+- Large architectural redesign.
+
+## Acceptance criteria
+
+- Each known regression has a corresponding test that fails before the fix and passes after.
+- Test suite prevents repeating these regressions in future refactors.
+
+---
