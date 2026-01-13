@@ -938,3 +938,72 @@ The bug is observable immediately on am --debug, without running an import.
 - Add a regression test asserting path propagation.
 
 ---
+
+## #124 – Bug: missing preflight detection of required external tools (7z/unrar/ffmpeg)
+- State: **OPEN**
+- Labels: bug
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-13T08:23:11Z
+- Updated: 2026-01-13T08:23:11Z
+
+## Summary
+
+AudioMason does not preflight-check required external tools and capabilities.
+As a result, valid inputs can fail late and with unclear errors when a required
+external program or capability is missing on the system.
+
+## Problem
+
+Example failure:
+- Valid RAR archive
+- System does not have unrar and current 7z build cannot extract it
+- Runtime error:
+  External tool failed: 7z (exit 2)
+  Sub items Errors: 152
+
+At this point the user cannot distinguish:
+- corrupted archive
+- missing system capability
+- unsupported format on this platform
+
+Similar issues apply to other required tools (e.g. ffmpeg).
+
+## Root cause
+
+AudioMason invokes external tools opportunistically but does NOT verify
+tool presence or capability up front. The pipeline therefore fails late
+instead of fail-fast.
+
+## Expected behavior
+
+AudioMason MUST perform a preflight capability check before processing.
+
+At minimum:
+- Detect required external tools:
+  - 7z / p7zip-full
+  - unrar (when RAR archive is detected)
+  - ffmpeg (when audio processing or cover conversion is required)
+- Fail fast with a clear, actionable error if a requirement is missing.
+- Design must allow adding future tool checks centrally.
+
+## Scope
+
+IN SCOPE:
+- Centralized external tool / capability detection
+- Clear fail-fast errors for missing tools
+- Extensible design for future tools
+
+OUT OF SCOPE:
+- Implementing new extractors
+- Bundling external binaries
+- Changing archive formats or workflows
+
+## Acceptance criteria
+
+- Missing required tools are detected before runtime execution.
+- Error messages clearly explain WHAT is missing and WHY execution cannot continue.
+- ffmpeg presence is validated before it is required.
+- Future tool checks can be added without ad-hoc logic.
+
+---
