@@ -98,6 +98,19 @@ If ANY of the above is missing:
 - IE MUST stop immediately,
 - NO implementation steps are allowed.
 
+DOCUMENT COMPLIANCE PROOF (MANDATORY)
+
+IE MUST include one anchor proof for EACH document in the Governance Basis.
+
+Format (one line per document):
+- <FILENAME> :: <SECTION HEADING> :: anchor="<10-20 char unique substring>"
+
+Rules:
+- The anchor substring MUST appear verbatim in the referenced file.
+- The section heading MUST match an actual heading in that file.
+- If any anchor cannot be found, the response is AUTO-INVALID.
+
+
 ================================================================================
 AUTHORITATIVE INPUTS
 ================================================================================
