@@ -1324,3 +1324,11 @@ files:
       count: 1
       context_before: ""
       context_after: "try:"
+
+- path: docs/design/import_flow_modules.md
+  domains: ['docs','design']
+  file_sha1: "da29c1580b5bd90bab0e8d6d9ebea69a82b560cb"
+  anchors:
+  - anchor: '## Module map'
+    first_line: 1
+    count: 1
