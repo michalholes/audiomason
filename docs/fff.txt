@@ -1,0 +1,10 @@
+Audiomason - basic info
+
+Repo: michalholes/audiomason
+
+Predvolena tekdo: main
+
+Poslanie:
+- Am = Audiomason (audio processing toolkit)
+- Repozitar pracuje vyvojácle a robu, analizácia a automatétar 
+- Pouziša pom GitHub API, Vetvy a Pull Requesty
