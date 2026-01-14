@@ -135,8 +135,125 @@ def write_text(p: Path, s: str) -> None:
     p.write_text(s, encoding="utf-8")
 
 
+def _gh_api_json(_run: Callable[[List[str]], str], path: str, *, headers: Optional[List[str]] = None) -> Any:
+    cmd = ["gh", "api"]
+    if headers:
+        for h in headers:
+            cmd.extend(["-H", h])
+    cmd.append(path)
+    raw = _run(cmd)
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        raise SystemExit(f"ERROR: failed to parse gh api output as JSON for {path}")
+
+
+def _gh_api_paginated_list(
+    _run: Callable[[List[str]], str],
+    path: str,
+    *,
+    headers: Optional[List[str]] = None,
+    per_page: int = 100,
+) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    page = 1
+    while True:
+        sep = "&" if "?" in path else "?"
+        page_path = f"{path}{sep}per_page={per_page}&page={page}"
+        data = _gh_api_json(_run, page_path, headers=headers)
+        if not isinstance(data, list):
+            raise SystemExit(f"ERROR: expected list from gh api for {page_path}")
+        if not data:
+            break
+        out.extend([x for x in data if isinstance(x, dict)])
+        page += 1
+    return out
+
+
+def _user_stub(u: Any) -> Optional[Dict[str, Any]]:
+    if not isinstance(u, dict):
+        return None
+    login = u.get("login")
+    uid = u.get("id")
+    if login is None and uid is None:
+        return None
+    d: Dict[str, Any] = {}
+    if login is not None:
+        d["login"] = login
+    if uid is not None:
+        d["id"] = uid
+    return d
+
+
+def _sort_by_created_at(items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def key(x: Dict[str, Any]) -> Tuple[str, str, int]:
+        created = str(x.get("created_at") or x.get("createdAt") or "")
+        event = str(x.get("event") or "")
+        ident = x.get("id")
+        try:
+            iid = int(ident) if ident is not None else 0
+        except Exception:
+            iid = 0
+        return (created, event, iid)
+
+    return sorted(items, key=key)
+
+
+def _issue_core_export(issue: Dict[str, Any]) -> Dict[str, Any]:
+    ms = issue.get("milestone")
+    out: Dict[str, Any] = {
+        "number": issue.get("number"),
+        "title": issue.get("title"),
+        "state": issue.get("state"),
+        "html_url": issue.get("html_url"),
+        "created_at": issue.get("created_at"),
+        "updated_at": issue.get("updated_at"),
+        "closed_at": issue.get("closed_at"),
+        "user": _user_stub(issue.get("user")),
+        "closed_by": _user_stub(issue.get("closed_by")),
+        "labels": [{"name": l.get("name")} for l in (issue.get("labels") or []) if isinstance(l, dict) and l.get("name")],
+        "assignees": [_user_stub(a) for a in (issue.get("assignees") or []) if _user_stub(a)],
+        "milestone": None,
+        "body": issue.get("body"),
+    }
+    if isinstance(ms, dict):
+        out["milestone"] = {"title": ms.get("title"), "number": ms.get("number"), "state": ms.get("state")}
+    return out
+
+
+def _comment_export(c: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "id": c.get("id"),
+        "html_url": c.get("html_url"),
+        "user": _user_stub(c.get("user")),
+        "created_at": c.get("created_at"),
+        "updated_at": c.get("updated_at"),
+        "body": c.get("body"),
+    }
+
+
+def _timeline_event_export(e: Dict[str, Any]) -> Dict[str, Any]:
+    out: Dict[str, Any] = {
+        "id": e.get("id"),
+        "event": e.get("event"),
+        "created_at": e.get("created_at"),
+        "actor": _user_stub(e.get("actor")),
+    }
+    # Common fields used by "referenced" events
+    if "commit_id" in e:
+        out["commit_id"] = e.get("commit_id")
+    if "commit_url" in e:
+        out["commit_url"] = e.get("commit_url")
+    # Some events include nested source.commit
+    src = e.get("source")
+    if isinstance(src, dict) and isinstance(src.get("commit"), dict):
+        out["source"] = {"commit": {"sha": src["commit"].get("sha"), "html_url": src["commit"].get("html_url")}}
+    return out
+
+
 def _yaml_scalar(v: Any) -> str:
-    return json.dumps(v, ensure_ascii=False)
+    # YAML 1.2 JSON-subset (safe + deterministic)
+    return json.dumps(v, ensure_ascii=False, sort_keys=True)
 
 
 def _yaml_dump(obj: Any, indent: int = 0) -> str:
@@ -158,7 +275,7 @@ def _yaml_dump(obj: Any, indent: int = 0) -> str:
         if not obj:
             return sp + "{}"
         lines = []
-        for k in obj.keys():
+        for k in sorted(obj.keys()):
             v = obj[k]
             if v is None or isinstance(v, (bool, int, float, str)):
                 lines.append(f"{sp}{k}: {_yaml_scalar(v)}")
@@ -169,22 +286,39 @@ def _yaml_dump(obj: Any, indent: int = 0) -> str:
     return sp + _yaml_scalar(str(obj))
 
 
-def build_all_issues_yaml(repo: str, issues: List[Dict[str, Any]]) -> str:
-    payload = {
-        "repo": repo,
-        "issues": [
+def build_all_issues_yaml(repo: str, issues: List[Dict[str, Any]], _run: Callable[[List[str]], str]) -> str:
+    nums = sorted({int(i.get("number")) for i in issues if i.get("number") is not None})
+
+    headers_core = [
+        "Accept: application/vnd.github+json",
+        "X-GitHub-Api-Version: 2022-11-28",
+    ]
+    headers_timeline = [
+        "Accept: application/vnd.github.mockingbird-preview+json",
+        "X-GitHub-Api-Version: 2022-11-28",
+    ]
+
+    issues_out: List[Dict[str, Any]] = []
+    for n in nums:
+        core = _gh_api_json(_run, f"repos/{repo}/issues/{n}", headers=headers_core)
+        if not isinstance(core, dict):
+            raise SystemExit(f"ERROR: expected issue object from gh api for #{n}")
+
+        comments = _gh_api_paginated_list(_run, f"repos/{repo}/issues/{n}/comments", headers=headers_core)
+        timeline = _gh_api_paginated_list(_run, f"repos/{repo}/issues/{n}/timeline", headers=headers_timeline)
+
+        comments_sorted = _sort_by_created_at(comments)
+        timeline_sorted = _sort_by_created_at(timeline)
+
+        issues_out.append(
             {
-                "number": i.get("number"),
-                "title": i.get("title"),
-                "state": i.get("state"),
-                "created_at": i.get("createdAt"),
-                "updated_at": i.get("updatedAt"),
-                "closed_at": i.get("closedAt"),
-                "body": i.get("body"),
+                "issue": _issue_core_export(core),
+                "comments": [_comment_export(c) for c in comments_sorted],
+                "timeline": [_timeline_event_export(e) for e in timeline_sorted],
             }
-            for i in sorted(issues, key=lambda x: int(x.get("number")))
-        ],
-    }
+        )
+
+    payload: Dict[str, Any] = {"repo": repo, "issues": issues_out}
     return _yaml_dump(payload) + "\n"
 
 
@@ -211,7 +345,7 @@ def main(
 
     open_md = render_archive("Open Issues", open_issues)
     closed_md = render_archive("Closed Issues", closed_issues)
-    all_yaml = build_all_issues_yaml(repo, issues)
+    all_yaml = build_all_issues_yaml(repo, issues, _run)
 
     if OUT_OPEN.exists() and OUT_CLOSED.exists() and OUT_ALL.exists():
         if read_text(OUT_OPEN) == open_md and read_text(OUT_CLOSED) == closed_md and read_text(OUT_ALL) == all_yaml:

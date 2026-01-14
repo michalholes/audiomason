@@ -1,7 +1,7 @@
 # sync_issues_archive.py
 
 Standalone helper tool for deterministic synchronization of GitHub issues
-into repository markdown archives.
+into repository archives.
 
 This tool is **NOT** part of the AudioMason runtime or CLI.
 It is an auxiliary maintenance script intended to be run manually
@@ -15,9 +15,9 @@ The repository maintains canonical issue archives:
 
 - `docs/issues/open_issues.md`
 - `docs/issues/closed_issues.md`
+- `docs/issues/all_issues.yaml`
 
-These files must reflect the **exact state of GitHub issues**,
-including **full issue bodies**, without manual editing.
+These files must reflect the **exact state of GitHub issues**, without manual editing.
 
 This tool ensures:
 - zero drift between GitHub and repo archives
@@ -35,19 +35,6 @@ It never mutates issues (open/close/edit).
 
 ---
 
-## What the Tool Does
-
-1. Fetches **OPEN + CLOSED** issues from GitHub
-2. Splits them into open / closed sets
-3. Sorts deterministically:
-   - Open issues: ascending by issue number
-   - Closed issues: descending by closed timestamp
-4. Renders stable markdown output
-5. Updates archive files **only if content changed**
-6. Commits and pushes changes (unless disabled)
-
----
-
 ## Output Files
 
 Only these files may be modified:
@@ -60,23 +47,17 @@ No timestamps such as “generated at” are ever included.
 
 ### all_issues.yaml
 
-Deterministic YAML (YAML 1.2 JSON-subset) export of all issues (open + closed),
-including core data, comments, timeline events and commit references.
+Deterministic YAML (YAML 1.2 JSON-subset) export of **all issues** (open + closed),
+including:
+- core issue data,
+- full comments,
+- full timeline events (including `closed`, `reopened`, `referenced`, etc.),
+- commit SHA + URL references where present in timeline events.
 
----
-
-Only these files may be modified:
-
-- `docs/issues/open_issues.md`
-- `docs/issues/closed_issues.md`
-- `docs/issues/all_issues.yaml`
-
-No timestamps such as “generated at” are ever included.
-
-### all_issues.yaml
-
-Deterministic YAML (YAML 1.2 JSON-subset) export of all issues (open + closed),
-including core data, comments, timeline events and commit references.
+Stable ordering:
+- issues: by issue number ascending
+- comments: by `created_at` ascending, tie-break by `id`
+- timeline: by `created_at` ascending, tie-break by (`event`, `id`)
 
 ---
 
@@ -105,8 +86,6 @@ python3 scripts/sync_issues_archive.py
 ```
 
 ### Dry run
-
-Detects changes without writing files or committing:
 
 ```bash
 python3 scripts/sync_issues_archive.py --dry-run
@@ -146,20 +125,6 @@ Docs: sync GitHub issues archive (open/closed)
 
 ---
 
-## Typical Workflow
-
-```bash
-gh issue open ...
-python3 scripts/sync_issues_archive.py
-```
-
-```bash
-gh issue close <id>
-python3 scripts/sync_issues_archive.py
-```
-
----
-
 ## Explicit Non-Goals
 
 - No AudioMason imports
@@ -169,10 +134,5 @@ python3 scripts/sync_issues_archive.py
 - No UI
 
 ---
-
-## Status
-
-Production-ready.  
-Covered by unit tests in `tests/test_sync_issues_archive.py`.
 
 END OF DOCUMENT
