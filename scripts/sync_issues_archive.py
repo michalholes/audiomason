@@ -6,6 +6,11 @@ Hard constraints:
 - NO imports from audiomason
 - Non-interactive
 - Deterministic + idempotent
+
+This tool writes:
+- docs/issues/open_issues.md
+- docs/issues/closed_issues.md
+- docs/issues/all_issues.yaml
 """
 
 from __future__ import annotations
@@ -20,6 +25,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 ROOT = Path(__file__).resolve().parents[1]
 OUT_OPEN = ROOT / "docs/issues/open_issues.md"
 OUT_CLOSED = ROOT / "docs/issues/closed_issues.md"
+OUT_ALL = ROOT / "docs/issues/all_issues.yaml"
 
 COMMIT_MESSAGE = "Docs: sync GitHub issues archive (open/closed)"
 
@@ -34,10 +40,7 @@ def run(cmd: List[str]) -> str:
 
 def autodetect_repo(_run: Callable[[List[str]], str]) -> str:
     out = _run(["gh", "repo", "view", "--json", "nameWithOwner"]).strip()
-    try:
-        data = json.loads(out)
-    except json.JSONDecodeError:
-        raise SystemExit("ERROR: failed to parse gh repo view output as JSON")
+    data = json.loads(out)
     repo = data.get("nameWithOwner")
     if not repo:
         raise SystemExit("ERROR: gh repo view returned no nameWithOwner")
@@ -60,10 +63,7 @@ def load_issues(repo: str, _run: Callable[[List[str]], str]) -> List[Dict[str, A
             "number,title,state,labels,assignees,milestone,createdAt,updatedAt,closedAt,body",
         ]
     )
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError:
-        raise SystemExit("ERROR: failed to parse gh issue list output as JSON")
+    return json.loads(raw)
 
 
 def _names(items: Optional[List[Dict[str, Any]]]) -> str:
@@ -135,6 +135,59 @@ def write_text(p: Path, s: str) -> None:
     p.write_text(s, encoding="utf-8")
 
 
+def _yaml_scalar(v: Any) -> str:
+    return json.dumps(v, ensure_ascii=False)
+
+
+def _yaml_dump(obj: Any, indent: int = 0) -> str:
+    sp = "  " * indent
+    if obj is None or isinstance(obj, (bool, int, float, str)):
+        return sp + _yaml_scalar(obj)
+    if isinstance(obj, list):
+        if not obj:
+            return sp + "[]"
+        lines: List[str] = []
+        for item in obj:
+            if item is None or isinstance(item, (bool, int, float, str)):
+                lines.append(sp + "- " + _yaml_scalar(item))
+            else:
+                lines.append(sp + "-")
+                lines.append(_yaml_dump(item, indent + 1))
+        return "\n".join(lines)
+    if isinstance(obj, dict):
+        if not obj:
+            return sp + "{}"
+        lines = []
+        for k in obj.keys():
+            v = obj[k]
+            if v is None or isinstance(v, (bool, int, float, str)):
+                lines.append(f"{sp}{k}: {_yaml_scalar(v)}")
+            else:
+                lines.append(f"{sp}{k}:")
+                lines.append(_yaml_dump(v, indent + 1))
+        return "\n".join(lines)
+    return sp + _yaml_scalar(str(obj))
+
+
+def build_all_issues_yaml(repo: str, issues: List[Dict[str, Any]]) -> str:
+    payload = {
+        "repo": repo,
+        "issues": [
+            {
+                "number": i.get("number"),
+                "title": i.get("title"),
+                "state": i.get("state"),
+                "created_at": i.get("createdAt"),
+                "updated_at": i.get("updatedAt"),
+                "closed_at": i.get("closedAt"),
+                "body": i.get("body"),
+            }
+            for i in sorted(issues, key=lambda x: int(x.get("number")))
+        ],
+    }
+    return _yaml_dump(payload) + "\n"
+
+
 def main(
     argv: Optional[List[str]] = None,
     *,
@@ -143,7 +196,7 @@ def main(
     _autodetect_repo: Callable[[Callable[[List[str]], str]], str] = autodetect_repo,
 ) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--repo", help="owner/name (if omitted, auto-detect via gh)")
+    ap.add_argument("--repo")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--no-commit", action="store_true")
     ap.add_argument("--no-push", action="store_true")
@@ -151,15 +204,17 @@ def main(
     args = ap.parse_args(argv)
 
     ensure_clean_git(_run, args.allow_dirty)
-
     repo = args.repo or _autodetect_repo(_run)
+
     issues = _load_issues(repo, _run)
     open_issues, closed_issues = split_and_sort(issues)
+
     open_md = render_archive("Open Issues", open_issues)
     closed_md = render_archive("Closed Issues", closed_issues)
+    all_yaml = build_all_issues_yaml(repo, issues)
 
-    if OUT_OPEN.exists() and OUT_CLOSED.exists():
-        if read_text(OUT_OPEN) == open_md and read_text(OUT_CLOSED) == closed_md:
+    if OUT_OPEN.exists() and OUT_CLOSED.exists() and OUT_ALL.exists():
+        if read_text(OUT_OPEN) == open_md and read_text(OUT_CLOSED) == closed_md and read_text(OUT_ALL) == all_yaml:
             print("No changes.")
             return 0
 
@@ -169,11 +224,12 @@ def main(
 
     write_text(OUT_OPEN, open_md)
     write_text(OUT_CLOSED, closed_md)
+    write_text(OUT_ALL, all_yaml)
 
     if args.no_commit:
         return 0
 
-    _run(["git", "add", str(OUT_OPEN), str(OUT_CLOSED)])
+    _run(["git", "add", str(OUT_OPEN), str(OUT_CLOSED), str(OUT_ALL)])
     _run(["git", "commit", "-m", COMMIT_MESSAGE])
 
     if args.no_push:

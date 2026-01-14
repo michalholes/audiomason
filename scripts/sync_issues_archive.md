@@ -65,6 +65,21 @@ including core data, comments, timeline events and commit references.
 
 ---
 
+Only these files may be modified:
+
+- `docs/issues/open_issues.md`
+- `docs/issues/closed_issues.md`
+- `docs/issues/all_issues.yaml`
+
+No timestamps such as “generated at” are ever included.
+
+### all_issues.yaml
+
+Deterministic YAML (YAML 1.2 JSON-subset) export of all issues (open + closed),
+including core data, comments, timeline events and commit references.
+
+---
+
 ## Determinism & Idempotence
 
 - Running the tool twice with no GitHub changes produces **no diff**
