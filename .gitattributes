@@ -1,0 +1,59 @@
+# --- Text files (normalize line endings to LF) ---
+* text=auto eol=lf
+
+# --- Source code ---
+*.py text diff=python
+*.toml text
+*.yml text
+*.yaml text
+*.json text
+*.md text
+*.sh text
+*.txt text
+
+# --- Configs / Scripts ---
+*.cfg text
+*.ini text
+*.service text
+*.conf text
+*.env text
+
+# --- Audio / Binary assets (no diff, no merge) ---
+*.mp3 binary
+*.wav binary
+*.flac binary
+*.ogg binary
+*.m4a binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.pt binary
+*.pth binary
+*.ckpt binary
+*.onnx binary
+*.npy binary
+*.npz binary
+*.pkl binary
+*.h5 binary
+*.aiff binary
+
+# --- Images / Covers ---
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.gif binary
+*.webp binary
+
+# --- Docs (keep diffs on) ---
+*.rst text
+*.tex text
+
+# --- GitHub linguist (language detection tuning) ---
+*.py linguist-language=Python
+*.toml linguist-language=TOML
+*.yml linguist-language=YAML
+
+# --- Make GitHub ignore diffs for lock and model files ---
+poetry.lock -diff
+requirements.txt -diff
+
