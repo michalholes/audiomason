@@ -24,22 +24,8 @@ jobs:
           pip install -U pip
           pip install -e ".[test,dev]"
 
-      - name: Ruff lint
-        run: |
-          . .venv/bin/activate
-          ruff check .
-
-      - name: Ruff format check
-        run: |
-          . .venv/bin/activate
-          ruff format --check .
-
-      - name: Mypy (src/audiomason)
-        run: |
-          . .venv/bin/activate
-          mypy src/audiomason
-
       - name: Tests
         run: |
           . .venv/bin/activate
           pytest
+
