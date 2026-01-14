@@ -1,6 +1,6 @@
 # IMPLEMENTATION LAW – AudioMason
 # AUTHORITATIVE – AudioMason
-Version: v2.11
+Version: 2.19
 # STATUS: ACTIVE
 
 This document is an execution law subordinate to the Project Constitution.
@@ -23,6 +23,51 @@ This law governs **how implementation must be performed**, not what should be im
 ---
 
 ## 2. Implementation chat scope
+
+## Mandatory Patch Execution Mechanism (NORMATIVE)
+
+All repository-modifying patches MUST be executed exclusively
+using the canonical patch runner provided by the project.
+
+Direct application of patches via:
+- `git apply`,
+- `git am`,
+- manual file editing,
+- ad-hoc scripts,
+- or any other execution mechanism
+
+is STRICTLY PROHIBITED.
+
+The canonical patch runner is:
+    python3 /home/pi/apps/audiomason/scripts/am_patch.py
+
+---
+
+## Mandatory Patch Contract Awareness (NORMATIVE)
+
+Any role performing or assisting with implementation
+(including Implementation Engineer and Solution Engineer)
+MUST be familiar with and MUST follow the official patch
+contract documented in:
+
+    scripts/am_patch.md
+
+Patch scripts that do not comply with the documented contract,
+including required compatibility headers and pre-flight checks,
+MUST NOT be executed.
+
+Failure to use the canonical patch runner or failure to respect
+the documented patch contract constitutes a governance violation
+and requires an immediate STOP.
+
+
+Implementation Law applies whenever repository state
+is modified or execution is performed,
+regardless of the active role.
+
+Role declaration does not relax or bypass
+any mandatory Implementation Law requirements.
+
 
 An implementation chat is used **exclusively** to execute changes explicitly approved by the User.
 
@@ -126,10 +171,10 @@ Diffs, inline edits, or manual instructions are prohibited.
 
 ## 6.1.1 Canonical Patch Runner (NEW)
 
-All patches MUST be executed exclusively using the canonical patch runner
+All patches MUST be executed exclusively using the canonical patch runner command
 stored in the AudioMason repository:
 
-    /home/pi/apps/audiomason/scripts/am_patch.sh
+    python3 /home/pi/apps/audiomason/scripts/am_patch.py
 
 Rules:
 - Patch scripts MUST be stored in the canonical artifact directory:
@@ -143,18 +188,34 @@ Rules:
 - If the canonical filename cannot be used, an alternative patch filename MAY be used,
   but it MUST be passed explicitly to the canonical patch runner as an additional argument:
 
-      /home/pi/apps/audiomason/scripts/am_patch.sh <ISSUE> "<COMMIT MESSAGE>" <PATCH_FILENAME>
+      python3 /home/pi/apps/audiomason/scripts/am_patch.py <ISSUE> "<COMMIT MESSAGE>" <PATCH_FILENAME>
 
   Where <PATCH_FILENAME> is a filename (not a path) located under /home/pi/apps/patches/.
 
 - The runner MUST be invoked using an absolute path, as a single command line.
 - Shell chaining (e.g. `&&`, `;`), additional commands (`cd`, `python`, `git`),
-  or alternative runner paths are prohibited.
-- If the canonical runner path is not present on disk, the implementation MUST FAIL-FAST.
+  or alternative runner command lines are prohibited.
+- If the canonical runner script is not present on disk, the implementation MUST FAIL-FAST.
 
 Rationale:
 - The runner is part of the repository to ensure it is backed up, versioned,
   and reproducible across machines.
+
+
+## 6.1.2 Preferred Patch Execution Sequence (DEFAULT) (NEW)
+
+Unless explicitly instructed otherwise by the User, the Implementation Engineer MUST
+use the **standard patch execution mode** (the default behavior of `am_patch.py`).
+
+Rationale:
+- Standard patch execution performs the full pipeline (verification + apply + checks +
+  commit/push) according to the runner policy.
+- `--verify-only` is an exception and MUST be used only when explicitly requested
+  by the User or when the task is explicitly marked VERIFICATION-ONLY.
+- `-f` (finalize) is an exception and MUST be used only when the working tree is
+  already dirty with the intended changes and the task is explicitly to finalize them.
+
+Referencing any other patch runner in new IC outputs constitutes a governance violation.
 
 
 ---
@@ -343,4 +404,63 @@ If such topics arise, the chat MUST:
 Any continuation beyond execution scope
 constitutes a governance violation.
 
+## User-Invoked Proposal Window (UIPW)
+
+The Implementation Engineer is strictly prohibited
+from proposing solutions or alternatives by default.
+
+An exception exists only when explicitly invoked by the User.
+
+### Activation (User Only)
+
+The User may explicitly request:
+"IE: explain why this fails and propose one possible solution."
+
+Without this invocation, proposals are forbidden.
+
+### Mandatory Response Format
+
+WHY IT FAILS:
+- factual technical reasons
+- no evaluation
+- no alternatives
+
+OPTIONAL PROPOSAL (user-invoked):
+- exactly one possible solution
+- no implementation
+- no scope change
+
+After responding, the IE automatically returns
+to strict execution mode.
+
+The proposal has zero authority.
+
+## Role Escalation Request (RER)
+
+If the Implementation Engineer determines
+that a problem cannot be resolved within strict execution,
+the IE may request a role escalation.
+
+ROLE ESCALATION REQUEST:
+Current role: Implementation Engineer (IE)
+Requested role: Solution Engineer (SE)
+Reason (factual, non-propositional):
+- <concise technical reason>
+
+Only the User may approve or reject the escalation.
+
 END OF DOCUMENT
+
+---
+
+## Mandatory Implementation Chat Handoff (NORMATIVE)
+
+Every Implementation Chat (IC) MUST begin with a handoff that strictly follows
+the canonical IC handoff template defined in:
+
+    docs/governance/IC_HANDOFF_TEMPLATE.md
+
+The template is NORMATIVE and NON-NEGOTIABLE.
+
+Any IE response that violates the IC handoff template, including missing hard
+gates or documentation compliance, is INVALID and MUST be rejected.

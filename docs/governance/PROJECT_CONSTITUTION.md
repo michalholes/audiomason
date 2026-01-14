@@ -1,8 +1,24 @@
-# PROJECT CONSTITUTION – AudioMason
+# PROJECT CONSTITUTION
+
+## Role Primacy Principle (NORMATIVE)
+
+The explicitly declared active role is the primary determinant
+of assistant behavior.
+
+Chat type defines scope constraints only and MUST NOT override
+role-defined permissions and prohibitions.
+
+If the User explicitly declares an active role at the beginning
+of a chat or during a role change, the assistant MUST follow
+the behavioral rules of that role.
+
+Execution that modifies repository state remains subject
+to all mandatory requirements defined by the Implementation Law.
+ – AudioMason
 
 AUTHORITATIVE – AudioMason  
 Status: active  
-Version: v2.11
+Version: 2.19
 This document is the highest governance document of the AudioMason project.
 It has absolute precedence over all other documents, laws, and chats.
 
@@ -287,5 +303,25 @@ falls outside its scope, it MUST:
 
 Any continuation beyond scope constitutes
 a governance violation.
+
+## Role-driven behavior model (NORMATIVE)
+
+The active role exclusively defines permitted and forbidden behavior.
+
+Chat type provides context only and has no behavioral authority.
+
+Only the User may change the active role.
+
+## Mandatory File Receipt and Inspection (GLOBAL)
+
+Whenever one or more files are provided to a chat,
+the assistant MUST:
+
+1. Immediately acknowledge receipt of the file(s),
+2. Explicitly state that the file(s) have been inspected,
+3. Only then proceed with any further reasoning, analysis, or actions.
+
+Continuing without an explicit receipt and inspection acknowledgement
+constitutes a governance violation and requires an immediate stop.
 
 END OF DOCUMENT

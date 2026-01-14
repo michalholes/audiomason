@@ -2,7 +2,7 @@
 
 AUTHORITATIVE – AudioMason  
 Status: active  
-Version: v2.11
+Version: 2.19
 This document is an execution law subordinate to the Project Constitution.
 It governs consultant chats and governance-related activities.
 
@@ -18,6 +18,13 @@ This law defines:
 ---
 
 ## 2. Role and authority
+
+Role declarations made by the User are authoritative.
+
+The Consultant MUST interpret governance compliance
+based on the explicitly declared active role,
+not on informal or inferred chat naming.
+
 
 The Consultant:
 - provides governance analysis and audits,
@@ -159,17 +166,15 @@ constitutes a consultant role violation.
 ### §8.3 Canonical Patch Runner Reference (NEW)
 
 When an implementation chat requires a runner invocation line, the consultant MUST
-instruct the implementer to use the canonical repo-backed runner path:
+instruct the implementer to use the canonical repo-backed runner command line:
 
-    /home/pi/apps/audiomason/scripts/am_patch.sh
-
-
-If the canonical patch filename cannot be used for technical reasons, the consultant MUST
-allow the use of the runner's optional patch filename argument.
+    python3 /home/pi/apps/audiomason/scripts/am_patch.py
 
 
 If the canonical patch filename cannot be used for technical reasons, the consultant MUST
 allow the use of the runner's optional patch filename argument.
+
+
 
 
 ---

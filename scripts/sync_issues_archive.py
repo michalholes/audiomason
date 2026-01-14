@@ -45,14 +45,21 @@ def autodetect_repo(_run: Callable[[List[str]], str]) -> str:
 
 
 def load_issues(repo: str, _run: Callable[[List[str]], str]) -> List[Dict[str, Any]]:
-    raw = _run([
-        "gh", "issue", "list",
-        "--repo", repo,
-        "--state", "all",
-        "--limit", "1000",
-        "--json",
-        "number,title,state,labels,assignees,milestone,createdAt,updatedAt,closedAt,body",
-    ])
+    raw = _run(
+        [
+            "gh",
+            "issue",
+            "list",
+            "--repo",
+            repo,
+            "--state",
+            "all",
+            "--limit",
+            "1000",
+            "--json",
+            "number,title,state,labels,assignees,milestone,createdAt,updatedAt,closedAt,body",
+        ]
+    )
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
@@ -62,7 +69,7 @@ def load_issues(repo: str, _run: Callable[[List[str]], str]) -> List[Dict[str, A
 def _names(items: Optional[List[Dict[str, Any]]]) -> str:
     if not items:
         return "—"
-    return ", ".join(i.get("name","") for i in items if i.get("name")) or "—"
+    return ", ".join(i.get("name", "") for i in items if i.get("name")) or "—"
 
 
 def split_and_sort(issues: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:

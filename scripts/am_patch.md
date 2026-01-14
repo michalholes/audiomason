@@ -1,195 +1,247 @@
-# am_patch.sh — Canonical Patch Runner
+# AudioMason Patch Runner
+## Normative Specification
 
-This document describes the **canonical patch runner** used in the AudioMason project.
+**AUTHORITATIVE – AudioMason**  
+**Canonical runner:** `python3 /home/pi/apps/audiomason/scripts/am_patch.py`
 
-The runner is designed to execute implementation patches in a **deterministic,
-auditable, and failure‑friendly** way, while keeping final control in the hands
-of the human operator.
-
----
-
-## Location
-
-**Canonical runner path (repo‑backed):**
-```
-/home/pi/apps/audiomason/scripts/am_patch.sh
-```
-
-**Canonical patch staging directory:**
-```
-/home/pi/apps/patches/
-```
+This document defines the **only valid, normative specification** of the AudioMason
+patch runner. Any documentation, script, or instruction contradicting this file
+is **invalid**.
 
 ---
 
-## Purpose
+## 1. Purpose and Authority
 
-The runner exists to:
+The AudioMason patch runner is a **governance enforcement tool**.
 
-- provide a **single, versioned execution entrypoint** for all IC‑produced patches
-- ensure patches are:
-  - executed consistently
-  - tested in a controlled environment
-  - either committed cleanly or left for manual inspection
-- preserve **forensic visibility** on failures (no hidden cleanup)
+It exists to:
+- execute deterministic patch scripts,
+- enforce governance and repository invariants,
+- run mandatory verification gates,
+- produce an auditable, reproducible result.
+
+The runner:
+- has **no decision authority**,
+- executes only explicitly encoded instructions,
+- never interprets intent.
 
 ---
 
-## Invocation
+## 2. Canonical Entry Point (HARD RULE)
 
-```bash
-/home/pi/apps/audiomason/scripts/am_patch.sh <ISSUE> "<COMMIT MESSAGE>" [<PATCH_FILENAME>]
+The **only canonical entry point** is:
+
+```
+python3 /home/pi/apps/audiomason/scripts/am_patch.py
 ```
 
-### Parameters
+Rules:
+- `.sh` runners are **non‑canonical**.
+- All documentation and handoffs MUST reference the `.py` runner exclusively.
+- Any deviation is a governance violation.
 
-| Parameter | Required | Description |
-|---------|----------|-------------|
-| `<ISSUE>` | yes | Issue number (used for naming, logging, audit) |
-| `<COMMIT MESSAGE>` | yes | Commit message used **only if tests pass** |
-| `<PATCH_FILENAME>` | no | Patch script filename located in `/home/pi/apps/patches/` |
+---
 
-### Patch filename rules
+## 2.1 Logging Contract (HARD RULE)
 
-- If `<PATCH_FILENAME>` is omitted, the runner expects:
-  ```
-  issue_<ISSUE>.py
-  ```
-- If provided:
-  - it **must be a filename only** (no paths, no `..`)
-  - it **must exist** under `/home/pi/apps/patches/`
+Each runner execution MUST produce exactly **one** primary log file under:
 
-Examples:
-```bash
-am_patch.sh 79 "Fix: preflight ordering"
-am_patch.sh 79 "Fix: preflight ordering" issue_79_run3_fix2.py
+- `/home/pi/apps/patches/logs/`
+
+The primary log MUST contain:
+- all runner stdout/stderr,
+- full output from the patch script (stdout + stderr),
+- full output from verification tools (pytest / ruff / mypy),
+- full output from all invoked subprocesses (including git commands),
+- all error context and failure fingerprints.
+
+The runner MUST maintain a stable symlink to the latest primary log:
+
+- `/home/pi/apps/patches/am_patch.log`
+
+No additional “sidecar” output files are permitted for a run.
+All output MUST be contained in the single primary log.
+
+Retention:
+- The runner MUST retain at most **20** primary log files under `/home/pi/apps/patches/logs/`.
+- Older log files beyond the retention limit MUST be deleted deterministically.
+
+## 3. Invocation Contract
+
+### 3.1 Standard execution (default)
+
+```
+am_patch.py <ISSUE_ID> "<COMMIT MESSAGE>" [PATCH_FILENAME]
 ```
 
----
+Semantics:
+1. Preflight validation
+2. Patch execution
+3. Verification gates
+4. Commit and push
 
-## Execution model
-
-### High‑level flow
-
-1. Acquire exclusive lock (no concurrent runs)
-2. Truncate and start a **single rotating log**
-3. Discover repository root
-4. Execute patch script
-5. Always delete patch script
-6. On failure:
-   - print forensic information
-   - explain next steps
-7. On success:
-   - run tests in venv
-   - commit & push only if tests pass
+This is the **default mode**.
 
 ---
 
-## Logging
+### 3.2 Finalize mode (dirty tree)
 
-### Single rotating log
-
-- Log path:
-  ```
-  /home/pi/apps/patches/am_patch.log
-  ```
-- The log is:
-  - **overwritten on each run**
-  - written simultaneously to terminal and file
-  - suitable for direct upload to IC
-
-### Locking
-
-- Lock file:
-  ```
-  /home/pi/apps/patches/am_patch.lock
-  ```
-- Prevents accidental parallel execution.
-
----
-
-## Failure handling (forensic‑only)
-
-The runner **never performs automatic cleanup or rollback**.
-
-### Patch failure
-
-If the patch script exits non‑zero:
-
-The runner will:
-- print a **best‑effort filesystem diff**
-- show `git status --porcelain` (if applicable)
-- print **explicit NEXT STEPS**, including:
-  - which files to upload to IC
-  - optional commands to discard only the affected paths
-
-The repository state is left unchanged for the user to decide.
-
----
-
-### Test failure
-
-If tests fail:
-- modified files are listed
-- the log file path is printed
-- **no cleanup advice** is given (by design)
-
-The user decides whether to:
-- upload files + log to IC
-- discard changes manually
-
----
-
-## Commit rules
-
-A commit + push happens **only if all tests pass**.
-
-The runner will refuse to:
-- create empty commits
-- commit outside a git repository
-
----
-
-## Design principles
-
-- **Determinism over automation**
-- **Forensics over rollback**
-- **Human decision at failure points**
-- **One canonical tool, one canonical path**
-
----
-
-## Non‑goals
-
-The runner intentionally does **not**:
-- auto‑rollback changes
-- guess developer intent
-- manage multiple patch states
-- clean up after failures
-
-All such decisions are left to the operator.
-
----
-
-## Typical workflow
-
-```text
-IC produces patch
-↓
-User runs am_patch.sh
-↓
-Patch fails → forensics + guidance
-OR
-Tests fail → upload files + log
-OR
-Success → commit + push
+```
+am_patch.py -f "<COMMIT MESSAGE>"
 ```
 
+Semantics:
+- Assumes the working tree already contains intended changes.
+- Executes:
+  - verification gates,
+  - commit,
+  - push.
+- No patch script is executed.
+
 ---
 
-## Summary
 
-`am_patch.sh` is a **controlled execution boundary** between
-human decision‑making and automated patch application.
 
-It enforces consistency while preserving transparency and control.
+### Minimal template (copy/paste)
+
+**Recommended (comment header; most robust):**
+
+```python
+#!/usr/bin/env python3
+# PROOF_ANCHOR: <repo-relative path> :: <stable snippet>
+# TARGET_BRANCH: <branch-name>  # optional
+
+"""FILE MANIFEST (repo-relative)
+- <path 1>
+- <path 2>
+"""
+
+def main() -> None:
+    # ...
+    return
+
+if __name__ == "__main__":
+    main()
+```
+
+**Also accepted (simple assignments; compatibility mode):**
+
+```python
+PROOF_ANCHOR = "<repo-relative path> :: <stable snippet>"
+TARGET_BRANCH = "<branch-name>"  # optional
+
+"""FILE MANIFEST (repo-relative)
+- <path 1>
+"""
+```
+
+Notes:
+
+- The runner performs **text-only** preflight scanning; it does **not** import or execute the patch script.
+- The header may be preceded by a shebang, encoding cookie, blank lines, or comments.
+- The runner scans only the **top region** of the file (currently up to 200 lines). Keep the header near the top.
+- Multiple `PROOF_ANCHOR` lines are allowed (repeat the line).
+
+## 4. Patch Script Requirements (NORMATIVE)
+
+Patch scripts MUST:
+- be Python,
+- be deterministic and idempotent,
+- perform real repository changes,
+- declare an accurate file manifest,
+- fail explicitly on unmet preconditions.
+
+Scripts that:
+- perform no real changes, or
+- lie about their manifest
+
+MUST be rejected by the runner.
+
+---
+
+## 5. Verification Gates (MANDATORY)
+
+The runner enforces the following gates, in order:
+
+1. Repository state validation
+2. Patch execution (if applicable)
+3. Verification tools:
+   - pytest
+   - ruff
+   - mypy
+4. Governance checks
+5. Commit and push
+
+Failure at any gate:
+- aborts execution,
+- prevents commit and push.
+
+---
+
+## 6. Failure Semantics (NORMATIVE)
+
+On failure:
+- no commit is created,
+- no push is performed,
+- the repo remains inspectable.
+
+The runner MUST:
+- emit a clear error reason,
+- exit with a non‑zero code.
+
+The runner MUST NOT:
+- retry automatically,
+- partially commit,
+- continue silently.
+
+---
+
+## 7. Guarantees
+
+The runner guarantees:
+- deterministic behavior,
+- single‑commit atomicity,
+- governance enforcement,
+- auditability.
+
+---
+
+## 8. Non‑Guarantees
+
+The runner does NOT guarantee:
+- semantic correctness,
+- architectural quality,
+- performance improvements.
+
+These remain the User’s responsibility.
+
+---
+
+## 9. Governance Relationship
+
+The runner enforces rules defined by:
+- PROJECT_CONSTITUTION
+- PROJECT_LAW
+- CONSULTANT_LAW
+- IMPLEMENTATION_LAW
+
+Governance always overrides runner behavior.
+
+---
+
+## 10. Deprecation
+
+All legacy runners (including `am_patch.sh`) are deprecated.
+
+Backward compatibility is **not guaranteed** unless explicitly approved by the User.
+
+---
+
+## 11. Normative Status
+
+This document is:
+- binding,
+- versioned with the governance set,
+- the sole authoritative specification of runner behavior.
+
+END OF DOCUMENT

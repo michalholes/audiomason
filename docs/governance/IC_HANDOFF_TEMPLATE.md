@@ -1,0 +1,210 @@
+# IC HANDOFF TEMPLATE (GOLDEN, NORMATIVE)
+
+STATUS: NORMATIVE  
+APPLIES TO: All Implementation Chats (IC)  
+AUTHORITY: IMPLEMENTATION_LAW  
+Version: 2.19
+---
+
+## PURPOSE
+
+This document defines the **only valid structure** of an Implementation Chat (IC)
+handoff in the AudioMason project.
+
+Its purpose is to:
+- prevent ambiguity,
+- eliminate improvisation,
+- enforce governance hard gates,
+- ensure deterministic, auditable implementation work.
+
+Any deviation from this template **INVALIDATES the implementation response**.
+
+---
+
+## IMPLEMENTATION HANDOFF (GOLDEN TEMPLATE)
+
+```text
+# IMPLEMENTATION HANDOFF (GOLDEN TEMPLATE)
+
+CHAT TYPE: IMPLEMENTATION
+
+================================================================================
+GOVERNANCE BASIS (MUST BE PRINTED IN EVERY IE RESPONSE)
+================================================================================
+- PROJECT_CONSTITUTION v2.19
+- PROJECT_LAW v2.19
+- CONSULTANT_LAW v2.19
+- IMPLEMENTATION_LAW v2.19
+- This handoff
+
+================================================================================
+MANDATORY DOCUMENTATION COMPLIANCE (NON-NEGOTIABLE)
+================================================================================
+
+Before performing ANY implementation step, IE MUST:
+
+1) Read and comply with ALL of the following documents in full:
+   - PROJECT_CONSTITUTION
+   - PROJECT_LAW
+   - CONSULTANT_LAW
+   - IMPLEMENTATION_LAW
+   - This handoff
+
+2) Treat all paths, runners, workflows, and contracts defined there as
+   CANONICAL and NON-OVERRIDABLE.
+
+3) IE MUST NOT:
+   - invent directories (e.g. ~/Downloads, ~/work, custom temp dirs),
+   - use personal defaults or assumptions,
+   - bypass defined runners or workflows.
+
+4) Any uncertainty MUST result in FAIL-FAST and clarification request,
+   not improvisation.
+
+Violation of this section INVALIDATES the implementation.
+
+================================================================================
+ARTIFACT & EXECUTION RULES (AUTHORITATIVE)
+================================================================================
+
+CANONICAL ARTIFACT DIRECTORY (ONLY):
+/home/pi/apps/patches
+
+CANONICAL PATCH RUNNER (ONLY):
+python3 /home/pi/apps/audiomason/scripts/am_patch.py
+(OPTIONAL PATCH FILENAME ARGUMENT SUPPORTED)
+
+EXECUTION MODEL:
+- Deterministic
+- Idempotent
+- Patch-script driven
+- No manual repo edits
+- No inline diffs
+- No speculative or exploratory changes
+
+================================================================================
+HARD GATES (NON-NEGOTIABLE)
+================================================================================
+
+IE MUST include the following in EVERY response, without exception:
+
+1) GOVERNANCE BASIS
+2) INPUT STATUS
+   - Files provided: YES / NO
+   - ZIP provided: YES / NO
+
+If ANY of the above is missing:
+- the response is INVALID,
+- IE MUST stop immediately,
+- NO implementation steps are allowed.
+
+If ZIP is provided and ZIP ROOT is missing or incorrect, IE MUST FAIL-FAST before any document or code inspection.
+
+
+DOCUMENT COMPLIANCE PROOF (MANDATORY — FIRST IE RESPONSE ONLY)
+
+This proof MUST be provided together with the initial hard gate blocks (GOVERNANCE BASIS and INPUT STATUS).
+
+IE MUST include one anchor proof for EACH document in the Governance Basis.
+
+- scripts/am_patch.md MUST be included as a separate anchor proof entry.
+
+Format (one line per document):
+- <FILENAME> :: <SECTION HEADING> :: anchor="<10-20 char unique substring>"
+
+Rules:
+- The anchor substring MUST appear verbatim in the referenced file.
+- The section heading MUST match an actual heading in that file.
+- If any anchor cannot be found, the response is AUTO-INVALID.\n- This block is required ONLY in the first IE response of the IC.
+
+
+================================================================================
+AUTHORITATIVE INPUTS
+================================================================================
+
+FILES PROVIDED IN THIS CHAT:
+- <LIST FILES or NONE>
+
+ZIP STATUS:
+- ZIP provided: YES / NO
+- Expected proof in IC: YES / NO / N/A
+
+ZIP ROOT (MANDATORY IF ZIP PROVIDED):
+- ZIP root directory: <path inside ZIP, e.g. "audiomason-main/">
+- All paths referenced by IE MUST be interpreted relative to this root.
+- Absence of this field when ZIP provided = AUTO-INVALID handoff.
+
+
+================================================================================
+ISSUE
+================================================================================
+
+- Issue ID: <#NNN>
+- Title: <exact issue title>
+- Type: BUG / REFACTOR / FEAT
+- Goal: IMPLEMENTATION
+
+================================================================================
+PROBLEM STATEMENT (AUTHORITATIVE)
+================================================================================
+
+<Concise, factual description. No speculation.>
+
+================================================================================
+EXPECTED BEHAVIOR (AUTHORITATIVE)
+================================================================================
+
+<Exact contract and invariants.>
+
+================================================================================
+SCOPE (STRICT)
+================================================================================
+
+IN SCOPE:
+- <explicitly allowed changes>
+
+OUT OF SCOPE:
+- <explicitly forbidden changes>
+
+================================================================================
+CONSTRAINTS (NON-NEGOTIABLE)
+================================================================================
+
+- No behavior change outside scope
+- Existing tests must remain green
+- New tests must fail on main and pass after fix
+- No architectural redesign
+- No scope expansion without PM approval
+
+================================================================================
+DELIVERABLE (STRICT)
+================================================================================
+
+FINAL RESULT MUST BE EXACTLY ONE OF:
+
+A) COMPLETE
+   - Commit SHA
+   - Tests executed and passing
+   - New tests listed
+
+B) NOT COMPLETE / FAIL-FAST
+   - Precise blocking reason
+   - Exact file + symbol
+
+No other output is permitted.
+
+================================================================================
+ROLE & AUTHORITY
+================================================================================
+
+Active role: IMPLEMENTATION ENGINEER (IE)
+
+- IE executes only
+- IE does not decide scope
+- IE does not redesign
+- IE does not negotiate requirements
+
+================================================================================
+END OF HANDOFF
+================================================================================
+
