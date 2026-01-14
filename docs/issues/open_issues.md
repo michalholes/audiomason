@@ -1141,3 +1141,15 @@ Out of scope:
 This is a pure structural refactor.
 
 ---
+
+## #131 – Tooling: extend sync_issues_archive with full YAML issues export
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-14T17:52:03Z
+- Updated: 2026-01-14T17:52:03Z
+
+Extend sync_issues_archive tool to additionally generate a single deterministic YAML file containing all issues (open + closed), including full comments, timeline events, close metadata, and commit SHA references explaining when, why, and how issues were closed.
+
+---

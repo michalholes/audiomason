@@ -1,0 +1,1034 @@
+repo: "michalholes/audiomason"
+issues:
+  -
+    number: 1
+    title: "Conflict detection in output (no overwrite)"
+    state: "CLOSED"
+    created_at: "2025-12-31T10:23:07Z"
+    updated_at: "2025-12-31T18:27:18Z"
+    closed_at: "2025-12-31T18:27:18Z"
+    body: "If destination directory already exists, stop processing that book.\n\n- Print:\n  [conflict] Author / Book already exists\n- Must never silently overwrite.\n- Applies to both: stage->output move and publish step.\n\nAcceptance:\n- Existing target dir => book is skipped/aborted with [conflict] message.\n- Exit code non-zero if any conflicts encountered (unless --yes defines otherwise)."
+  -
+    number: 2
+    title: "Dry-run summary (no filesystem changes)"
+    state: "CLOSED"
+    created_at: "2025-12-31T10:23:08Z"
+    updated_at: "2025-12-31T19:44:11Z"
+    closed_at: "2025-12-31T19:44:11Z"
+    body: "--dry-run prints:\n- which books will be processed (source + book labels)\n- destination paths (author/book)\n- publish yes/no\n- ID3 wipe yes/no\n\nNo unpack, no convert, no cover writes, no tag writes, no mkdir, no move.\n\nAcceptance:\n- Running with --dry-run causes zero filesystem modifications.\n- Output includes a deterministic summary block per selected source."
+  -
+    number: 3
+    title: "Consistent source/book labels in logs"
+    state: "CLOSED"
+    created_at: "2025-12-31T10:23:09Z"
+    updated_at: "2025-12-31T12:03:11Z"
+    closed_at: "2025-12-31T12:03:11Z"
+    body: "All logs must use:\n[source] <n>/<total>: <src>\n[book]   <i>/<count>: <book>\n\nApplies to preflight prompts, processing, conflicts, skips, publish.\n\nAcceptance:\n- Grep for \"[source]\" and \"[book]\" shows only the canonical format."
+  -
+    number: 4
+    title: "Resume after Ctrl-C (keep stage, continue next run)"
+    state: "CLOSED"
+    created_at: "2025-12-31T10:23:11Z"
+    updated_at: "2025-12-31T13:31:56Z"
+    closed_at: "2025-12-31T13:31:56Z"
+    body: "Ctrl-C should stop cleanly:\n- finish/terminate current ffmpeg step\n- do not delete or corrupt stage\n\nNext run reuses stage deterministically and continues.\n\nAcceptance:\n- Interrupt during split leaves stage intact.\n- Re-run continues without re-unpack and without overwriting stage."
+  -
+    number: 5
+    title: "am inspect <source> (read-only analysis)"
+    state: "CLOSED"
+    created_at: "2025-12-31T10:23:13Z"
+    updated_at: "2025-12-31T21:02:39Z"
+    closed_at: "2025-12-31T20:28:56Z"
+    body: "New command: am inspect <source>\n\nMust be read-only:\n- no staging, no copying, no unpack, no writes\n\nPrints:\n- number of books\n- root audio present?\n- chapters count (if m4a present)\n\nAcceptance:\n- Running inspect produces no filesystem changes."
+  -
+    number: 6
+    title: "Normalized author/book naming helper (confirm before apply)"
+    state: "CLOSED"
+    created_at: "2025-12-31T10:23:14Z"
+    updated_at: "2025-12-31T21:36:44Z"
+    closed_at: "2025-12-31T21:36:44Z"
+    body: "Optional helper suggests cleaned names by removing common noise:\n- (2021)(CZ)\n- (audiokniha)\n- bitrate/narrator info\n\nUser must confirm suggested normalized names.\n\nAcceptance:\n- Helper never changes output unless user confirms.\n- Default remains current behavior."
+  -
+    number: 7
+    title: "Logging levels (--quiet/--verbose)"
+    state: "CLOSED"
+    created_at: "2025-12-31T10:23:15Z"
+    updated_at: "2026-01-01T08:53:05Z"
+    closed_at: "2026-01-01T08:53:05Z"
+    body: "--quiet => only errors\n--verbose => include ffmpeg + unpack details\ndefault = current behavior\n\nAcceptance:\n- quiet suppresses progress logs.\n- verbose shows underlying commands and detailed steps."
+  -
+    number: 8
+    title: "Public database validation (OpenLibrary) (DEFERRED)"
+    state: "CLOSED"
+    created_at: "2025-12-31T10:23:17Z"
+    updated_at: "2025-12-31T21:23:58Z"
+    closed_at: "2025-12-31T21:23:58Z"
+    body: "After meta is collected (author + book), validate against public DB (OpenLibrary).\n\nIf not found:\n- warn user\n- prompt:\n  1) Continue as-is\n  2) Search similar titles\n\nIf 2) suggest max 5 similar titles.\n\nAcceptance:\n- Works without breaking offline runs (feature-gated / optional).\n- Never auto-changes metadata without confirmation."
+  -
+    number: 9
+    title: "Logging: add DEBUG level (print every action) [HIGH]"
+    state: "CLOSED"
+    created_at: "2025-12-31T10:24:53Z"
+    updated_at: "2025-12-31T17:11:39Z"
+    closed_at: "2025-12-31T17:11:39Z"
+    body: "Add a DEBUG logging level that prints *everything* the tool does.\n\nRequirements:\n- New flag: --debug (or --log-level debug)\n- DEBUG outputs:\n  - every filesystem operation (mkdir/copy/move/remove)\n  - every external command (ffmpeg/unpack) including full argv\n  - all resolved paths (drop/stage/output/archive) + env overrides\n  - every decision (reuse stage, skip, conflict, dry-run plan)\n  - per-book and per-source state transitions\n\nPriority: HIGH\n\nAcceptance:\n- With --debug, user can reconstruct the full pipeline deterministically from logs.\n- Default behavior unchanged.\n- --quiet still suppresses non-errors (debug must not override quiet unless explicitly chosen)."
+  -
+    number: 10
+    title: "Multi-book archive processing (root + subdirs) [P0]"
+    state: "CLOSED"
+    created_at: "2025-12-31T10:26:14Z"
+    updated_at: "2025-12-31T12:27:57Z"
+    closed_at: "2025-12-31T12:27:57Z"
+    body: "Fix archive iteration so ALL books are processed.\n\nRequirements:\n- Detect __ROOT_AUDIO__ + every top-level directory as a separate book\n- When selecting 'all':\n  - prompt for metadata for EACH book\n  - clearly print which folder/book is being asked about\n- Process root audio AND subdirectories independently\n\nAcceptance:\n- No book in archive is silently skipped\n- Logs show correct [book] i/n for all books"
+  -
+    number: 11
+    title: "Single-pass chapter split (1 ffmpeg per book) [P0]"
+    state: "CLOSED"
+    created_at: "2025-12-31T10:26:15Z"
+    updated_at: "2025-12-31T20:16:07Z"
+    closed_at: "2025-12-31T20:16:07Z"
+    body: "Replace N× ffmpeg chapter splitting with single-pass split per book.\n\nRequirements:\n- One ffmpeg process per book\n- Deterministic output\n- Significantly reduced CPU usage and runtime (RPi-friendly)\n\nAcceptance:\n- Exactly one ffmpeg invocation per book\n- Output tracks identical to current behavior"
+  -
+    number: 12
+    title: "Unified preflight decision block [P0]"
+    state: "CLOSED"
+    created_at: "2025-12-31T10:26:17Z"
+    updated_at: "2025-12-31T20:19:17Z"
+    closed_at: "2025-12-31T20:19:17Z"
+    body: "Ask ALL user decisions before any filesystem or ffmpeg work starts.\n\nIncludes:\n- author\n- book(s)\n- covers\n- publish yes/no\n- ID3 wipe yes/no\n\nRules:\n- No prompts during processing phase\n- One deterministic preflight block\n\nAcceptance:\n- After preflight, processing runs without interaction\n- --yes skips the entire preflight deterministically"
+  -
+    number: 13
+    title: "Stage reuse (deterministic resume) [P1]"
+    state: "CLOSED"
+    created_at: "2025-12-31T10:26:18Z"
+    updated_at: "2025-12-31T20:21:08Z"
+    closed_at: "2025-12-31T20:21:08Z"
+    body: "Reuse existing stage safely and deterministically.\n\nRequirements:\n- If stage already exists:\n  - do not unpack again\n  - do not overwrite files\n- Enables resume after interruption\n\nAcceptance:\n- Re-run after interruption continues without re-unpack\n- Stage contents are never silently overwritten"
+  -
+    number: 14
+    title: "Root-audio handling as first-class book [P1]"
+    state: "CLOSED"
+    created_at: "2025-12-31T10:26:20Z"
+    updated_at: "2026-01-01T11:11:34Z"
+    closed_at: "2026-01-01T11:11:34Z"
+    body: "Treat audio files in archive root as a normal book.\n\nRequirements:\n- Root-level audio becomes its own logical book (__ROOT_AUDIO__)\n- Same prompts, logging, and processing as directory-based books\n\nAcceptance:\n- Root audio appears as a selectable book\n- Processing is identical to subdir-based books"
+  -
+    number: 15
+    title: "One book = one unit of work (clear phase boundaries) [P1]"
+    state: "CLOSED"
+    created_at: "2025-12-31T10:26:22Z"
+    updated_at: "2026-01-01T18:01:50Z"
+    closed_at: "2026-01-01T18:01:50Z"
+    body: "Make 'book' the atomic unit of work.\n\nPhases:\n- PREPARE (all questions)\n- PROCESS (CPU/IO)\n- FINALIZE (publish, cleanup)\n\nBenefits:\n- Simpler resume\n- Cleaner logs\n- Deterministic behavior\n\nAcceptance:\n- Each book is processed independently with clear phase transitions"
+  -
+    number: 16
+    title: "Explicit performance profiles (--rpi4, --low-cpu, --fast) [P1]"
+    state: "CLOSED"
+    created_at: "2025-12-31T10:26:23Z"
+    updated_at: "2025-12-31T20:11:25Z"
+    closed_at: "2025-12-31T20:11:25Z"
+    body: "Add explicit performance profiles.\n\nExamples:\n- --rpi4\n- --low-cpu\n- --fast\n\nProfiles control:\n- ffmpeg threads\n- seek behavior\n- encoder presets\n\nAcceptance:\n- Same input + same profile => same performance behavior\n- Default profile remains current behavior"
+  -
+    number: 17
+    title: "Strict path contract enforcement (AUDIOMASON_ROOT) [P1]"
+    state: "CLOSED"
+    created_at: "2025-12-31T10:26:24Z"
+    updated_at: "2026-01-01T18:03:55Z"
+    closed_at: "2026-01-01T18:03:55Z"
+    body: "Enforce filesystem path contract strictly.\n\nRules:\n- All roots derive from AUDIOMASON_ROOT\n- Fail fast if contract is violated\n- Covered by tests\n\nAcceptance:\n- Invalid path layout aborts early with clear error"
+  -
+    number: 18
+    title: "Machine-readable output mode (--json) [P2]"
+    state: "CLOSED"
+    created_at: "2025-12-31T10:26:25Z"
+    updated_at: "2026-01-01T18:20:13Z"
+    closed_at: "2026-01-01T18:20:13Z"
+    body: "Add optional machine-readable output.\n\nRequirements:\n- --json prints structured output:\n  - sources\n  - books\n  - decisions\n  - results\n- No change to default human output\n\nAcceptance:\n- JSON output is deterministic and parseable"
+  -
+    number: 19
+    title: "Public DB validation cache (OpenLibrary) [P3]"
+    state: "CLOSED"
+    created_at: "2025-12-31T10:26:26Z"
+    updated_at: "2026-01-01T02:29:26Z"
+    closed_at: "2026-01-01T02:29:26Z"
+    body: "Cache results of public DB validation.\n\nRequirements:\n- Cache author/book lookups\n- Offline-friendly behavior\n- Optional / feature-gated\n\nAcceptance:\n- No repeated external lookups for same metadata\n- Offline runs still work"
+  -
+    number: 20
+    title: "Config: allow customizing pipeline step order"
+    state: "CLOSED"
+    created_at: "2025-12-31T10:38:46Z"
+    updated_at: "2026-01-01T20:05:59Z"
+    closed_at: "2026-01-01T20:05:59Z"
+    body: "Add ability to configure the order of pipeline steps via config.\n\nRequirements:\n- Config key (example):\n  pipeline_steps:\n    - unpack\n    - convert\n    - chapters\n    - split\n    - rename\n    - tags\n    - cover\n    - publish\n- Default order = current behavior (no behavior change without config).\n- Validate config:\n  - unknown step => error (fail fast)\n  - duplicate step => error\n  - missing required steps => error (define required set)\n- Deterministic execution:\n  - same input + same config => same order and result\n- Works with --dry-run (summary must reflect configured order)\n- Works with --debug logs (must print resolved order)\n\nAcceptance:\n- Setting pipeline_steps changes execution order.\n- Invalid pipeline_steps aborts before touching filesystem.\n- Existing runs without pipeline_steps behave exactly as today."
+  -
+    number: 21
+    title: "Cover cache configuration (memory / disk / off)"
+    state: "CLOSED"
+    created_at: "2025-12-31T11:46:10Z"
+    updated_at: "2026-01-01T17:04:23Z"
+    closed_at: "2026-01-01T17:04:23Z"
+    body: "Add configurable cover cache behavior.\n\nCurrent state:\n- cover_cache is implicit, in-memory only\n- lives for a single run\n- not configurable\n\nRequirements:\n- Configurable cache mode:\n  - memory (current behavior, default)\n  - disk (persistent between runs)\n  - off (always ask)\n- Optional config keys:\n  cover:\n    cache: memory|disk|off\n    cache_dir: <path>   # used when cache=disk\n- Must respect:\n  - --dry-run (no writes)\n  - --debug (log cache hits/misses)\n- Deterministic behavior:\n  - same input + same cache state => same result\n\nAcceptance:\n- Default behavior unchanged.\n- disk cache persists covers across runs.\n- off disables caching completely.\n- Clear logging when cache is used or bypassed."
+  -
+    number: 22
+    title: "P0 BUG: publish=no should write to abooks_ready (OUTPUT_ROOT), but conflicts with archive output"
+    state: "CLOSED"
+    created_at: "2025-12-31T13:01:49Z"
+    updated_at: "2025-12-31T13:25:59Z"
+    closed_at: "2025-12-31T13:25:59Z"
+    body: "[repro]\n1) Run: AUDIOMASON_ROOT=/mnt/warez am\n2) Choose a source + books\n3) Answer: Publish after import? -> n\n4) Continue import\n\n[expected]\nWhen publish=no, output must be written under OUTPUT_ROOT (abooks_ready), as defined by config/paths contract. No conflict with archive paths should occur.\n\n[actual]\nImport crashes with conflict error saying files already exist in archive (abooks). This indicates the pipeline still targets ARCHIVE_ROOT when publish is disabled.\n\n[impact]\nBlocks non-publish workflow; makes safe-by-default staging/output unusable.\n\n[notes]\nConfig contract: inbox->stage->output (abooks_ready) -> optional publish to archive.\nCurrent behavior violates contract."
+  -
+    number: 23
+    title: "BUG: cover prompt does not identify which book is requesting a cover"
+    state: "CLOSED"
+    created_at: "2025-12-31T13:02:02Z"
+    updated_at: "2025-12-31T16:28:06Z"
+    closed_at: "2025-12-31T16:28:06Z"
+    body: "[repro]\n1) Run import with multiple books (ALL)\n2) Reach cover selection phase\n\n[observed]\nPrompt shows:\n\"No cover found. Path or URL to image (Enter=skip):\"\nwithout indicating author/book.\n\n[expected]\nCover prompt must clearly identify the current book (author + title or [book i/n]: label) so the user knows which book the cover applies to.\n\n[impact]\nHigh UX risk during multi-book imports; easy to attach wrong cover to wrong book.\n\n[example]\n[id3] wiped 35.mp3\n[id3] wiped 36.mp3\nNo cover found. Path or URL to image (Enter=skip):\n\nShould be:\n[cover] [book 2/5] Stoparuv pruvodce galaxii 2\nNo cover found. Path or URL to image (Enter=skip):"
+  -
+    number: 24
+    title: "P0 FEATURE: persist preflight answers in stage and reuse stage data for crash-resume (no re-copy)"
+    state: "CLOSED"
+    created_at: "2025-12-31T13:13:12Z"
+    updated_at: "2025-12-31T16:15:53Z"
+    closed_at: "2025-12-31T16:15:53Z"
+    body: "[goal]\nMake imports resumable and deterministic after crashes/interrupts.\n\n[proposal]\nWrite a run manifest into the stage directory that stores ALL decisions already asked (preflight + per-book metadata), and reuse it on the next run if the same staged source is present.\n\n[required behavior]\n1) During preflight, persist decisions immediately to stage (atomic writes):\n   - publish yes/no\n   - wipe_id3 yes/no\n   - author (per source)\n   - per-book titles + any per-book selections\n   - cover choice / cover URL / cover path (if provided)\n2) On restart after crash/CTRL-C:\n   - detect existing stage for the selected source\n   - load manifest and continue WITHOUT re-asking answered prompts\n   - continue at the next unfinished book/step deterministically\n3) Stage reuse:\n   - do NOT re-copy / re-unpack source into stage if stage already contains the staged src for that source\n   - only restage if explicitly forced OR if a mismatch is detected (e.g. different source chosen / stage missing / manifest indicates incomplete staging)\n\n[acceptance]\n- A crash during staging/processing does not lose answers.\n- Re-running the same source continues where it left off.\n- If stage already has the source data, am does not copy/unpack again.\n- Deterministic and safe-by-default (no silent overwrite).\n\n[notes]\nUser observation: data is copied into stage every run; this is wasteful. Reuse existing stage when valid."
+  -
+    number: 25
+    title: "BUG: abooks_ready written to inconsistent / incorrect locations"
+    state: "CLOSED"
+    created_at: "2025-12-31T17:31:27Z"
+    updated_at: "2025-12-31T17:56:18Z"
+    closed_at: "2025-12-31T17:56:18Z"
+    body: "Observed behavior:\n- abooks_ready (OUTPUT_ROOT when publish=no) is written to different and inconsistent filesystem locations.\n- In some runs, output ends up under unexpected paths (e.g. relative to repo / cwd), not under AUDIOMASON_ROOT-derived OUTPUT_ROOT.\n\nExpected behavior:\n- OUTPUT_ROOT must be derived exclusively from AUDIOMASON_ROOT.\n- publish=no MUST ALWAYS write to: <AUDIOMASON_ROOT>/abooks_ready\n- No fallback to CWD, repo root, or implicit paths.\n\nImpact:\n- High risk of data scattering and accidental overwrites.\n- Breaks filesystem contract.\n\nNotes:\n- Likely path resolution leak between env override, defaults, and call sites.\n- Must be deterministic and test-covered."
+  -
+    number: 26
+    title: "FEATURE: preflight prompt to clean stage at end"
+    state: "CLOSED"
+    created_at: "2025-12-31T17:53:26Z"
+    updated_at: "2025-12-31T18:41:23Z"
+    closed_at: "2025-12-31T18:41:23Z"
+    body: "Request:\n- During preflight, ask whether stage should be cleaned at the end of the run.\n\nExpected behavior:\n- New preflight question (once per run): \"Clean stage after successful import?\" [y/N]\n- Decision must be persisted in stage manifest for resume/reuse consistency.\n- Behavior:\n  - If Yes: after successful completion of the run, remove the stage_run directory (or a deterministic subset), without touching input/output.\n  - If No: keep stage as-is (current behavior).\n\nConstraints:\n- Deterministic, safe-by-default.\n- Must not clean stage on abort/CTRL-C unless explicitly decided (default: do not)."
+  -
+    number: 27
+    title: "FEATURE: guarded fuzzy suggestions for book titles (OpenLibrary)"
+    state: "CLOSED"
+    created_at: "2026-01-01T02:31:05Z"
+    updated_at: "2026-01-01T11:04:49Z"
+    closed_at: "2026-01-01T11:04:49Z"
+    body: "Goal:\n- When lookup is enabled and validate_book(author,title) returns not_found with no top suggestion, offer a guarded closest-title suggestion.\n\nRules (non-negotiable):\n- Deterministic behavior only.\n- No silent overwrites: always prompt to accept suggestion.\n- Safe-by-default: if confidence is low, offer nothing.\n- Must respect --no-lookup.\n- Must not write OpenLibrary cache in --dry-run.\n\nProposed approach:\n- On book not_found: secondary OpenLibrary search constrained by author.\n- Score candidate titles vs entered title (e.g. SequenceMatcher).\n- Suggest only if score >= conservative threshold.\n\nAcceptance criteria:\n- Typo title triggers suggestion prompt when strong match exists.\n- Weak/ambiguous matches produce no suggestion.\n- Correct author+title stays silent.\n- --no-lookup disables everything."
+  -
+    number: 28
+    title: "BUG: import should accept source path as CLI argument"
+    state: "CLOSED"
+    created_at: "2026-01-01T09:06:16Z"
+    updated_at: "2026-01-01T10:39:16Z"
+    closed_at: "2026-01-01T10:39:16Z"
+    body: "am import currently rejects a positional source path with 'unrecognized arguments'. Expected: allow 'am import /path/to/source' while keeping current interactive behavior when no path is provided. Must respect --dry-run and --lookup/--no-lookup. Needed for scripting and testing."
+  -
+    number: 29
+    title: "FEATURE: prefer CZ/SK edition titles for OpenLibrary book suggestions"
+    state: "CLOSED"
+    created_at: "2026-01-01T09:32:50Z"
+    updated_at: "2026-01-01T10:00:27Z"
+    closed_at: "2026-01-01T10:00:27Z"
+    body: "Problem: /search.json returns work-level 'title' (often English) even when using language:cze/slo filters. We want suggestions in Czech/Slovak when available.\\n\\nGoal:\\n- When offering a guarded book title suggestion, prefer edition titles in CZ/SK.\\n- Strategy: after selecting best matching work candidate, fetch editions for that work and pick an edition title where language includes 'cze' or 'slo' (prefer cze then slo, or configurable later).\\n- Still deterministic, prompt-only (no silent overwrites), safe-by-default.\\n- Must respect --no-lookup.\\n- Must not write OL cache in --dry-run.\\n\\nAcceptance:\\n- For Douglas Adams query, suggestion offered as Czech title when Czech edition exists.\\n- If only English exists, fall back to current behavior.\\n- If ambiguous/low confidence, offer nothing."
+  -
+    number: 30
+    title: "FEATURE: Google Books fallback for localized (CZ/SK) title suggestions"
+    state: "CLOSED"
+    created_at: "2026-01-01T09:59:20Z"
+    updated_at: "2026-01-01T10:31:43Z"
+    closed_at: "2026-01-01T10:31:43Z"
+    body: "Goal:\\n- When user-entered title looks CZ/SK but OpenLibrary suggests only EN (or no localized editions), query Google Books Volumes API for candidate titles.\\n- Deterministic, prompt-only, safe-by-default threshold+gap.\\n- Respect --no-lookup.\\n- No network/cache writes in --dry-run.\\n\\nAcceptance:\\n- CZ typo title can trigger CZ suggestion when strong match exists.\\n- Weak/ambiguous => no suggestion.\\n- Correct author+title stays silent."
+  -
+    number: 31
+    title: "FEATURE: Google Books fallback for localized (CZ/SK) title suggestions"
+    state: "CLOSED"
+    created_at: "2026-01-01T10:00:49Z"
+    updated_at: "2026-01-01T10:02:11Z"
+    closed_at: "2026-01-01T10:02:11Z"
+    body: "Goal:\\n- When OpenLibrary returns only EN titles or no localized editions, query Google Books Volumes API for localized (CZ/SK) title suggestions.\\n\\nRules:\\n- Deterministic behavior only.\\n- Prompt-only (no silent overwrites).\\n- Safe-by-default (threshold + gap).\\n- Must respect --no-lookup.\\n- Must not write any cache in --dry-run.\\n\\nAcceptance:\\n- CZ/SK typo title can trigger CZ/SK suggestion when strong match exists.\\n- Weak/ambiguous matches produce no suggestion.\\n- Correct author+title stays silent."
+  -
+    number: 32
+    title: "BUG: explicit 'am import <PATH>' must bypass ignore list"
+    state: "CLOSED"
+    created_at: "2026-01-01T10:57:14Z"
+    updated_at: "2026-01-01T10:57:36Z"
+    closed_at: "2026-01-01T10:57:36Z"
+    body: "When a concrete source PATH is provided on CLI (am import <PATH>), the import must process it regardless of ignore rules. Ignore list should apply only to interactive DROP_ROOT listings."
+  -
+    number: 33
+    title: "Hardcoded filesystem paths audit & cleanup"
+    state: "CLOSED"
+    created_at: "2026-01-01T13:19:20Z"
+    updated_at: "2026-01-01T13:19:23Z"
+    closed_at: "2026-01-01T13:19:23Z"
+    body: "Audit and cleanup of hardcoded filesystem paths across AudioMason.\n\nScope:\n- Removed absolute hardcoded paths (/mnt, /etc, cwd fallbacks)\n- Introduced strict path resolution via configuration.yaml\n- Separated app root (AUDIOMASON_ROOT) from data roots\n- Updated tests and legacy code\n\nResult:\n- No hardcoded filesystem paths remain in active code\n- Verified via ripgrep audit\n\nThis issue documents the cleanup and is closed after verification."
+  -
+    number: 34
+    title: "BUG: verify checks wrong directory level (author dirs treated as books)"
+    state: "CLOSED"
+    created_at: "2026-01-01T13:27:37Z"
+    updated_at: "2026-01-01T16:45:00Z"
+    closed_at: "2026-01-01T16:45:00Z"
+    body: "Audit finding: src/audiomason/verify.py iterates immediate subdirs of root as books, but canonical layout is Author/Book.\\n\\nImpact:\\n- false verify failures\\n- real books may be skipped\\n\\nAcceptance:\\n- verify walks Author -> Book\\n- tests updated"
+  -
+    number: 35
+    title: "BUG: configuration key mismatch across config, CLI, and README"
+    state: "CLOSED"
+    created_at: "2026-01-01T13:27:46Z"
+    updated_at: "2026-01-01T15:08:10Z"
+    closed_at: "2026-01-01T15:08:10Z"
+    body: "Audit finding: config keys differ between src/audiomason/config.py defaults, cli lookups, and README examples (publish, ffmpeg, audio).\\n\\nImpact:\\n- configuration.yaml values may be ignored\\n\\nAcceptance:\\n- single canonical schema\\n- CLI + defaults + docs aligned\\n- tests cover config parsing"
+  -
+    number: 36
+    title: "BUG: cover cache path ignores configuration.yaml (CACHE_ROOT constant used)"
+    state: "CLOSED"
+    created_at: "2026-01-01T13:27:53Z"
+    updated_at: "2026-01-01T14:45:47Z"
+    closed_at: "2026-01-01T14:45:47Z"
+    body: "Audit finding: src/audiomason/covers.py uses CACHE_ROOT constant instead of resolving cache root from cfg.\\n\\nImpact:\\n- paths.cache is ignored\\n\\nAcceptance:\\n- cache root resolved from cfg\\n- test verifies configured cache path"
+  -
+    number: 37
+    title: "BUG: missing external archive tools cause raw FileNotFoundError"
+    state: "CLOSED"
+    created_at: "2026-01-01T13:29:16Z"
+    updated_at: "2026-01-01T14:06:08Z"
+    closed_at: "2026-01-01T14:06:08Z"
+    body: "Audit finding: src/audiomason/archives.py raises FileNotFoundError when unzip/7z/unrar is missing.\\n\\nExpected:\\n- fail-fast with clear error message\\n- name missing tool + hint\\n\\nAcceptance:\\n- explicit detection\\n- readable RuntimeError"
+  -
+    number: 38
+    title: "BUG: mixed print/input bypasses quiet/debug UX contract"
+    state: "CLOSED"
+    created_at: "2026-01-01T13:29:23Z"
+    updated_at: "2026-01-01T14:00:48Z"
+    closed_at: "2026-01-01T14:00:48Z"
+    body: "Audit finding: import_flow.py and covers.py mix raw print/input with audiomason.util out/prompt.\\n\\nImpact:\\n- --quiet / --debug not consistently respected\\n\\nAcceptance:\\n- all interaction via util wrappers\\n- uniform UX behavior"
+  -
+    number: 39
+    title: "BUG: paths._get swallows exceptions and hides config errors"
+    state: "CLOSED"
+    created_at: "2026-01-01T13:29:31Z"
+    updated_at: "2026-01-01T13:45:50Z"
+    closed_at: "2026-01-01T13:45:50Z"
+    body: "Audit finding: src/audiomason/paths.py has 'except Exception: pass' when reading cfg.\\n\\nThis violates fail-fast contract.\\n\\nAcceptance:\\n- remove broad exception swallowing\\n- raise clear RuntimeError with context\\n- tests for malformed config"
+  -
+    number: 40
+    title: "Docs: README configuration section out of sync with current contract"
+    state: "CLOSED"
+    created_at: "2026-01-01T13:29:38Z"
+    updated_at: "2026-01-01T13:32:05Z"
+    closed_at: "2026-01-01T13:32:05Z"
+    body: "Audit finding: README still references legacy config discovery (/etc, ~/.config) and outdated key layout.\\n\\nAcceptance:\\n- document AUDIOMASON_ROOT resolution\\n- only /configuration.yaml\\n- examples match real schema"
+  -
+    number: 41
+    title: "CLI: replace expected tracebacks with human-readable exits"
+    state: "CLOSED"
+    created_at: "2026-01-01T13:46:03Z"
+    updated_at: "2026-01-01T18:39:55Z"
+    closed_at: "2026-01-01T18:39:55Z"
+    body: "### Problem\n\nCurrently, AudioMason prints Python tracebacks for many expected termination scenarios (invalid configuration, missing external tools, validation failures, user abort via Ctrl+C). This is noisy and user-unfriendly. Tracebacks should be reserved only for genuine programmer bugs (unexpected exceptions).\n\n---\n\n### Goal\n\nDefine and enforce a strict CLI contract:\n\n- No tracebacks for expected exits\n- Always show a single, human-readable message explaining why the program exited\n- Deterministic exit codes\n- Centralized handling in CLI entrypoint\n\n---\n\n### Proposed Design\n\n#### 1) Controlled exit exception hierarchy\n\nIntroduce explicit exit exceptions:\n\nExample:\n\nclass AmExit(RuntimeError):\n    exit_code = 1\n\nclass AmConfigError(AmExit):\n    pass\n\nclass AmValidationError(AmExit):\n    pass\n\nclass AmExternalToolError(AmExit):\n    pass\n\nclass AmAbort(AmExit):\n    exit_code = 130  # Ctrl+C\n\nNotes:\n- No printing inside exceptions\n- Message only\n\n---\n\n#### 2) Single catch point in cli.main()\n\nExample:\n\ntry:\n    ...\nexcept AmAbort as e:\n    out(f\"[abort] {e}\")\n    return e.exit_code\nexcept AmExit as e:\n    out(f\"[error] {e}\")\n    return e.exit_code\n\n- No other broad excepts elsewhere\n\n---\n\n#### 3) KeyboardInterrupt handling\n\nExample:\n\nexcept KeyboardInterrupt:\n    raise AmAbort(\"cancelled by user\")\n\n---\n\n#### 4) Replace raw RuntimeError usage\n\nAll expected failures must raise an appropriate AmExit subclass instead of raw RuntimeError / ValueError:\n\n- config load / validation\n- paths contract enforcement\n- verify failures\n- missing external tools (ffmpeg, unzip, 7z, unrar)\n\n---\n\n### User-visible behavior\n\nInvalid config:\n[error] Invalid configuration: paths must be a mapping\n\nMissing external tool:\n[error] Missing external tool: ffmpeg (install ffmpeg)\n\nCtrl+C:\n[abort] cancelled by user\n\nReal bug:\nTraceback (most recent call last):\n  ...\n\n---\n\n### Acceptance Criteria\n\n- No Python tracebacks for expected termination paths\n- All expected exits go through AmExit hierarchy\n- Single catch point in CLI\n- Tracebacks remain for unexpected bugs only\n- Covered by tests where applicable\n\n---\n\n### Notes\n\nThis is a CLI UX contract change and should be treated as a foundational behavior guarantee.\n"
+  -
+    number: 42
+    title: "CLI: replace expected tracebacks with human-readable exits"
+    state: "CLOSED"
+    created_at: "2026-01-01T13:46:12Z"
+    updated_at: "2026-01-01T13:47:39Z"
+    closed_at: "2026-01-01T13:47:39Z"
+    body: "### Problem\\n\\nCurrently, AudioMason prints Python tracebacks for many *expected* termination scenarios (invalid configuration, missing external tools, validation failures, user abort via Ctrl+C). This is noisy, user-unfriendly, and not aligned with a CLI tool intended to run on constrained systems (e.g. Raspberry Pi) or by non-developers.\\n\\nTracebacks should be reserved **only** for genuine programmer bugs (unexpected exceptions).\\n\\n---\\n\\n### Goal\\n\\nDefine and enforce a strict CLI contract:\\n\\n- **No tracebacks for expected exits**\\n- Always show a **single, human-readable message** explaining *why* the program exited\\n- Deterministic exit codes\\n- Centralized handling in CLI entrypoint\\n\\n---\\n\\n### Proposed Design\\n\\n#### 1. Controlled exit exception hierarchy\\n\\nIntroduce a small set of explicit exit exceptions:\\n\\n\\n\\n- No printing inside exceptions\\n- Message only\\n\\n---\\n\\n#### 2. Single catch point in cli.main()\\n\\n\\n\\n- No other broad excepts elsewhere\\n\\n---\\n\\n#### 3. KeyboardInterrupt handling\\n\\n\\n\\n---\\n\\n#### 4. Replace raw RuntimeError usage\\n\\nAll expected failures must raise an appropriate  subclass instead of raw RuntimeError / ValueError:\\n\\n- config load / validation\\n- paths contract enforcement\\n- verify failures\\n- missing external tools (ffmpeg, unzip, 7z, unrar)\\n\\n---\\n\\n### User-visible behavior\\n\\n**Invalid config**\\n\\n\\n**Missing external tool**\\n\\n\\n**Ctrl+C**\\n\\n\\n**Real bug**\\n\\n\\n---\\n\\n### Acceptance Criteria\\n\\n- No Python tracebacks for expected termination paths\\n- All expected exits go through AmExit hierarchy\\n- Single catch point in CLI\\n- Tracebacks remain for unexpected bugs only\\n- Covered by tests where applicable\\n\\n---\\n\\n### Notes\\n\\nThis is a CLI UX contract change and should be treated as a foundational behavior guarantee."
+  -
+    number: 43
+    title: "FEATURE: choose/add cover during preflight (no cover prompts in processing)"
+    state: "CLOSED"
+    created_at: "2026-01-01T14:42:23Z"
+    updated_at: "2026-01-01T21:04:40Z"
+    closed_at: "2026-01-01T21:04:40Z"
+    body: "### Problem\n\nCover selection currently happens in the processing phase via `choose_cover(...)`. This clashes with the project rule that processing should not prompt (see the existing preflight/processing separation). In practice, when no embedded/file cover is detected in preflight, `cover_mode` becomes `\"skip\"` and processing prints `[cover] skipped`, even though the user could supply a URL/path at that time.\n\nExample observed flow:\n- preflight sets `cover_mode = \"skip\"` when no cover is detected\n- processing phase calls `choose_cover(..., mode=\"skip\")` and never asks for a URL/path\n- result: `[cover] skipped`\n\n### Goal\n\nMove **all cover decisions and user interaction** into **preflight** so that:\n- processing phase never prompts\n- cover never gets silently skipped when the user could provide one\n- crash-resume can reuse the selected cover deterministically\n\n### Requirements\n\n1) Preflight must determine a final cover input for each book:\n- `embedded` (from audio) OR\n- `file` (existing cover file) OR\n- `url` (download + cached file) OR\n- `path` (user-supplied local file path) OR\n- explicit `skip`\n\n2) Preflight prompts:\n- If a cover is detected (embedded/file), allow confirm/override/skip.\n- If no cover is detected, prompt the user for:\n  - URL (http/https) OR\n  - local file path OR\n  - skip\n\n3) Processing phase:\n- Must only apply the preflight decision (no prompts).\n- Must not call interactive cover selection.\n- Must print a single concise line indicating which cover was used (embedded/file/url/path/skip).\n\n4) Persistence / resume:\n- Store the chosen cover decision in stage/manifest so crash-resume reuses it without prompting.\n- If cover is URL, store the cached file path (or the URL + cache key) so it is deterministic.\n\n5) Config integration:\n- URL cover downloads must use the configured cache root (`paths.cache`) if set.\n\n### Acceptance Criteria\n\n- Running `am import` with a book that has no cover:\n  - preflight asks once for cover URL/path/skip\n  - processing never prompts and does not output `[cover] skipped` unless the user chose skip\n- Re-running after crash or stage reuse:\n  - no cover prompt repeats if manifest already contains the decision\n- Tests added/updated for:\n  - preflight cover decision persistence\n  - processing uses preflight decision\n  - URL cover uses configured cache root\n\n### Notes\n\nThis change is meant to align cover handling with the preflight/processing contract and improve deterministic resume behavior.\n"
+  -
+    number: 44
+    title: "Config: allow --config / CWD configuration.yaml and show loaded_from under --debug"
+    state: "CLOSED"
+    created_at: "2026-01-01T15:10:23Z"
+    updated_at: "2026-01-01T15:18:12Z"
+    closed_at: "2026-01-01T15:18:12Z"
+    body: "Problem\n- It is currently not possible to reliably test AudioMason with a throwaway configuration in a temporary working directory.\n- Running from a temp dir containing configuration.yaml still loads the \"real\" config/defaults (e.g. inbox stays /mnt/warez/abooksinbox).\n- load_config() does not expose which file was loaded (\"loaded_from\" is unknown), so this is hard to verify/debug.\n\nRepro\n1) Create a temp config and run am from that temp dir:\n\nTMP=$(mktemp -d)\ncat >\"$TMP/configuration.yaml\" <<'YAML'\npublish: no\nsplit_chapters: true\npaths:\n  inbox:  /tmp/am_inbox\n  stage:  /tmp/am_stage\n  output: /tmp/am_output\n  archive:/tmp/am_archive\n  cache:  /tmp/am_cache\nffmpeg:\n  loglevel: error\n  loudnorm: false\n  q_a: \"4\"\nYAML\nmkdir -p /tmp/am_inbox /tmp/am_stage /tmp/am_output /tmp/am_archive /tmp/am_cache\ncd \"$TMP\"\nam --dry-run\n\nExpected\n- Config discovery should be deterministic and test-friendly:\n  - Either respect configuration.yaml in the current working directory, OR\n  - Provide a --config /path/to/configuration.yaml flag to force a specific file.\n- Under --debug (or equivalent), print which config file was loaded, e.g.:\n  [config] loaded_from=/path/to/configuration.yaml\n\nActual\n- am --dry-run still reads sources from the real inbox (e.g. /mnt/warez/abooksinbox).\n- load_config() provides no reliable \"loaded_from\" info (shows unknown), so the active config source cannot be verified.\n\nScope / acceptance criteria\n- Add a deterministic way to select config:\n  - Option A: search order includes CWD/configuration.yaml (documented), OR\n  - Option B: implement --config PATH that overrides discovery.\n- Add \"loaded_from\" visibility:\n  - Print loaded_from under --debug, and/or\n  - Store loaded_from in cfg (or a module-level var) for programmatic inspection.\n- Update README with the discovery/override behavior.\n\nNotes\n- This blocks reliable isolated testing and makes troubleshooting configuration issues harder.\n"
+  -
+    number: 45
+    title: "Covers: detect MIME and store cached covers with correct extension (.jpg/.png/.webp)"
+    state: "CLOSED"
+    created_at: "2026-01-01T17:05:08Z"
+    updated_at: "2026-01-01T17:37:49Z"
+    closed_at: "2026-01-01T17:37:49Z"
+    body: "Problem\n- Disk cover cache currently stores downloads as .img, losing the original content-type/extension.\n- This makes cache harder to inspect/debug and can break downstream tooling that expects correct extensions.\n\nRequirements\n- Detect MIME type of downloaded cover bytes (or via HTTP headers where available).\n- Store cache files with correct extension:\n  - image/jpeg -> .jpg\n  - image/png  -> .png\n  - image/webp -> .webp\n  - fallback -> .img\n- Deterministic mapping:\n  - same URL + same bytes => same cached filename (stable).\n- Respect:\n  - --dry-run (no writes)\n  - --debug (log detected MIME + chosen extension)\n\nAcceptance\n- Existing behavior unchanged unless cache=disk is enabled.\n- Disk cache files become human-friendly and correctly typed.\n"
+  -
+    number: 46
+    title: "Covers: add cache GC / cleanup for disk cover cache"
+    state: "CLOSED"
+    created_at: "2026-01-01T17:05:16Z"
+    updated_at: "2026-01-01T21:16:50Z"
+    closed_at: "2026-01-01T21:16:50Z"
+    body: "Problem\n- Disk cover cache can grow unbounded over time.\n- There is no built-in way to prune old/unused entries.\n\nRequirements (pick one or combine)\n- Add a GC/cleanup mechanism for disk cache, with deterministic and safe defaults.\n- Options:\n  A) Command: am cache gc [--days N] [--max-mb M] [--dry-run]\n  B) Config-based policy: cover.cache_gc (days/max_mb/off)\n- Must respect:\n  - --dry-run (report only)\n  - --debug (log what would be removed / why)\n- Safety:\n  - never delete outside the configured cache dir\n  - only delete known cache files\n\nAcceptance\n- User can reduce cache size deterministically.\n- Dry-run shows exactly what would be removed.\n"
+  -
+    number: 47
+    title: "Packaging: provide .deb package for system-wide install"
+    state: "CLOSED"
+    created_at: "2026-01-01T17:06:22Z"
+    updated_at: "2026-01-02T01:54:42Z"
+    closed_at: "2026-01-02T01:54:42Z"
+    body: "Problem\n- AudioMason is currently installed via editable pip / venv only.\n- There is no system-native package for easy installation, upgrade, or removal.\n\nGoal\n- Provide an optional .deb package for Debian-based systems (Debian, Ubuntu, Raspberry Pi OS).\n- This is low priority (P2) and not required for core functionality.\n\nRequirements\n- Build a .deb package that:\n  - installs audiomason CLI system-wide (read-only)\n  - does NOT assume writable system paths at runtime\n  - respects existing config model (AUDIOMASON_ROOT / configuration.yaml)\n- No daemon, no systemd service.\n- Packaging only; runtime behavior unchanged.\n\nNotes / constraints\n- Likely approaches:\n  - setuptools + debhelper\n  - fpm-based packaging\n  - or simple dpkg-deb wrapper\n- Must not break venv-based development workflow.\n\nAcceptance\n- .deb can be built reproducibly.\n- Installing the package provides the 'audiomason' command.\n- Uninstall cleanly removes files.\n"
+  -
+    number: 48
+    title: "BUG: Cover silently skipped due to sticky manifest cover_mode and skip default"
+    state: "CLOSED"
+    created_at: "2026-01-01T20:06:58Z"
+    updated_at: "2026-01-01T20:32:02Z"
+    closed_at: "2026-01-01T20:32:02Z"
+    body: "Cover handling has a UX/behavior bug independent of pipeline_steps.\n\nObserved:\n- Stage manifest can contain book_meta.__ROOT_AUDIO__.cover_mode = \"skip\"\n- Even when selecting \"Use saved answers? n\", cover remains silently skipped.\n- If cover_mode key is deleted from manifest, behavior still defaults to skip (no prompt) when prompts are enabled.\n- Result: cover step executes but does not prompt and logs \"[cover] skipped\".\n\nExpected:\n- Selecting \"Use saved answers? n\" should clear cover_mode decisions (or at least cover decisions).\n- When prompts are enabled, missing cover_mode should default to asking (not silent skip).\n- Provide an explicit mechanism to reset/override cover decision (config flag or CLI switch).\n\nNotes:\n- Discovered during validation of issue #20.\n- Intentionally split out to keep pipeline_steps issue clean and closed.\n"
+  -
+    number: 49
+    title: "BUG: crash when downloading cover URL (duplicate check=True in run_cmd)"
+    state: "CLOSED"
+    created_at: "2026-01-01T20:21:02Z"
+    updated_at: "2026-01-01T20:29:37Z"
+    closed_at: "2026-01-01T20:29:37Z"
+    body: "Repro:\n- Interactive run with cover prompt\n- Select URL cover\n- App crashes with:\n  TypeError: subprocess.run() got multiple values for keyword argument 'check'\n\nTraceback ends at:\n- audiomason/covers.py: download_url()\n- run_cmd([...], check=True)\n- util.run_cmd() already passes check=True internally\n\nRoot cause:\n- check=True is passed twice to subprocess.run()\n\nExpected:\n- URL cover downloads without crash\n\nScope:\n- src/audiomason/covers.py\n- Remove explicit check=True from run_cmd() call\n\nNotes:\n- Found while testing Issue #48 (cover prompt behavior)\n- Issue #48 remains OPEN\n"
+  -
+    number: 50
+    title: "BUG: stage not cleaned after successful import despite confirmation"
+    state: "CLOSED"
+    created_at: "2026-01-01T21:42:35Z"
+    updated_at: "2026-01-01T21:53:31Z"
+    closed_at: "2026-01-01T21:53:31Z"
+    body: "Problem\nStage directory is not cleaned after a successful import, even when the user confirms cleanup.\n\nRepro (interactive run):\n- Choose source with existing stage\n- Reuse existing staged source? -> Y\n- Use saved answers? -> N\n- Clean stage after successful import? -> (Yes / default)\n- Import completes successfully (PROCESS + FINALIZE)\n\nObserved\n- Stage directory remains on disk\n- No error or warning is shown\n- FINALIZE phase completes, but stage is not removed\n\nExpected\n- If user confirms \"Clean stage after successful import?\", the stage directory must be deleted after FINALIZE\n- Behavior should be deterministic and explicit\n\nNotes\n- This is NOT a dry-run\n- Import finished successfully\n- Likely regression or missing hook in FINALIZE phase\n- Related to stage reuse / crash-resume logic\n\nFull log excerpt (abridged):\n[stage] Reuse existing staged source? [Y/n] y\n[manifest] Use saved answers (skip prompts)? [Y/n] n\n...\nClean stage after successful import? [Y/n]\n...\n[phase] FINALIZE\n(stage still exists)\n\nEnvironment\n- AudioMason main branch\n- Python 3.11\n- Run inside venv\n- Real data (Asimov.Isaac, multiple books)\n"
+  -
+    number: 51
+    title: "BUG: processed book directories not added to ignore; reappear in next run"
+    state: "CLOSED"
+    created_at: "2026-01-01T21:54:55Z"
+    updated_at: "2026-01-01T22:02:24Z"
+    closed_at: "2026-01-01T22:02:24Z"
+    body: "Problem\nAfter a successful book import, AudioMason does not add the processed book directory to the ignore list. As a result, the same directories are shown again as candidates in subsequent runs.\n\nRepro\n- Run am import\n- Successfully process one or more books\n- Stage cleanup may occur correctly\n- Run am again on the same inbox root\n\nObserved\n- Already processed book directories are listed again as selectable sources/books\n\nExpected\n- After successful processing, AudioMason should mark processed content as ignored\n- Minimal acceptable behavior: add the MAIN processed directory (book root) to ignore\n- Ignored directories must not be listed in subsequent runs\n\nNotes\n- This is not about stage cleanup (already fixed in #50)\n- Applies after successful import only\n- Deterministic behavior required (no silent reprocessing)\n- Likely related to ignore handling after FINALIZE\n\nEnvironment\n- AudioMason main branch\n- Python 3.11\n- Run inside venv\n- Real data\n"
+  -
+    number: 52
+    title: "BUG: stage copy starts without informing user (no [stage]/[copy] progress)"
+    state: "CLOSED"
+    created_at: "2026-01-01T22:00:31Z"
+    updated_at: "2026-01-01T22:11:37Z"
+    closed_at: "2026-01-01T22:11:37Z"
+    body: "Problem\nAfter selecting a source, AudioMason begins copying data into the stage directory (when the stage does not already exist), but it does not inform the user that copying has started. This is confusing on slow hardware (Raspberry Pi 4B), as the CLI appears idle.\n\nRepro\n- Run am\n- Select a source\n- When no existing stage is present for that source, AudioMason copies source data into stage\n- User sees no explicit log line indicating the copy phase/progress started\n\nObserved\n- Copy happens silently (no clear \"[stage] copy ...\" or similar)\n- On large sources this looks like a hang\n\nExpected\n- Before copying begins, print a clear message, e.g.:\n  - \"[stage] copying source into stage...\"\n  - include src path and stage path\n- Ideally, provide minimal progress info (file count or per-dir messages), but at minimum one explicit start line is required\n- Must respect --quiet / --dry-run behavior as appropriate\n\nNotes\n- This is about user feedback/visibility; copy behavior itself is correct\n- Particularly important on CPU/I/O constrained systems\n\nEnvironment\n- AudioMason main branch\n- Raspberry Pi 4B\n- Python 3.11\n- Run inside venv\n"
+  -
+    number: 53
+    title: "BUG: OpenLibrary title suggestions must be de-diacritized before prompting"
+    state: "CLOSED"
+    created_at: "2026-01-01T22:11:47Z"
+    updated_at: "2026-01-01T22:30:29Z"
+    closed_at: "2026-01-01T22:30:29Z"
+    body: "Problem\nAudioMason currently offers OpenLibrary book title suggestions that contain diacritics, even though the project explicitly rejects diacritics in titles.\n\nExample:\n[ol] book title suggestion: 'Vychovavame deti a rosteme s nimi' -> 'Vychováváme děti a rosteme s nimi'\nPrompt:\nUse suggested book title 'Vychováváme děti a rosteme s nimi'?\n\nObserved\n- Suggested title contains diacritics\n- User is prompted to accept a title that violates AudioMason naming rules\n\nExpected\n- Any OpenLibrary-suggested title must be normalized to ASCII (no diacritics) *before* being presented to the user\n- Example expected suggestion:\n  'Vychovavame deti a rosteme s nimi'\n- Prompt must never offer a diacritics-containing string\n\nNotes\n- This applies to OpenLibrary title suggestions only\n- De-diacritization should be deterministic and consistent with existing AM normalization rules\n- No change to matching/scoring logic required; only the presented suggestion\n\nEnvironment\n- AudioMason main branch\n- Python 3.11\n- Run inside venv\n"
+  -
+    number: 54
+    title: "BUG: NameError in validate_author after OL suggestion sanitize (undefined variable t)"
+    state: "CLOSED"
+    created_at: "2026-01-01T22:33:36Z"
+    updated_at: "2026-01-01T22:40:23Z"
+    closed_at: "2026-01-01T22:40:23Z"
+    body: "Problem\nAudioMason crashes with NameError during author validation after the OpenLibrary suggestion sanitize change (#53).\n\nObserved crash:\nNameError: name 't' is not defined\n\nTraceback (abridged):\nFile \"src/audiomason/openlibrary.py\", line 123, in validate_author\n    top = _sanitize_title_suggestion(t, top)\nNameError: name 't' is not defined\n\nRepro\n- Run am\n- Proceed through import\n- At author prompt, enter an author name\n- Validation crashes immediately\n\nObserved\n- Application terminates with NameError\n- Happens in validate_author(), where variable 't' does not exist\n\nExpected\n- Author validation must not reference undefined variables\n- OpenLibrary sanitize logic should only apply where correct context (book title vs author) exists\n- No crash during author validation\n\nNotes\n- Regression introduced by Issue #53 fix (OpenLibrary title suggestion sanitization)\n- validate_author() should not use book-title variables\n- Likely fix: remove or adjust sanitize call in validate_author()\n\nEnvironment\n- AudioMason main branch\n- Python 3.11\n- Run inside venv\n"
+  -
+    number: 55
+    title: "BUG: existing MP3 embedded cover lost after wipe (not preserved to cover.jpg)"
+    state: "CLOSED"
+    created_at: "2026-01-01T22:44:17Z"
+    updated_at: "2026-01-01T22:47:19Z"
+    closed_at: "2026-01-01T22:47:19Z"
+    body: "Problem\nWhen input MP3 files already contain embedded cover art, AudioMason performs ID3 wipe before preserving the cover. As a result, cover art is lost and the output MP3s end up without a cover.\n\nObserved\n- Input MP3s had cover art embedded\n- AudioMason wiped ID3 tags\n- AudioMason did NOT first persist the embedded cover to cover.jpg (or otherwise preserve it)\n- Output MP3s do not include cover art\n\nRule / Expected behavior\n- If MP3 already has an embedded cover, AudioMason MUST preserve it across wipe.\n- It does NOT need to extract it to cover.jpg before wipe (optional), but it must not lose it.\n- Minimal acceptable fix: if embedded cover is detected, keep/apply it after wipe automatically.\n\nAcceptance\n- Given MP3s with embedded cover and wipe enabled:\n  - output MP3s still contain cover art\n  - no requirement for cover.jpg to be created unless needed by pipeline\n\nNotes\n- This is separate from preflight cover selection; this is about preservation of existing embedded art when wiping tags.\n- Likely fix location: processing step order around wipe_id3 vs cover selection/application.\n\nEnvironment\n- AudioMason main branch\n- Python 3.11\n- Run inside venv\n"
+  -
+    number: 56
+    title: "BUG: clean install tries to mkdir under /etc/audiomason (PermissionError)"
+    state: "CLOSED"
+    created_at: "2026-01-02T15:42:04Z"
+    updated_at: "2026-01-02T15:42:05Z"
+    closed_at: "2026-01-02T15:42:05Z"
+    body: "On a clean .deb install, running `audiomason` could attempt to create inbox/stage/output under `/etc/audiomason/*`, causing:\n\nPermissionError: [Errno 13] Permission denied: '/etc/audiomason/abooksinbox'\n\nExpected:\n- Clean install must use user-safe defaults under ~/.local/share/audiomason unless configured paths are provided.\n\nFix:\n- Accept *_root aliases in paths resolvers.\n- Make default data base user-safe and align tests to AUDIOMASON_DATA_ROOT.\n\nVerification:\n- `audiomason --debug` shows mkdir under ~/.local/share/audiomason and inbox empty (no PermissionError).\n"
+  -
+    number: 57
+    title: "CI: tests fail without /etc/audiomason/config.yaml in editable install"
+    state: "CLOSED"
+    created_at: "2026-01-02T16:39:30Z"
+    updated_at: "2026-01-02T16:39:32Z"
+    closed_at: "2026-01-02T16:39:32Z"
+    body: "Problem:\n- GitHub Actions runs tests after an editable install (pip install -e .)\n- CLI arg parsing loads config, and load_config() requires /etc/audiomason/config.yaml\n- CI environment does not have this file, so pytest fails early\n\nFix:\n- CI now ensures /etc/audiomason/config.yaml exists before running pytest (uses debian/config.yaml)\n\nResult:\n- CI green again\n\nCommits:\n- 169fa0e CI: ensure /etc/audiomason/config.yaml exists for pytest"
+  -
+    number: 58
+    title: "Feat: add AM Remote API service (FastAPI) foundation"
+    state: "OPEN"
+    created_at: "2026-01-03T08:55:22Z"
+    updated_at: "2026-01-03T08:55:22Z"
+    closed_at: null
+    body: "Build: AM Remote API service (FastAPI) as stable server-side wrapper\n\nGoal\n- Introduce a new HTTP service that wraps AudioMason functionality for remote control (GUI client).\n\nScope\n- New package/module: src/audiomason/remote_api/ (or similar)\n- Provide a minimal FastAPI app with health/version endpoint\n- Provide a consistent run-id concept for server-triggered executions\n\nAcceptance criteria\n- `GET /health` returns ok + version\n- Service can be started locally (dev) and returns responses deterministically\n- No interactive prompts over HTTP (this issue only lays foundation)\n\nNotes\n- Assume access over Tailscale (no public exposure) for MVP.\n"
+  -
+    number: 59
+    title: "Feat: non-interactive import request (GUI-driven, fail-fast)"
+    state: "OPEN"
+    created_at: "2026-01-03T08:55:23Z"
+    updated_at: "2026-01-03T08:55:23Z"
+    closed_at: null
+    body: "Feat: Non-interactive import request model (no prompts)\n\nGoal\n- Make server-triggered imports fully non-interactive so the GUI can drive them.\n\nScope\n- Define a strict JSON request schema for an import job (source selection, config overrides, decisions)\n- Add a codepath that runs import using provided answers (fail-fast if required answers missing)\n- Keep output deterministic for same request\n\nAcceptance criteria\n- API can start an import run without any stdin prompts\n- Missing required decision -> 4xx error with machine-readable list of missing fields\n- Existing CLI behavior stays unchanged\n"
+  -
+    number: 60
+    title: "Feat: run registry + status/report persistence for remote runs"
+    state: "OPEN"
+    created_at: "2026-01-03T08:55:24Z"
+    updated_at: "2026-01-03T08:55:24Z"
+    closed_at: null
+    body: "Feat: Runs registry (run-id, status, JSON report persistence)\n\nGoal\n- Track each server-triggered run so the GUI can list runs and open details.\n\nScope\n- Introduce a runs registry under an app-controlled state directory (deterministic structure)\n- Store:\n  - run metadata (request, timestamps)\n  - current status (queued/running/succeeded/failed/canceled)\n  - final JSON report (reuse existing JSON report mode if available)\n  - path to log file for the run\n\nAcceptance criteria\n- `GET /runs` lists recent runs with status\n- `GET /runs/{id}` returns run details + links/paths to artifacts (log/report)\n- Data survives service restart\n"
+  -
+    number: 61
+    title: "Feat: remote run logs + progress endpoints (polling MVP)"
+    state: "OPEN"
+    created_at: "2026-01-03T08:55:26Z"
+    updated_at: "2026-01-03T08:55:26Z"
+    closed_at: null
+    body: "Feat: Log and progress streaming endpoints (polling-first MVP)\n\nGoal\n- Allow GUI to show live logs and a basic progress indicator.\n\nScope\n- Add endpoints:\n  - `GET /runs/{id}/log` (tail with offset/limit; polling-friendly)\n  - optional: `GET /runs/{id}/events` (SSE) if easy; otherwise stick to polling MVP\n- Ensure deterministic log formatting where possible (no random ordering)\n\nAcceptance criteria\n- GUI can poll log tail without re-downloading whole file\n- Offset-based log reads are correct and stable\n- Clear handling when run is finished (EOF)\n"
+  -
+    number: 62
+    title: "Security: Remote API auth (bearer token, opt-in, redacted logs)"
+    state: "OPEN"
+    created_at: "2026-01-03T08:55:27Z"
+    updated_at: "2026-01-03T08:55:27Z"
+    closed_at: null
+    body: "Security: Authentication for Remote API (Tailscale-first, token-based)\n\nGoal\n- Prevent accidental access even on trusted networks.\n\nScope\n- Implement a simple bearer token auth (env var or config entry)\n- Deny by default if token not configured (explicit opt-in)\n- Add request logging with redaction (no token leakage)\n\nAcceptance criteria\n- All non-health endpoints require valid token\n- Invalid/missing token -> 401\n- Token never appears in logs\n"
+  -
+    number: 63
+    title: "Feat: Web GUI MVP (runs list, run detail, start import)"
+    state: "OPEN"
+    created_at: "2026-01-03T08:55:29Z"
+    updated_at: "2026-01-03T08:55:29Z"
+    closed_at: null
+    body: "Feat: Minimal Web GUI (MVP) for iPhone Safari\n\nGoal\n- Provide a tiny web UI to drive imports and monitor runs from iPhone (Safari).\n\nScope\n- Web pages:\n  - Runs list\n  - Run detail (status + log tail + link to JSON report)\n  - Start import form (very small; uses non-interactive request schema)\n- Prefer server-rendered HTML or minimal JS (keep dependencies low)\n\nAcceptance criteria\n- Works in iPhone Safari\n- Can start an import and follow logs to completion\n- No complex styling; function > form\n"
+  -
+    number: 64
+    title: "Ops: systemd service for AM Remote API"
+    state: "OPEN"
+    created_at: "2026-01-03T08:55:30Z"
+    updated_at: "2026-01-03T08:55:30Z"
+    closed_at: null
+    body: "Ops: Systemd service for AM Remote API (deployable on Debian/Ubuntu)\n\nGoal\n- Make the Remote API run as a managed service on the server.\n\nScope\n- Add systemd unit file (and install path decisions aligned with .deb packaging)\n- Define environment/config loading for token + bind address/port\n- Ensure log location is deterministic and writable\n\nAcceptance criteria\n- `systemctl start audiomason-remote` works\n- Service restarts cleanly\n- Runs registry/logs persist across restarts\n"
+  -
+    number: 65
+    title: "Feat: inbox cleanup control (prompt + CLI option, deterministic)"
+    state: "CLOSED"
+    created_at: "2026-01-03T08:56:56Z"
+    updated_at: "2026-01-03T17:56:31Z"
+    closed_at: "2026-01-03T17:56:31Z"
+    body: "Feat: Inbox cleanup option (prompt + CLI configurable)\n\nGoal\n- Allow controlled cleanup of the inbox directory after a successful import.\n\nProblem\n- Today, inbox cleanup behavior is implicit or inconsistent.\n- User wants:\n  - an explicit question (interactive mode)\n  - a deterministic CLI option (non-interactive / automation / GUI)\n\nScope\n- Introduce a clear inbox cleanup decision with three modes:\n  - ask      -> prompt user after successful import\n  - yes      -> always clean inbox after successful import\n  - no       -> never clean inbox\n- Expose this via:\n  - CLI flag (e.g. --clean-inbox={ask,yes,no})\n  - config default (if CLI flag not provided)\n- Ensure behavior is:\n  - fail-safe (never deletes on failed import)\n  - deterministic\n  - testable\n\nAcceptance criteria\n- Interactive CLI:\n  - user is explicitly asked whether to clean inbox (only on success)\n- Non-interactive CLI:\n  - --clean-inbox=yes cleans inbox automatically after success\n  - --clean-inbox=no skips cleanup\n- Missing decision in non-interactive mode -> fail fast with clear error\n- Behavior covered by tests\n- No change to existing defaults unless explicitly configured\n\nNotes\n- Required for future GUI / Remote API integration.\n"
+  -
+    number: 66
+    title: "Feat: configurable preflight question order (deterministic, validated)"
+    state: "CLOSED"
+    created_at: "2026-01-03T09:13:07Z"
+    updated_at: "2026-01-08T20:50:39Z"
+    closed_at: "2026-01-08T20:50:39Z"
+    body: "Feat: Configurable preflight question order\n\nGoal\n- Allow deterministic configuration of the order in which preflight questions are asked.\n\nProblem\n- Preflight currently asks questions in a fixed, code-defined order.\n- For CLI power users and future GUI integration, the order must be:\n  - configurable\n  - deterministic\n  - validated fail-fast\n\nScope\n- Introduce a configurable list (e.g. `preflight_steps`) defining question order.\n- Each step represents one logical preflight decision (source, book, id3 wipe, cover, publish, cleanup, etc.).\n- Validate configuration at startup:\n  - unknown step -> error\n  - missing required step -> error\n  - duplicate steps -> error\n- CLI behavior must strictly follow configured order.\n- Default configuration preserves current behavior exactly.\n\nAcceptance criteria\n- User can define preflight question order via config (and optionally CLI override if appropriate).\n- Order is enforced deterministically.\n- Invalid configuration fails fast with a clear error.\n- Fully covered by tests.\n- No change to default behavior unless explicitly configured.\n\nNotes\n- This is a prerequisite for GUI-driven and non-interactive preflight flows.\n"
+  -
+    number: 67
+    title: "Feat: disable selected preflight questions (deterministic skip + fail-fast)"
+    state: "CLOSED"
+    created_at: "2026-01-03T09:15:18Z"
+    updated_at: "2026-01-05T22:36:19Z"
+    closed_at: "2026-01-05T22:36:19Z"
+    body: "Feat: Disable selected preflight questions (skip prompts deterministically)\n\nGoal\n- Allow users to disable (skip) specific preflight questions/prompts in a deterministic, configurable way.\n\nProblem\n- Preflight currently prompts for multiple decisions.\n- For automation, power users, and future GUI/Remote API, some questions must be suppressible:\n  - either because defaults are desired\n  - or because the decision is provided elsewhere (CLI/config/request)\n\nScope\n- Add configuration to disable a set of preflight questions (e.g. `preflight_disable` list).\n- Disabled questions must:\n  - not be prompted\n  - resolve deterministically via defaults / config / CLI options\n- Fail-fast rules:\n  - If a disabled question has no deterministic resolution (no default / config / CLI), error out before any filesystem changes.\n  - Unknown question keys -> error.\n- Defaults:\n  - Nothing disabled by default (preserve current behavior).\n\nAcceptance criteria\n- User can disable one or more preflight questions via config.\n- Disabled questions are not prompted.\n- Runs remain deterministic.\n- Missing required deterministic value for a disabled prompt -> fail fast with clear error.\n- Covered by tests.\n"
+  -
+    number: 68
+    title: "Feat: configurable default answers for binary preflight questions (y/n)"
+    state: "OPEN"
+    created_at: "2026-01-03T09:19:55Z"
+    updated_at: "2026-01-03T09:19:55Z"
+    closed_at: null
+    body: "Feat: Configurable default answers for binary (y/n) preflight questions\n\nGoal\n- Allow deterministic configuration of default answers for binary (yes/no) preflight questions.\n\nProblem\n- Binary preflight questions (y/N, Y/n) currently have hardcoded interactive defaults.\n- For automation, power users, and future GUI/Remote API usage, defaults must be:\n  - configurable\n  - explicit\n  - deterministic\n- Relying on implicit interactive defaults is not acceptable in non-interactive contexts.\n\nScope\n- Introduce configuration for default answers to binary preflight questions\n  (e.g. `preflight_defaults` mapping: question_key -> yes|no).\n- Defaults apply when:\n  - question is asked interactively and user just presses Enter\n  - question is disabled but needs deterministic resolution\n- Validation rules:\n  - unknown question key -> error\n  - non-binary question referenced -> error\n  - invalid value -> error\n- CLI-provided answers always override configured defaults.\n- Default configuration preserves current behavior exactly.\n\nAcceptance criteria\n- User can configure default answers for y/n preflight questions.\n- Configured defaults override interactive hardcoded defaults.\n- CLI flags take precedence over config defaults.\n- Missing deterministic value in non-interactive context -> fail fast.\n- Fully covered by tests.\n- No behavior change unless explicitly configured.\n\nNotes\n- This is complementary to:\n  - configurable preflight order\n  - disabling preflight questions\n- Required for GUI-driven and Remote API workflows.\n"
+  -
+    number: 69
+    title: "Feat: configurable handling of non-binary preflight questions (deterministic)"
+    state: "OPEN"
+    created_at: "2026-01-03T09:23:03Z"
+    updated_at: "2026-01-03T09:23:03Z"
+    closed_at: null
+    body: "Feat: Configurable handling of non-binary preflight questions\n\nGoal\n- Allow deterministic configuration of how non-binary preflight questions are handled.\n\nProblem\n- Non-binary preflight questions (free text, selections, lists, numeric input, etc.)\n  currently rely on interactive prompting.\n- For automation, power users, and future GUI / Remote API usage, their behavior must be:\n  - configurable\n  - explicit\n  - deterministic\n- Implicit interactive behavior is not acceptable in non-interactive contexts.\n\nScope\n- Introduce a configuration model for non-binary preflight questions, allowing:\n  - predefined default values\n  - required explicit values (no default allowed)\n  - optional questions that may be skipped\n- Define per-question policy, e.g.:\n  - required | optional\n  - default value (if allowed)\n- Resolution order:\n  1) CLI-provided value\n  2) Configured value\n  3) Interactive prompt (only if allowed)\n- Fail-fast rules:\n  - Missing required value in non-interactive mode -> error\n  - Unknown question key -> error\n  - Invalid value (type/format/enum) -> error\n\nAcceptance criteria\n- User can configure handling rules for non-binary preflight questions.\n- Non-interactive runs either resolve deterministically or fail fast.\n- Interactive runs respect configured defaults and requirements.\n- CLI values always override config values.\n- Default configuration preserves current behavior exactly.\n- Covered by tests.\n\nNotes\n- Complements:\n  - configurable preflight order\n  - disabling preflight questions\n  - configurable defaults for binary questions\n- Required for full GUI-driven and Remote API-based workflows.\n"
+  -
+    number: 70
+    title: "BUG: selecting 'a' (all sources) treats multiple sources as one author"
+    state: "CLOSED"
+    created_at: "2026-01-03T09:27:27Z"
+    updated_at: "2026-01-05T02:02:20Z"
+    closed_at: "2026-01-05T02:02:20Z"
+    body: "BUG: Choosing a (all sources) in inbox menu is treated as a single author\n\nRepro\n1) Run: am\n2) At inbox menu, enter: a\n3) AudioMason then proceeds as if all selected sources belong to one author (single author flow).\n\nObserved\n- After selecting a, AM behaves as if it has one combined author/source, instead of processing each source independently.\n\nExpected\n- Selecting a should process sources one-by-one, in a deterministic order:\n  - For each selected source, ask author name (and other per-source/book questions) separately.\n  - No cross-contamination of author/title answers between sources.\n\nScope / likely area\n- Inbox source selection handling and the loop that dispatches per-source import runs.\n\nAcceptance criteria\n- a expands to a list of sources and triggers the same per-source flow as selecting them individually.\n- Prompts are repeated per source (author name, etc.) rather than once for the whole batch.\n- Order is deterministic (e.g., menu order).\n- Covered by tests:\n  - Selecting a results in N independent source processing iterations.\n  - Each source gets its own author prompt / state.\n\nNotes\n- This is required for correct multi-source imports and future GUI/Remote API batching.\n\n---\n\nAdditional bug: incorrect phase ordering when selecting all sources\n\nObserved behavior\n- When selecting all sources using input \"a\" / \"A\", AudioMason executes:\n  (preflight for source 1) -> (process source 1) -> (preflight for source 2) -> (process source 2) -> ...\n\nExpected behavior\n- When selecting all sources, AudioMason must:\n  - run preflight for all selected sources first (one by one, collecting decisions)\n  - only after all preflights complete, start processing for all sources\n\nRationale\n- Ensures deterministic batch decisions before any processing starts\n- Prevents partial processing when later sources would lead to different preflight outcomes\n- Aligns with phase separation principles already present in the pipeline\n\nAcceptance criteria\n- With \"a\" / \"A\" selection:\n  - no processing occurs until preflight has completed for all sources\n  - processing starts only after the last preflight finishes\n"
+  -
+    number: 71
+    title: "Chore: document mandatory deterministic patch-script workflow"
+    state: "CLOSED"
+    created_at: "2026-01-03T10:05:01Z"
+    updated_at: "2026-01-05T22:29:58Z"
+    closed_at: "2026-01-05T22:29:58Z"
+    body: "Chore: Document mandatory deterministic patch-script workflow for development\n\nGoal\n- Formally document the mandatory patching workflow using deterministic Python edit scripts.\n\nBackground\n- Diff-based patches frequently fail due to context drift.\n- The project now mandates a single, robust patching method based on Python edit scripts\n  with anchor checks, idempotency, and fail-fast behavior.\n\nScope\n- Update developer documentation to define:\n  - Mandatory use of Python edit scripts for all code changes\n  - Standard location: tools/patches/issue_XX.py\n  - Required properties:\n    - anchor checks\n    - idempotency\n    - fail-fast behavior\n    - post-edit assertions\n  - Forbidden practices:\n    - diff patches\n    - manual edits\n    - heredoc-based scripts\n- Document the required end-to-end workflow:\n  edit → pytest → git add → commit → push\n- Explicitly state that patches must be written only against authoritative files\n  provided by the user.\n\nAcceptance criteria\n- Developer documentation clearly describes the required patch workflow.\n- Rules are unambiguous and enforceable.\n- No behavioral or runtime code changes.\n\nNotes\n- This documents an already-adopted rule set; it does not introduce new functionality.\n"
+  -
+    number: 72
+    title: "Feat: always display AudioMason version (CLI + config)"
+    state: "CLOSED"
+    created_at: "2026-01-03T11:10:37Z"
+    updated_at: "2026-01-03T19:27:03Z"
+    closed_at: "2026-01-03T19:27:03Z"
+    body: "Problem\n-------\nAudioMason currently does not reliably display its version unless explicitly invoked with --version.\nIn practice:\n- `am` starts interactive mode without showing version\n- `am --debug` shows config/path info, but version visibility is inconsistent\n- There is no config-level control for version visibility\n\nGoal\n----\nMake AudioMason version visibility explicit, deterministic, and configurable.\n\nRequirements\n------------\n1. CLI behavior\n   - On startup, AudioMason should be able to display its version banner\n   - Version display must be deterministic and not depend on accidental flags\n\n2. Config support\n   - New config option, e.g.:\n       show_version: always | never | debug\n   - Default must preserve current behavior (no breaking change)\n\n3. Interaction rules\n   - show_version: always\n       - version is printed on every run (before any prompts)\n   - show_version: debug\n       - version is printed only when --debug is active\n   - show_version: never\n       - version is never printed automatically\n\n4. Output rules\n   - Version output must be single-line, stable, machine-readable friendly\n   - Example:\n       AudioMason 1.2.0b2\n\nNon-goals\n---------\n- No changes to packaging versioning\n- No changes to semantic version format\n- No unrelated CLI refactors\n\nConstraints\n-----------\n- Deterministic behavior only\n- Config + CLI override rules must be explicit\n- Covered by tests\n- Must follow patch-script rule:\n    tools/patches/issue_<N>.py\n    idempotent, fail-fast, post-assert\n\nStatus\n------\nFeature request. Issue must NOT be auto-closed.\n"
+  -
+    number: 73
+    title: "Feat: support user-space config alongside /etc/audiomason/config.yaml"
+    state: "CLOSED"
+    created_at: "2026-01-03T11:12:34Z"
+    updated_at: "2026-01-03T18:35:45Z"
+    closed_at: "2026-01-03T18:35:45Z"
+    body: "Problem\n-------\nAudioMason currently loads configuration only from a single system-wide path:\n  /etc/audiomason/config.yaml\n\nThis causes friction for:\n- non-root usage\n- per-user customization\n- development and testing\n\nExample:\nUser has a valid config in user space:\n\n  ~/.config/audiomason/config.yaml\n\nwith content like:\n  clean_inbox: ask\n  publish: ask\n  wipe_id3: ask\n  lookup: yes\n\nbut AudioMason ignores it unless --config is explicitly provided.\n\nGoal\n----\nAllow AudioMason to load configuration from both system-wide and user-space locations,\nwith deterministic precedence and no ambiguity.\n\nProposed behavior (authoritative)\n---------------------------------\n1. Config discovery order (deterministic):\n   1) --config <path>          (explicit override, highest priority)\n   2) ~/.config/audiomason/config.yaml\n   3) /etc/audiomason/config.yaml\n\n2. Merge semantics:\n   - Later configs override earlier ones\n   - All merges must be shallow and deterministic\n   - No implicit defaults beyond existing config defaults\n\n3. Debug visibility:\n   - When --debug is enabled, AudioMason must print:\n       [config] loaded_from=[list of paths in order]\n   - Must clearly show which values came from which file (if feasible without refactor)\n\n4. Backward compatibility:\n   - Existing installations relying on /etc/audiomason/config.yaml must keep working\n   - No behavior change unless user-space config exists\n\nNon-goals\n---------\n- No environment-variable-based config paths\n- No interactive config editing\n- No refactors unrelated to config loading\n\nConstraints\n-----------\n- Deterministic behavior only\n- Fail-fast on invalid YAML\n- Covered by tests\n- Must follow mandatory patch-script rule:\n    tools/patches/issue_<N>.py\n    idempotent, fail-fast, post-assert\n- Issue must NOT be auto-closed\n\nStatus\n------\nFeature request.\n"
+  -
+    number: 74
+    title: "Feat: optional per-source processing log saved to file (CLI + config)"
+    state: "CLOSED"
+    created_at: "2026-01-03T22:13:57Z"
+    updated_at: "2026-01-05T22:25:20Z"
+    closed_at: "2026-01-05T22:25:20Z"
+    body: "Feat: Optional per-source processing log saved to file\n\nGoal\n- Allow optional saving of processing logs to a file named after the processed source.\n\nBehavior\n- Feature is **disabled by default**.\n- When enabled, AudioMason saves a log file for each processed source.\n- Log filename is derived deterministically from the source name.\n\nConfiguration\n- Feature must be configurable via:\n  - CLI option\n  - config file\n- In both cases, user may specify:\n  - only enable logging\n  - enable logging + explicit output directory\n\nDefaults\n- If logging is enabled **without specifying a directory**:\n  - log file is saved into the **stage directory**.\n- If an explicit directory is provided:\n  - log file is saved there.\n\nCLI (example, final naming up to implementation)\n- --log-to-file\n- --log-to-file-dir <path>\n\nConfig (example, final naming up to implementation)\n- log_to_file: true|false\n- log_to_file_dir: <path>\n\nRules\n- CLI options override config.\n- Logging never changes stdout/stderr behavior (logs are additive).\n- Each source gets its own log file (no shared logs).\n- Log writing must be deterministic and append-safe.\n\nAcceptance criteria\n- Feature is off by default.\n- Enabling logging creates one log file per source.\n- File is named after the source in a deterministic, filesystem-safe way.\n- Default location is stage directory if no path is provided.\n- CLI overrides config.\n- Covered by tests.\n\nNotes\n- Intended for later debugging, audits, and GUI/API integrations.\n"
+  -
+    number: 75
+    title: "BUG: nested sources collapse multiple books into one (should preserve folder structure)"
+    state: "CLOSED"
+    created_at: "2026-01-03T22:20:51Z"
+    updated_at: "2026-01-04T21:58:16Z"
+    closed_at: "2026-01-04T21:58:16Z"
+    body: "BUG: Nested folder sources collapse multiple books into one (should treat each audio folder as separate book and preserve structure)\n\nRepro A (nested source)\n- Source is a directory with nested subdirectories, where the actual MP3/M4A folders are deeper:\n  source/\n    level1/\n      level2/\n        Book A/\n          01.mp3 ...\n        Book B/\n          01.mp3 ...\n- AudioMason currently treats all discovered audio files as a single book and exports them into one output folder.\n\nRepro B (selecting all sources)\n- When selecting a (all sources) from the inbox menu, similar collapsing happens: nested audio folders under selected sources may be treated as a single book.\n\nObserved\n- All MP3/M4A files found under a source are grouped as one book.\n- Export output structure collapses into a single folder.\n\nExpected\n- AudioMason must treat **each directory that contains MP3/M4A** as a separate book root.\n- For each such book root, process independently (preflight/book prompts per book as needed).\n- Output must preserve the **relative directory structure** from the source:\n  - If audio folder is nested 38 levels deep, the same relative nesting is preserved under the destination (deterministic, filesystem-safe).\n- This must work both for:\n  - a single selected source\n  - selecting a (all sources)\n\nRules / constraints\n- Deterministic discovery order (stable ordering).\n- No cross-contamination of state between books.\n- Filesystem-safe path mapping (no path traversal; normalized).\n\nAcceptance criteria\n- Given a nested source containing N distinct folders with MP3/M4A, AM processes N books (not 1).\n- Destination mirrors the source’s relative path structure for each book folder.\n- Works for both single source selection and a (all sources).\n- Covered by tests:\n  - discovery identifies multiple book roots under nested trees\n  - export preserves relative directory structure\n  - regression for a selection path (if relevant)\n\nNotes\n- This is required for large nested archives and batch imports.\n"
+  -
+    number: 76
+    title: "Feat: global prompt disable (non-preflight + preflight)"
+    state: "CLOSED"
+    created_at: "2026-01-03T23:33:03Z"
+    updated_at: "2026-01-07T23:24:31Z"
+    closed_at: "2026-01-07T23:24:31Z"
+    body: "Feat: global prompt disable (non-preflight + preflight)\n\nProblem\n- Dnes vieme deterministicky vypínať iba preflight otázky cez `preflight_disable` (Issue #67).\n- Stále však existujú non-preflight interaktívne prompty, ktoré volajú priamo:\n  - `prompt(...)`\n  - `prompt_yes_no(...)`\n  Príklady:\n  - \"Choose source number, or a for all\"\n  - \"Choose book number, or a for all\"\n  - \"Skip already processed books? [y/N]\"\n  - prípadne ďalšie prompty v import flow\n\nGoal (authoritative)\n- Zaviesť globálnu konfiguráciu, ktorá umožní vypnúť VŠETKY otázky (preflight + non-preflight) deterministicky.\n\nNavrhovaný config\n- Nový kľúč:\n  prompts:\n    disable:\n      - \"*\"\n- Význam:\n  - [\"*\"] = vypne všetky interaktívne otázky počas celého behu\n  - voliteľne: disable: [choose_source, choose_books, skip_processed_books, ...] pre selektívne vypnutie mimo preflightu\n\nRequired behavior\n1) Config kľúč\n- Zaviesť `prompts.disable` (list)\n- Povoliť `*` pre disable-all\n\n2) Determinizmus\n- Ak je prompt vypnutý, musí sa vyriešiť deterministicky:\n  - použiť existujúci default (rovnaký ako dnes), alebo\n  - použiť uložené odpovede (manifest), ak je to relevantné, alebo\n  - fail-fast, ak prompt nemá deterministické riešenie bez otázky\n\n3) Fail-fast validácia (pred FS zmenami)\n- `prompts.disable` musí byť list\n- neznámy key -> chyba\n- duplicity -> chyba\n- `*` nesmie byť kombinované s ďalšími key (buď [\"*\"] alebo konkrétny zoznam)\n\n4) Default správanie\n- Ak `prompts.disable` nie je nastavené:\n  - správanie musí zostať presne ako dnes\n\n5) CLI vs config\n- Ak existuje CLI ekvivalent (napr. `--prompts-disable`), CLI má prednosť pred configom.\n- Ak CLI ešte neexistuje, minimálny scope môže byť iba config (deterministicky).\n\nScope (strict)\n- Zmeny iba na:\n  - globálne prompt disable mechanizmy\n  - wrappery pre non-preflight prompty\n  - validácia + testy\n- Bez refaktorov mimo nutného, bez docs zmien, bez ďalších preflight features (order/disable/defaults/non-binary sú samostatné issues).\n\nMinimal non-preflight prompt keys (initial proposal)\n- choose_source -> \"Choose source number, or a for all\"\n- choose_books -> \"Choose book number, or a for all\"\n- skip_processed_books -> \"Skip already processed books? [y/N]\"\n- plus všetky ďalšie prompty mimo preflightu po audite (`rg -n \"\\bprompt\\(\" src/audiomason` + `rg -n \"\\bprompt_yes_no\\(\" src/audiomason`)\n\nImplementation strategy (authoritative)\n- Zaviesť helpery (napr. v import_flow.py alebo v util module podľa existujúceho patternu):\n  - `_resolved_prompt_disable(cfg) -> set[str]`\n  - `_prompt_disabled_all(cfg) -> bool`\n  - `_q_prompt(cfg, key, text, default) -> str`\n  - `_q_prompt_yes_no(cfg, key, text, default_no) -> bool`\n- Presmerovať non-preflight prompty na wrappery (posúvať `cfg` do výberových funkcií a call-sites).\n- Zaviesť fail-fast validáciu na začiatku import flow (pred FS prácou).\n- Pri `--debug` logovať preskočenie promptu:\n  [TRACE] [prompt] disabled: <key> -> default: <value>\n\nAcceptance criteria\n- `prompts.disable: [\"*\"]` -> nespustí sa žiadna otázka (preflight ani non-preflight)\n- `prompts.disable: [choose_source]` -> preskočí iba výber source (deterministicky default \"1\")\n- `skip_processed_books` prompt sa dá vypnúť rovnako\n- invalid config -> fail-fast s jasnou chybou\n- default bez configu -> nezmenené správanie\n- testy pokrývajú:\n  - disable-all zamedzí volaniu prompt/prompt_yes_no\n  - unknown key / duplicate / invalid type -> chyba\n"
+  -
+    number: 77
+    title: "Feat: allow selecting multiple sources or books by index list (e.g. \"1 4 15\")"
+    state: "OPEN"
+    created_at: "2026-01-04T08:10:00Z"
+    updated_at: "2026-01-04T08:10:00Z"
+    closed_at: null
+    body: "Feat: allow selecting multiple sources or books by explicit index list (e.g. \"1 4 15\")\n\nProblem\n- Today, selection prompts only support:\n  - a single index (e.g. \"1\")\n  - or \"a\" for all\n- There is no way to select an explicit subset (e.g. authors 1, 4, and 15),\n  which makes batch processing of specific items unnecessarily slow and repetitive.\n\nAffected prompts (examples)\n- Source selection:\n  \"Choose source number, or a for all\"\n- Book selection:\n  \"Choose book number, or a for all\"\n\nGoal (authoritative)\n- Extend selection prompts to support **explicit multi-selection** using index lists.\n\nDesired UX\n- User can enter:\n  - space-separated list: \"1 4 15\"\n  - (optionally later) comma-separated list: \"1,4,15\" (not required for MVP)\n- Result:\n  - Only the selected sources / books are processed\n  - In the order specified by the user (or normalized deterministically)\n\nRules / behavior\n- Supported inputs:\n  - single number (existing behavior)\n  - \"a\" (existing behavior: all)\n  - multi-number list (new behavior)\n- Validation (fail-fast):\n  - non-numeric token (except \"a\") -> error\n  - index out of range -> error\n  - duplicates -> error\n  - mixing \"a\" with numbers -> error\n- Default behavior with empty input stays unchanged.\n\nScope\n- Implement only for:\n  - source selection\n  - book selection\n- No changes to preflight logic itself.\n- No changes to discovery logic.\n- No documentation changes in this issue.\n\nImplementation notes (guidance, not mandate)\n- Centralize parsing logic:\n  - helper like `_parse_index_selection(input: str, max_n: int) -> list[int]`\n- Reuse helper for both source and book selection.\n- Deterministic ordering must be guaranteed.\n\nAcceptance criteria\n- User can select multiple sources via e.g. \"1 4 15\"\n- User can select multiple books via e.g. \"2 3 5\"\n- Existing behaviors (single index, \"a\") remain unchanged.\n- Invalid input fails fast with a clear error message.\n- Covered by tests:\n  - valid multi-select\n  - invalid token\n  - duplicate index\n  - out-of-range index\n  - mixing \"a\" with numbers\n\nNotes\n- This feature complements (but does not replace):\n  - \"a\" (select all)\n  - future global prompt disable / non-interactive modes.\n"
+  -
+    number: 78
+    title: "Feat: preflight stage creation toggle per source (disable-able via config/CLI)"
+    state: "OPEN"
+    created_at: "2026-01-04T13:14:36Z"
+    updated_at: "2026-01-04T13:14:36Z"
+    closed_at: null
+    body: "Feat: preflight question to control stage creation per source (disable-able via config/CLI)\n\nProblem\n- AudioMason currently always creates a stage after source selection and works on copied data.\n- There is no way to decide to work directly on files and directories in the inbox without creating a stage.\n\nGoal\n- Introduce a preflight question immediately after source selection that controls whether a stage should be created or not.\n\nPreflight question\n- Question (indicative wording):\n  \"Create stage for this source? [Y/n]\"\n- Default answer: Yes (preserves current behavior)\n\nBehavior\n- If answer = Yes:\n  - stage is created using the existing deterministic stage naming and layout (unchanged)\n  - subsequent processing works on stage data\n- If answer = No:\n  - stage is NOT created\n  - AudioMason works directly with files and directories in the inbox\n  - no data copying occurs\n\nRules / constraints\n- Decision is per source.\n- Default behavior without any configuration must remain unchanged.\n- The answer must be persisted deterministically (for resume / repeated runs).\n\nCritical requirement – prompt control\n- This question (and all future questions introduced in AudioMason) MUST be disable-able deterministically via:\n  - configuration file\n  - command-line options\n- When the prompt is disabled:\n  - the prompt must not be shown\n  - the default answer must be applied deterministically\n- This requirement must integrate with the existing / planned global prompt control mechanism\n  (e.g. global prompt disable or per-prompt disable via config/CLI).\n\nScope\n- Changes limited to:\n  - preflight logic\n  - stage creation flow\n  - validation and tests\n- No changes to:\n  - discovery logic\n  - export logic\n  - documentation (unless explicitly required by the issue)\n\nAcceptance criteria\n- After source selection, a stage creation question is shown.\n- Yes -> behavior identical to current implementation.\n- No -> no stage is created, processing happens directly in inbox.\n- Default answer is Yes.\n- When the prompt is disabled:\n  - no interactive prompt is shown\n  - default Yes is applied deterministically.\n- Covered by tests:\n  - stage enabled\n  - stage disabled\n  - prompt disabled -> default Yes\n\nNotes\n- This feature enables faster workflows without unnecessary data duplication.\n"
+  -
+    number: 79
+    title: " CLI enable + config-hide support for all Opts flags"
+    state: "OPEN"
+    created_at: "2026-01-04T23:00:23Z"
+    updated_at: "2026-01-10T00:16:12Z"
+    closed_at: null
+    body: "TRACKING (META) — split into sub-issues:\n- # loudnorm determinism\n- # cleanup_stage CLI control\n- # clean_inbox config-hide validation bug\n- # docs audit & alignment\n\nClose #79 only when all sub-issues are closed."
+  -
+    number: 80
+    title: "Fix: util.py has syntax error (unexpected indent)"
+    state: "CLOSED"
+    created_at: "2026-01-05T10:21:01Z"
+    updated_at: "2026-01-06T05:36:28Z"
+    closed_at: "2026-01-06T05:36:28Z"
+    body: "Fix: util.py has syntax error (unexpected indent)\n\nSummary\n- `src/audiomason/util.py` is syntactically invalid Python and blocks:\n  - importing `audiomason.util`\n  - running tests\n  - running patch scripts\n  - any further development\n\nError\n- Fails with:\n  `IndentationError: unexpected indent` (around line ~62)\n\nRoot cause\n- `util.py` contains top-level code with invalid indentation, e.g. an indented block like:\n  - optional per-source log sink globals\n  - helper functions\n  - contextmanager `out_to_file(...)`\n- This code is not inside any function/class/conditional, yet is indented, which is invalid at module top-level.\n\nImportant notes\n- This is not a patch runner/test issue.\n- This is not a regression caused by Issue #74.\n- The bug exists in the authoritative repo state.\n- Until fixed, no other issues can be worked on safely.\n\nScope of fix\n- Fix indentation / placement in `src/audiomason/util.py` so the module parses/imports again.\n- No behavior changes.\n- No refactors.\n- No new features.\n\nAcceptance criteria\n- `python -c \"import audiomason.util\"` succeeds.\n- `python -m pytest -q` succeeds.\n"
+  -
+    number: 81
+    title: "BUG: missing explicit per-source processing boundary blocks cross-cutting features"
+    state: "CLOSED"
+    created_at: "2026-01-05T11:04:05Z"
+    updated_at: "2026-01-05T12:01:14Z"
+    closed_at: "2026-01-05T12:01:14Z"
+    body: "BUG: missing explicit per-source processing boundary in import_flow.py blocks cross-cutting features\n\nProblem\nThe current `import_flow.py` does not define a clear, explicit boundary for \"per-source processing\".\n\nThe function `_run_one_source()` mixes:\n- preparation\n- user prompts\n- processing logic\n- error exits\n- cleanup\n\ninto a single, branching control-flow with multiple early returns.\n\nBecause of this, it is not possible to safely:\n- wrap the entire per-source execution in a single context\n- introduce per-source features such as complete processing logs\n- guarantee that such features cover the full lifecycle of a source\n\nThis limitation was discovered while implementing Issue #74\n(\"save processing log to per-source file\").\n\nWhy this is a blocker\nAny attempt to add per-source cross-cutting features (logging, metrics,\ntiming, tracing, cancellation scopes) requires:\n- a single, well-defined entry point\n- a single, well-defined exit point\n\nWithout that boundary, implementations would be:\n- partial\n- heuristic\n- or misleading to users\n\nThis refactor is therefore a design prerequisite, not a cosmetic change.\n\nScope (STRICT)\nThis issue must:\n- Introduce an explicit per-source processing boundary, e.g.:\n  - a dedicated helper such as `_process_one_source(...)`, or\n  - an equivalent clearly defined wrapper\n- Preserve existing behavior exactly\n- Make no functional or UX changes\n- Add no new features by itself\n\nThis issue must NOT:\n- Change pipeline semantics\n- Change prompts or CLI behavior\n- Add logging or other cross-cutting features directly\n\nAcceptance criteria\n- There is a single, explicit function or block that represents\n  \"the full per-source processing lifecycle\"\n- `_run_one_source()` delegates actual processing to this boundary\n- All existing tests pass without modification\n- No user-visible behavior changes\n\nFollow-up\nOnce this refactor is completed, Issue #74\n(\"optional per-source processing log file\")\ncan be implemented cleanly and deterministically.\n"
+  -
+    number: 82
+    title: "Feat: disable OpenLibrary suggestions via config and CLI"
+    state: "CLOSED"
+    created_at: "2026-01-05T11:58:13Z"
+    updated_at: "2026-01-06T21:45:49Z"
+    closed_at: "2026-01-06T21:45:49Z"
+    body: "Disable OpenLibrary suggestions via config and CLI\n\nProblem\nAudioMason shows OpenLibrary suggestion prompts (author/book normalization) even when related preflight prompts are disabled.\n\nRoot cause\nOpenLibrary prompts are implemented using prompt_yes_no(...) instead of preflight-aware helpers, so they ignore preflight_disable and non-interactive workflows.\n\nRequired solution\n- Allow disabling OpenLibrary via config (e.g. openlibrary.enabled: false or lookup: false).\n- Allow disabling OpenLibrary via CLI (e.g. --no-openlibrary / --no-lookup).\n- CLI overrides config.\n\nAcceptance criteria\n- No OpenLibrary prompts or network calls when disabled.\n- Existing behavior unchanged when enabled.\n\nScope\n- Only add the ability to disable OpenLibrary.\n- No normalization or UX changes when enabled.\n"
+  -
+    number: 83
+    title: "Chore: authoritative catalog of all AudioMason prompts (defaults, config, CLI)"
+    state: "CLOSED"
+    created_at: "2026-01-06T06:19:23Z"
+    updated_at: "2026-01-06T07:12:35Z"
+    closed_at: "2026-01-06T07:12:35Z"
+    body: "Chore/Docs: authoritative catalog of all AudioMason prompts (defaults, config, CLI)\n\nGoal\nCreate a single authoritative document that enumerates ALL prompts used by AudioMason.\n\nThis catalog will serve as:\n- the definitive reference for users\n- the authoritative source for future feature work\n- a living document updated by future chats/issues\n\nScope of the catalog\nThe document MUST list every prompt, including:\n- preflight prompts\n- non-preflight prompts\n- prompts that are currently hidden or only reachable in edge cases\n- prompts that may no longer be shown by default but still exist in code\n\nFor EACH prompt, the catalog must include:\n- unique prompt key / identifier\n- human-readable question text\n- phase (preflight / non-preflight / other)\n- default value\n- whether it is interactive by default\n- config key(s) that control it (if any)\n- CLI flag(s) that control it (if any)\n- whether it can be disabled via prompt-control mechanisms\n- deterministic behavior when disabled\n\nFile requirements\n- The catalog must live in a dedicated file in the repository (exact path to be decided in the issue).\n- The file is AUTHORITATIVE.\n- Future chats and issues will rely on this file and update it incrementally.\n\nNon-goals\n- This issue does NOT change behavior.\n- This issue does NOT add new prompts.\n- This issue does NOT refactor code.\n\nAcceptance criteria\n- A single file exists that documents all AudioMason prompts.\n- No known prompt is undocumented.\n- Defaults, config options, and CLI mappings are explicit.\n- The file can be safely referenced by future feature and bugfix issues.\n"
+  -
+    number: 84
+    title: "Feat: support .opus audiobooks (convert to .mp3)"
+    state: "CLOSED"
+    created_at: "2026-01-06T23:13:02Z"
+    updated_at: "2026-01-07T07:57:49Z"
+    closed_at: "2026-01-07T07:57:49Z"
+    body: "Feat: support .opus audiobooks (convert to .mp3 and process normally)\n\nProblem\nAudioMason currently does not support audiobooks stored as .opus files.\nSuch sources are either ignored or fail during processing, even though .opus\nis a common and efficient audiobook format.\n\nGoal\nAdd first-class support for .opus audiobook files by converting them to .mp3\nand then processing them through the standard AudioMason pipeline.\n\nExpected behavior\n- .opus files found in source directories are detected as valid audio inputs\n- Each .opus file is converted to .mp3 using the existing audio toolchain\n- After conversion, processing continues exactly as for native .mp3 sources\n- Folder and book structure semantics remain unchanged\n\nScope (STRICT)\n- Only add support for .opus input files\n- Conversion target format: .mp3\n- No changes to existing .mp3/.m4a behavior\n\nConfiguration / CLI\n- Conversion must be controllable via CLI and config\n- No new prompts by default\n- Any new prompt MUST be disable-able via config/CLI\n\nAcceptance criteria\n- .opus-only audiobooks are fully processed end-to-end\n- Mixed folders (.opus + .mp3/.m4a) behave deterministically\n- All existing tests pass\n- New tests cover .opus detection and conversion\n"
+  -
+    number: 85
+    title: "Docs: cross-link canonical FUNCTIONS and prompt catalog (avoid duplication)"
+    state: "CLOSED"
+    created_at: "2026-01-07T00:35:19Z"
+    updated_at: "2026-01-07T07:46:41Z"
+    closed_at: "2026-01-07T07:46:41Z"
+    body: "## Problem\n\nThere are two canonical documentation files that describe different but related aspects\nof AudioMason behavior:\n\n- `docs/FUNCTIONS.md` — canonical source of truth for functional behavior\n- `docs/prompts/catalog.md` — canonical source of truth for interactive prompts\n\nWhile they are intentionally separate, the relationship between them is not explicit,\nwhich can lead to confusion or accidental duplication.\n\n## Goal\n\nKeep the documents strictly separated (no merge), but make the relationship explicit\nand self-documenting.\n\n## Requirements (STRICT)\n\n1. Do NOT merge the documents.\n2. Add a short cross-reference in the introduction of both files:\n   - `docs/FUNCTIONS.md` must point to `docs/prompts/catalog.md` for interactive prompts.\n   - `docs/prompts/catalog.md` must point to `docs/FUNCTIONS.md` for functional behavior.\n3. Do NOT duplicate content between the two documents.\n4. Documentation-only change (no functional or behavioral changes).\n\n## Acceptance criteria\n\n- Both documents contain a clear and visible cross-link.\n- Each document keeps its original responsibility and scope.\n- No duplicated descriptions of prompts or functions exist.\n- All tests pass.\n"
+  -
+    number: 86
+    title: "BUG: audio conversion and publish run in the wrong phase/order (opus + m4a)"
+    state: "CLOSED"
+    created_at: "2026-01-07T00:48:02Z"
+    updated_at: "2026-01-07T09:56:56Z"
+    closed_at: "2026-01-07T09:56:56Z"
+    body: "BUG: audio conversion and publish run in the wrong phase/order (opus + m4a)\n\nSummary\nAudioMason performs heavy audio work too early and/or in the wrong order:\n- conversion (confirmed for .opus and .m4a) runs during PREPARE/stage instead of PROCESS\n- output publish/copy to the final library happens at the start of PROCESS, before finalization steps\n\nObserved\n- With .opus sources, ffmpeg conversion logs appear immediately after staging (before PROCESS).\n- The same behavior is confirmed for .m4a.\n- In debug logs, PROCESS begins with copying files from stage/src into the final output directory.\n\nExpected\n- PREPARE must remain lightweight (prompts/validation/manifest/stage setup) and must not run heavy conversions.\n- All audio transformations must happen inside PROCESS (convert/rename/wipe_id3/tags/chapters/split/loudnorm/etc.).\n- Publish/copy to the final output directory must happen only after all finalization steps complete.\n\nScope (strict)\n- Fix phase ordering only.\n- No UX changes.\n- No new features.\n- Preserve existing behavior except for moving work to the correct phase/order.\n\nAcceptance criteria\n- No .opus or .m4a conversion runs during PREPARE/stage.\n- Conversions run only in PROCESS.\n- Final output publish/copy happens after all processing/finalization steps.\n- Existing tests pass; add a regression test if feasible.\n"
+  -
+    number: 87
+    title: "Feat: overlap staging copy with preflight prompts when selecting all sources"
+    state: "OPEN"
+    created_at: "2026-01-07T02:05:42Z"
+    updated_at: "2026-01-07T02:05:42Z"
+    closed_at: null
+    body: "Problem\nWhen selecting all sources (input 'a'), AudioMason currently stages (copies) data first and only then asks preflight questions.\nThis creates idle time where the user waits for I/O-heavy staging to finish before answering prompts.\n\nGoal\nAllow the user to answer preflight questions while staging copy is still running.\nThis should work per source, and especially for batch runs when selecting all sources.\n\nProposed behavior\n- For each selected source, start staging copy in the background.\n- While staging is running, ask preflight prompts in the foreground (interactive).\n- Start PROCESS for that source only after BOTH:\n  (1) staging copy completed successfully\n  (2) preflight decisions are completed.\n\nConstraints (strict)\n- Must remain deterministic.\n- Must not break non-interactive / prompt-disable modes.\n- No changes to default behavior unless the feature is enabled.\n- Interactive I/O must remain stable (no garbled output).\n\nConfiguration / CLI\n- Feature should be opt-in via CLI and/or config.\n- If enabled, it applies when multiple sources are selected (e.g. 'a').\n\nAcceptance criteria\n- User can answer preflight questions while staging copy runs.\n- No PROCESS begins before staging is finished.\n- Errors in staging are handled cleanly and fail-fast.\n- Existing tests pass; add a regression test if feasible."
+  -
+    number: 88
+    title: "Bug: clean_inbox prompt appears during PROCESS when selecting all sources"
+    state: "CLOSED"
+    created_at: "2026-01-07T10:13:08Z"
+    updated_at: "2026-01-07T21:20:38Z"
+    closed_at: "2026-01-07T21:20:38Z"
+    body: "Problem\nWhen selecting all sources ('a'), AudioMason asks the prompt:\nClean inbox after successful import? [y/N]\nwhile already iterating and processing sources, i.e. during the PROCESS phase.\n\nEvidence\nExample log excerpt:\n[ignore] added: Komensky.JanAmos\n[inbox] cleaned: /mnt/warez/abooksinbox/Komensky.JanAmos\n[stage] cleaned: /mnt/warez/_am_stage/Komensky.JanAmos\n[source] 4/14: Lipton.BruceH\nClean inbox after successful import? [y/N]\n\nKey observations:\n- All sources were selected\n- Source iteration is already in progress (4/14)\n- PROCESS phase is active\n- clean_inbox prompt appears mid-run\n\nWhy this is wrong\nThe clean_inbox decision is a global / batch-level concern.\nAsking it during PROCESS:\n- breaks phase separation\n- breaks determinism\n- creates confusing UX\n\nExpected behavior\n- clean_inbox decision must be resolved once per run\n- it must be resolved either:\n  - before any PROCESS starts, or\n  - after all sources finish processing\n- the prompt must never appear mid-PROCESS\n\nActual behavior\n- clean_inbox prompt is evaluated inside the per-source loop\n- it can appear after some sources are already processed\n\nScope (STRICT)\n- Move clean_inbox decision to a clear phase boundary\n- Ensure it is resolved once per batch\n- Preserve existing defaults and config behavior\n- No new features, only phase-correctness"
+  -
+    number: 89
+    title: "Feat: CLI flag for global prompt disable (--disable-prompt)"
+    state: "CLOSED"
+    created_at: "2026-01-07T23:29:36Z"
+    updated_at: "2026-01-08T08:14:26Z"
+    closed_at: "2026-01-08T08:14:26Z"
+    body: "Follow-up to Issue #76.\n\nAdd CLI support for global prompt disable so users can override config at runtime.\n\nRequirements:\n- --disable-prompt '*' disables all prompts\n- --disable-prompt choose_books,choose_source supports selective disable\n- CLI overrides config\n- Same validation rules as config (unknown key, duplicates, '*' exclusivity)\n- Deterministic behavior only (fail-fast if no default)\n\nScope:\n- CLI parsing\n- Wiring into existing prompts.disable mechanism\n- Tests only (no docs in this issue)"
+  -
+    number: 90
+    title: "Feat: add Buy Me a Coffee support (non-intrusive monetization)"
+    state: "CLOSED"
+    created_at: "2026-01-08T00:06:57Z"
+    updated_at: "2026-01-09T21:17:57Z"
+    closed_at: "2026-01-09T21:17:57Z"
+    body: "## Goal\n\nEnable optional, non-intrusive financial support for AudioMason via Buy Me a Coffee,\nwithout introducing paywalls, prompts, or behavior changes.\n\nAudioMason remains 100% open-source and fully functional without support.\n\n---\n\n## Scope\n\nThis issue introduces *visibility only*:\n- no feature gating\n- no interactive prompts\n- no conditional behavior\n\n---\n\n## Tasks\n\n### 1. README.md\n- Add a short **Support AudioMason** section\n- Include a single Buy Me a Coffee link\n- Tone: technical, respectful, no guilt-tripping\n\nExample copy (may be adjusted):\n\nAudioMason is free and open-source.\nIf it saves you time or frustration, consider supporting development:\nhttps://buymeacoffee.com/audiomason\n\n---\n\n### 2. CLI output (non-interactive)\n- Print **one informational line** per run\n- No prompts, no input required\n- Must respect unattended / non-interactive runs\n\nExample:\n\n☕ Enjoying AudioMason?  \nSupport development: https://buymeacoffee.com/audiomason\n\nPlacement:\n- startup or final summary\n- printed exactly once per invocation\n\n---\n\n### 3. Documentation\n- Add a short support note at the end of user-facing docs\n- Explain that support helps maintenance and long-term quality\n- No mention of money needs or personal finance\n\n---\n\n## Non-goals (explicitly out of scope)\n\n- No paywalled features\n- No supporter-only functionality\n- No ads or banners\n- No additional prompts\n- No behavior changes based on support status\n\n---\n\n## Acceptance criteria\n\n- AudioMason behavior remains unchanged\n- CLI remains fully non-interactive\n- Support link is visible but unobtrusive\n- Documentation updated accordingly\n\n---\n\n## Notes\n\nBuy Me a Coffee page already exists:\nhttps://buymeacoffee.com/audiomason"
+  -
+    number: 91
+    title: "Enhancement: preflight_steps does not fully control all preflight prompts"
+    state: "CLOSED"
+    created_at: "2026-01-08T20:51:51Z"
+    updated_at: "2026-01-09T18:07:20Z"
+    closed_at: "2026-01-09T18:07:20Z"
+    body: "Issue #66 introduced preflight_steps with deterministic ordering and fail-fast validation.\nDuring implementation, several architectural limitations were identified.\n\nIssue #66 is correctly implemented and closed.\nThis issue tracks known design gaps discovered during that work.\n\n## Problem statement\n\npreflight_steps currently does not fully control all preflight prompts.\n\nKey gaps:\n- Not all preflight prompts are modeled as steps (run-level, inline prompts)\n- Some step_keys are evaluated as blocks, not individually ordered\n- Side-effect driven prompts weaken ordering guarantees\n- State-dependent steps may never trigger\n- Normalizations and suggestion prompts are not first-class steps\n\n## Goal\n\nDefine and implement a fully preflight-driven orchestration model with:\n- canonical step registry,\n- explicit run/source/book execution levels,\n- precise ordering guarantees,\n- complete and truthful preflight_steps control surface.\n\n## Non-goals\n\n- No changes to Issue #66 behavior\n- No breaking changes without explicit migration\n- No UI / API work\n\n## Acceptance criteria\n\n- All preflight prompts are either canonical steps or explicitly documented exceptions\n- Clear execution-level separation\n- Deterministic model is documented\n- Tests cover ordering and conditional execution\n\n## References\n\n- Issue #66\n- dd7b455 (code + tests)\n- 1cd69c7 (docs + repo_manifest)"
+  -
+    number: 92
+    title: "Design: canonical preflight orchestration (step registry + run/source/book levels) (Follow-up to #91)"
+    state: "CLOSED"
+    created_at: "2026-01-08T20:53:50Z"
+    updated_at: "2026-01-09T18:07:02Z"
+    closed_at: "2026-01-09T18:07:02Z"
+    body: "Parent: #91\n\n## Goal\nDefine the target architecture for fully preflight-driven orchestration:\n- canonical step registry (all prompts as steps or explicitly documented exceptions)\n- explicit execution levels: run / source / book\n- deterministic ordering guarantees and how they are enforced\n- rules for conditional (state-dependent) steps\n- rules for sub-prompts (normalizations/suggestions) as first-class steps vs. nested prompts\n\n## Deliverables\n- Design doc (in-repo) describing:\n  - step registry API (data model, keys, metadata: level, dependencies, default order)\n  - orchestration algorithm (how steps are executed and skipped)\n  - migration plan from current flow to registry-driven flow\n  - what remains intentionally outside steps (if anything) + rationale\n- Test strategy for ordering and conditional execution\n\n## Acceptance criteria\n- Design doc merged\n- Clear, implementable plan for refactor and cleanup work (scoped into follow-up issues)"
+  -
+    number: 93
+    title: "Refactor: move preflight prompts under step registry + enforce ordering (Follow-up to #91)"
+    state: "CLOSED"
+    created_at: "2026-01-08T20:53:51Z"
+    updated_at: "2026-01-08T23:49:45Z"
+    closed_at: "2026-01-08T23:49:45Z"
+    body: "Parent: #91\nDepends on: Design issue for #91\n\n## Goal\nRefactor implementation so preflight_steps fully controls ordering by executing prompts via the canonical step registry.\n\n## Scope\n- introduce step registry data structure + dispatcher\n- migrate existing preflight prompts into step-based execution (run/source/book as per design)\n- ensure block-coupled prompts (e.g. publish/wipe_id3) become independently orderable steps (or explicitly justified exception per design)\n- preserve default behavior when preflight_steps is not set\n- preserve existing config semantics unless migration is explicitly designed\n\n## Acceptance criteria\n- preflight_steps ordering is honored for all modeled steps\n- deterministic behavior maintained; invalid config fails fast\n- tests cover:\n  - full ordering control\n  - conditional step skipping (state-dependent) without breaking determinism"
+  -
+    number: 94
+    title: "Cleanup: align docs + repo_manifest + remove legacy inline preflight codepaths (Follow-up to #91)"
+    state: "CLOSED"
+    created_at: "2026-01-08T20:53:53Z"
+    updated_at: "2026-01-09T10:00:36Z"
+    closed_at: "2026-01-09T10:00:36Z"
+    body: "Parent: #91\nDepends on: Refactor issue for #91\n\n## Goal\nClean up and finalize after refactor:\n- remove legacy inline preflight prompt codepaths that bypass registry\n- update docs to reflect the canonical step registry model (including level semantics)\n- update docs/prompt catalog cross-links where applicable\n- ensure docs/repo_manifest.yaml is updated if file structure/anchors changed\n\n## Acceptance criteria\n- no remaining preflight prompts bypass the registry unless explicitly documented exceptions exist\n- docs updated and cross-linked\n- repo_manifest.yaml updated (if applicable)\n- tests remain green"
+  -
+    number: 95
+    title: "Chore: add governance version sync checker script (check + set-version) with tests"
+    state: "CLOSED"
+    created_at: "2026-01-09T08:57:26Z"
+    updated_at: "2026-01-09T12:04:48Z"
+    closed_at: "2026-01-09T12:04:48Z"
+    body: "## Goal\n\nAdd a deterministic script to verify (and optionally synchronize) versions across governance documents in `docs/governance/`.\n\n**Important constraint:** this issue must NOT change any governance documents or their versions. The user wants to review the script first; only later will we decide whether to run it and/or amend governance rules.\n\n---\n\n## Scope\n\n### MUST\n- Add a script that scans `docs/governance/*.md` and reads `Version:` (case-insensitive).\n- Implement `--check` (read-only):\n  - exit non-zero if any file is missing `Version:`\n  - in `lockstep` mode, exit non-zero if versions are not identical\n- Implement `--set-version X.Y` (write mode):\n  - update only the `Version:` line in all governance docs\n  - preserve the rest of each file unchanged\n  - fail-fast if `Version:` cannot be uniquely located/updated\n- Deterministic, fail-fast behavior\n- Add pytest tests:\n  - `--check` fails when a file is missing `Version:`\n  - `--set-version` updates versions consistently\n\n### SHOULD\n- `--list` prints `file -> version`\n- `--mode lockstep|independent` (default lockstep)\n- `--dry-run` for `--set-version`\n\n### MUST NOT\n- Do NOT edit any governance documents in `docs/governance/` as part of this issue.\n- Do NOT change the Project Constitution or any laws.\n- Do NOT create/close issues from the implementation chat.\n\n---\n\n## Acceptance Criteria\n\n- Running `python <script> --check` works on the repo and returns correct exit status.\n- Running `python <script> --list` shows all governance docs and versions.\n- Tests pass.\n- No governance document content is modified in this issue.\n\n---\n\n## Notes\n\nThis script will later be referenced by governance rules, but that is explicitly out of scope for this issue.\n"
+  -
+    number: 96
+    title: "Tooling: sync GitHub issues to open_issues.md + closed_issues.md (full bodies)"
+    state: "CLOSED"
+    created_at: "2026-01-09T13:48:41Z"
+    updated_at: "2026-01-09T16:44:35Z"
+    closed_at: "2026-01-09T16:44:35Z"
+    body: "## Problem\nWe maintain two authoritative archive files in the repository:\n\n- `docs/contracts/projects/open_issues.md`\n- `docs/contracts/projects/closed_issues.md`\n\nThese files must reflect the **current state of GitHub issues**, including their **full bodies**.\nToday, this synchronization is manual and error-prone, which leads to drift.\n\n## Goal\nCreate a **standalone helper tool** that:\n\n1. Fetches issues from GitHub (open + closed)\n2. Renders them into a deterministic markdown archive format\n3. Updates `open_issues.md` and `closed_issues.md`\n4. Commits and pushes changes **only if a real diff exists**\n\nThis tool is intended to be run **immediately after** `gh issue open` or `gh issue close`\nas the next command in the workflow.\n\n## Non-goals\n- This tool is **NOT** part of AudioMason runtime or CLI.\n- No UI, no daemon, no long-running service.\n- No issue creation, editing, or closing.\n- No GitHub project or milestone management.\n\n## Requirements (must)\n\n### 1. Tool nature\n- Must be a **standalone helper script**, e.g. under `scripts/`\n- Must NOT import or depend on AudioMason code\n- Must be safe to run repeatedly (idempotent)\n\n### 2. Data source\n- GitHub is the **only source of truth**\n- Must fetch **full issue bodies**, not just titles\n- For each issue, archive must include:\n  - Issue number + title\n  - State (OPEN / CLOSED)\n  - Labels (if any)\n  - Assignees (if any)\n  - Milestone (if any)\n  - Created timestamp\n  - Updated timestamp\n  - Closed timestamp (for closed issues)\n  - Full issue body (verbatim, markdown preserved)\n\n### 3. Output files\nOnly these two files may be modified:\n- `docs/contracts/projects/open_issues.md`\n- `docs/contracts/projects/closed_issues.md`\n\nOrdering rules:\n- Open issues: ascending by issue number\n- Closed issues: descending by closed date, tie-break by issue number\n\nRendering rules:\n- Stable headings and delimiters per issue\n- No “generated at now” timestamps\n- Output must be byte-stable across runs if issues did not change\n\n### 4. Execution & safety\n- Non-interactive by default (no prompts)\n- Must FAIL-FAST with clear error if:\n  - GitHub auth is missing or invalid\n  - Rate limit prevents fetching\n  - Target files are missing\n  - Working tree is dirty (unless explicitly overridden)\n\n### 5. Git behavior\n- Must not commit if there is no diff\n- Deterministic commit message:\n  - `Docs: sync GitHub issues archive (open/closed)`\n- Default behavior:\n  - write files\n  - commit if diff exists\n  - push to default remote branch\n- Flags must allow:\n  - `--dry-run`\n  - `--no-commit`\n  - `--no-push`\n  - optional override for dirty working tree\n\n### 6. CLI\nCanonical invocation:\n```bash\npython3 scripts/sync_issues_archive.py\n```\n\nRequired flags:\n- `--repo <owner/name>` (default: auto-detect from git remote if possible)\n- `--dry-run`\n- `--no-commit`\n- `--no-push`\n\n### 7. Workflow intent (explicit)\nThis tool is designed to be used as a **natural follow-up command**:\n\n```bash\ngh issue open …\npython3 scripts/sync_issues_archive.py\n```\n\n```bash\ngh issue close …\npython3 scripts/sync_issues_archive.py\n```\n\nThe tool itself must not require chaining or interaction.\n\n## Acceptance criteria\n- Archives fully match GitHub issues (including full bodies)\n- Ordering and rendering are deterministic\n- Re-running with no issue changes produces no diff and no commit\n- With changes present, files are updated, committed, and pushed\n- Unit tests cover:\n  - ordering rules\n  - rendering stability\n  - no-diff → no commit behavior\n  - correct open/closed split\n- `docs/repo_manifest.yaml` is updated if new scripts or tests are added\n\n## Notes\n- This is a project/tooling issue.\n- Implementation must follow Implementation Law for patch delivery and execution.\n"
+  -
+    number: 97
+    title: "Sub-issue: loudnorm determinism (prompt + CLI symmetry + tests)"
+    state: "OPEN"
+    created_at: "2026-01-10T00:19:35Z"
+    updated_at: "2026-01-10T00:22:18Z"
+    closed_at: null
+    body: "Child of #79.\n\nMissing (per verification):\n- preflight prompt\n- --no-loudnorm\n- tests\n\nScope:\n- Add preflight prompt: \"Apply loudnorm? [y/N]\" (default No)\n- Add CLI symmetry: --loudnorm and --no-loudnorm\n- Allow config-hide/disable for the loudnorm prompt\n- Deterministic resolution: CLI > config > default\n- Tests: default, config-hide default, CLI override\n\nAcceptance criteria:\n- Deterministic behavior proven by tests\n- No interactive leakage in non-interactive contexts\n"
+  -
+    number: 98
+    title: "Sub-issue: cleanup_stage must be CLI-controllable (remove hardcoded True)"
+    state: "OPEN"
+    created_at: "2026-01-10T00:19:36Z"
+    updated_at: "2026-01-10T00:22:19Z"
+    closed_at: null
+    body: "Child of #79.\n\nMissing (per verification):\n- cleanup_stage is hardcoded True and not CLI-controllable\n\nScope:\n- Remove hardcoded cleanup_stage=True\n- Add explicit CLI enable/disable\n- Preserve default behavior unless overridden\n- Tests for CLI override + determinism\n\nAcceptance criteria:\n- CLI can explicitly control cleanup_stage\n- Default behavior unchanged unless explicitly overridden\n- Tests prove override\n"
+  -
+    number: 99
+    title: "Sub-issue: fix clean_inbox config-hide validation bug"
+    state: "OPEN"
+    created_at: "2026-01-10T00:19:37Z"
+    updated_at: "2026-01-10T00:22:20Z"
+    closed_at: null
+    body: "Child of #79.\n\nMissing (per verification):\n- clean_inbox prompt exists, but config-hide key is rejected by validation\n\nScope:\n- Fix validation to accept intended config-hide key\n- Ensure prompt hide works deterministically\n- Regression tests\n\nAcceptance criteria:\n- Valid config key passes validation\n- Hidden prompt applies deterministic behavior\n- Regression tests cover the bug\n"
+  -
+    number: 100
+    title: "Sub-issue: docs audit & alignment for Opts CLI + config-hide behavior"
+    state: "OPEN"
+    created_at: "2026-01-10T00:19:38Z"
+    updated_at: "2026-01-10T00:22:21Z"
+    closed_at: null
+    body: "Child of #79.\n\nMissing (per verification):\n- docs do not reflect final behavior for the full Opts list\n\nScope:\n- Audit full Opts list from #79\n- Align docs with actual behavior:\n  - CLI flags\n  - config-hide/disable behavior\n  - determinism rules (CLI > config > default)\n\nFiles (expected):\n- README.md\n- docs/CLI.md\n- docs/CONFIGURATION.md\n\nAcceptance criteria:\n- Docs match actual behavior\n- No contradictions\n- Explicitly covers full Opts list from #79\n"
+  -
+    number: 101
+    title: "Bug: gov_versions.py --set-version allows invalid version, then --check fails"
+    state: "CLOSED"
+    created_at: "2026-01-10T11:01:33Z"
+    updated_at: "2026-01-10T15:45:13Z"
+    closed_at: "2026-01-10T15:45:13Z"
+    body: "Observed in scripts/gov_versions.py:\n- VERSION_VALUE_RE expects vX.Y\n- set_version() writes Version: <new_version> without validating format\n\nImpact:\n- Tool can write a value that later fails validation, breaking lockstep/version checks.\n\nAcceptance criteria:\n- --set-version validates input against the same rules as --check (vX.Y)\n- tests updated/added to cover invalid input\n- docs/help output clearly states required format"
+  -
+    number: 102
+    title: "Feat: Make ./am launcher portable (no hardcoded /home/pi path)"
+    state: "CLOSED"
+    created_at: "2026-01-10T11:02:30Z"
+    updated_at: "2026-01-10T15:53:44Z"
+    closed_at: "2026-01-10T15:53:44Z"
+    body: "Current root script `am` hardcodes DIR=\"/home/pi/apps/audiomason\" and uses .venv from there.\n\nImpact:\n- Breaks on non-pi users or different install paths.\n- Makes fresh installs/migrations brittle.\n\nAcceptance criteria:\n- Launcher resolves repo root dynamically (relative to script location or via env var)\n- Works when repo is cloned to any path\n- Update docs accordingly"
+  -
+    number: 103
+    title: "Repo hygiene: Decide how to store .deb artifacts (docs/apt/pool) and document policy"
+    state: "CLOSED"
+    created_at: "2026-01-10T11:02:50Z"
+    updated_at: "2026-01-10T16:12:25Z"
+    closed_at: "2026-01-10T16:12:25Z"
+    body: "Repo contains multiple .deb artifacts under docs/apt/pool/main/...\n\nQuestion:\n- Should these live in Git (docs-hosted APT repo), or be released via GitHub Releases/Artifacts?\n\nAcceptance criteria:\n- Document chosen policy (where .deb live)\n- If moving out of Git: remove from repo and add guardrails\n- If keeping in Git: document update process and size expectations"
+  -
+    number: 104
+    title: "Docs/Policy: Add LICENSE + SECURITY.md + CONTRIBUTING.md"
+    state: "CLOSED"
+    created_at: "2026-01-10T11:02:59Z"
+    updated_at: "2026-01-10T16:33:16Z"
+    closed_at: "2026-01-10T16:33:16Z"
+    body: "Repo is missing standard policy docs:\n- LICENSE\n- SECURITY.md\n- CONTRIBUTING.md\n\nAcceptance criteria:\n- Add LICENSE (selected license)\n- Add SECURITY.md (vuln reporting)\n- Add CONTRIBUTING.md (dev/test workflow)\n- Mention in README"
+  -
+    number: 105
+    title: "Refactor: CLI arg parsing must not require config load (lazy-load config)"
+    state: "CLOSED"
+    created_at: "2026-01-10T11:14:39Z"
+    updated_at: "2026-01-10T19:02:54Z"
+    closed_at: "2026-01-10T19:02:54Z"
+    body: "Decision: Variant A (lazy-load config).\n\nProblem:\n- CLI currently loads config during argument parsing, which breaks clean environments and makes tests brittle.\n\nScope:\n- _parse_args() must not call load_config().\n- Parse args first, then load config as part of command execution.\n\nAcceptance criteria:\n- `audiomason --help` and `audiomason --version` work without /etc config or user config.\n- `audiomason import ...` can be invoked in a clean env (unless config is truly required for that path).\n- Add/adjust tests to cover running without /etc/audiomason/config.yaml.\n- If `--config` is provided, it must be honored without requiring the default config file to exist."
+  -
+    number: 106
+    title: "Dev tooling: add ruff + mypy (CI + local workflow)"
+    state: "CLOSED"
+    created_at: "2026-01-10T11:14:45Z"
+    updated_at: "2026-01-10T20:10:13Z"
+    closed_at: "2026-01-10T20:10:13Z"
+    body: "Decision: Variant B (ruff + mypy).\n\nGoal:\n- Add lightweight, fast quality gates (lint/format + types) without heavy developer friction.\n\nScope:\n- Add `ruff` (lint + formatter).\n- Add `mypy` for static type checks (scope can start with src/audiomason only).\n- Wire into CI.\n\nAcceptance criteria:\n- `ruff check .` passes in CI.\n- `ruff format --check .` passes in CI.\n- `mypy` runs in CI (initially at least `src/audiomason`).\n- Document the commands in README or CONTRIBUTING (if present).\n- No changes required to end-user installs (dev/test extras only)."
+  -
+    number: 107
+    title: "CI: avoid writing /etc/audiomason/config.yaml; use --config with repo config"
+    state: "CLOSED"
+    created_at: "2026-01-10T11:14:52Z"
+    updated_at: "2026-01-11T11:13:28Z"
+    closed_at: "2026-01-11T11:13:28Z"
+    body: "Decision: Variant A.\n\nProblem:\n- CI currently writes config to /etc/audiomason/config.yaml using sudo.\n- This makes tests less isolated and hides config-loading brittleness.\n\nScope:\n- Remove sudo copy into /etc from CI workflow.\n- Use `--config <repo>/debian/config.yaml` (or equivalent) in CI invocations.\n\nAcceptance criteria:\n- CI completes without writing to /etc and without sudo copy of config.\n- CI explicitly points CLI to a config via `--config`.\n- At least one test/execution path runs in a clean env (no /etc config present) to prevent regressions."
+  -
+    number: 108
+    title: "CI: fix gov_versions lockstep test to match canonical version format"
+    state: "CLOSED"
+    created_at: "2026-01-10T11:53:39Z"
+    updated_at: "2026-01-10T15:05:16Z"
+    closed_at: "2026-01-10T15:05:16Z"
+    body: "CI fails on tests/test_gov_versions.py::test_set_version_makes_lockstep because test expectations are inconsistent with the canonical governance version format (vX.Y). The goal is to align the test and/or gov_versions behavior so --set-version and --check are consistent and CI passes. Out of scope: governance changes, new features, or refactors outside version tooling."
+  -
+    number: 109
+    title: "EPIC: Codebase cleanup for strict ruff + mypy compliance"
+    state: "CLOSED"
+    created_at: "2026-01-10T20:55:16Z"
+    updated_at: "2026-01-12T11:33:41Z"
+    closed_at: "2026-01-12T11:33:41Z"
+    body: "GOAL (AUTHORITATIVE)\nSystematically clean up the existing codebase so that:\n- ruff check .\n- ruff format --check .\n- mypy src/audiomason\nall pass with no exceptions in strict mode, without changing user-facing behavior.\n\nSCOPE (STRICT)\n- Cleanup only (no new features)\n- No CLI UX changes\n- No new runtime dependencies\n- No governance changes\n\nOUT OF SCOPE\n- New features\n- Architectural refactors unless strictly required for typing\n- CI wiring changes (introduced in #106)\n\nACCEPTANCE CRITERIA (EPIC)\n- Repo is ruff-clean and mypy-clean\n- CI can be re-enabled for push triggers after cleanup\n- Cleanup is delivered via small, auditable sub-issues\n\nEXECUTION RULE\n- Each sub-issue: small diff, isolated commit, independently closable\n- Close this EPIC only after all sub-issues are closed.\n\nSUB-ISSUES\n- Ruff: apply formatter repo-wide\n- Ruff: autofix all fixable lint errors\n- Ruff: resolve remaining lint findings\n- Mypy: fix Optional & None handling\n- Mypy: fix return types & helpers\n- Mypy: resolve remaining typing errors\n- CI: re-enable push-triggered runs\n"
+  -
+    number: 110
+    title: "Ruff: apply formatter repo-wide"
+    state: "CLOSED"
+    created_at: "2026-01-10T20:55:17Z"
+    updated_at: "2026-01-11T10:49:31Z"
+    closed_at: "2026-01-11T10:49:31Z"
+    body: "SCOPE\n- Run ruff formatter across the repo (one-time normalization).\n- No intentional behavior changes.\n\nACCEPTANCE CRITERIA\n- `ruff format --check .` passes.\n- Tests still pass.\n\nNOTES\n- Large file count is expected; this is mechanical churn only.\n"
+  -
+    number: 111
+    title: "Ruff: autofix all fixable lint errors"
+    state: "CLOSED"
+    created_at: "2026-01-10T20:55:18Z"
+    updated_at: "2026-01-10T21:11:40Z"
+    closed_at: "2026-01-10T21:11:40Z"
+    body: "SCOPE\n- Apply `ruff check --fix` for all safe/auto-fixable findings.\n- Keep changes mechanical where possible.\n\nACCEPTANCE CRITERIA\n- Ruff error count is significantly reduced.\n- No user-facing behavior changes.\n- Tests pass.\n"
+  -
+    number: 112
+    title: "Ruff: resolve remaining lint findings"
+    state: "CLOSED"
+    created_at: "2026-01-10T20:55:19Z"
+    updated_at: "2026-01-10T23:58:19Z"
+    closed_at: "2026-01-10T23:58:19Z"
+    body: "SCOPE\n- Manually address remaining ruff findings after formatter + autofix.\n- Prefer minimal edits; no unrelated refactors.\n\nACCEPTANCE CRITERIA\n- `ruff check .` passes.\n- Tests pass.\n"
+  -
+    number: 113
+    title: "Mypy: fix Optional & None handling"
+    state: "CLOSED"
+    created_at: "2026-01-10T20:55:21Z"
+    updated_at: "2026-01-11T08:43:06Z"
+    closed_at: "2026-01-11T08:43:06Z"
+    body: "SCOPE\n- Fix mypy errors related to Optional/None (guards, asserts, casts as needed).\n- Keep changes minimal; avoid broad refactors.\n\nACCEPTANCE CRITERIA\n- Mypy error count is reduced for Optional/None-related issues.\n- Tests pass.\n"
+  -
+    number: 114
+    title: "Mypy: fix return types & helpers"
+    state: "CLOSED"
+    created_at: "2026-01-10T20:55:22Z"
+    updated_at: "2026-01-11T09:35:08Z"
+    closed_at: "2026-01-11T09:35:08Z"
+    body: "SCOPE\n- Fix mypy errors related to return types, helper utilities, and implicit Any.\n- Minimal annotations/overloads where appropriate.\n\nACCEPTANCE CRITERIA\n- Mypy error count is further reduced.\n- Tests pass.\n"
+  -
+    number: 115
+    title: "Mypy: resolve remaining typing errors"
+    state: "CLOSED"
+    created_at: "2026-01-10T20:55:23Z"
+    updated_at: "2026-01-11T10:24:28Z"
+    closed_at: "2026-01-11T10:24:28Z"
+    body: "SCOPE\n- Resolve all remaining mypy errors in `src/audiomason`.\n- Use minimal, explicit typing fixes; avoid architecture changes.\n\nACCEPTANCE CRITERIA\n- `mypy src/audiomason` passes.\n- Tests pass.\n"
+  -
+    number: 116
+    title: "CI: re-enable push-triggered runs"
+    state: "OPEN"
+    created_at: "2026-01-10T20:55:24Z"
+    updated_at: "2026-01-10T20:55:24Z"
+    closed_at: null
+    body: "SCOPE\n- Restore CI workflow trigger to run on both push and pull_request.\n\nCHANGE\n- In `.github/workflows/ci.yml`, set:\n  on:\n    push:\n    pull_request:\n\nACCEPTANCE CRITERIA\n- CI runs on push and PR.\n- CI passes with ruff + mypy + pytest.\n"
+  -
+    number: 117
+    title: "Refactor: split import_flow.py monolith (address E501 structurally)"
+    state: "OPEN"
+    created_at: "2026-01-10T23:58:24Z"
+    updated_at: "2026-01-13T00:14:46Z"
+    closed_at: null
+    body: "## 📌 PM SUMMARY — Issue #117\n**Refactor `import_flow` (safety-first, contract-driven)**\n\n**Status:** ✅ DONE / CLOSED  \n**Dependency:** Issue #118 — Behavior-based contract tests (completed, stable)\n\n---\n\n### 1. Goal (PM Perspective)\n\nThe goal of #117 was **not to change user-visible behavior**, but to:\n\n- reduce technical debt in `import_flow`,\n- separate responsibilities (discovery, preflight, processing, logging),\n- prepare the codebase for future changes,\n- **without any regression risk**.\n\nThis work was executed strictly under the protection of **behavior-based contracts introduced in #118**.\n\n> From a PM perspective: **#117 is infrastructure work, not a feature.**\n\n---\n\n### 2. Key Decisions (Authoritative)\n\n#### 2.1 Contracts are absolute\n- Tests from **#118 are authoritative**.\n- Any refactor that removes symbols, changes importability, or alters behavior is **invalid**, even if architecturally cleaner.\n\n#### 2.2 `import_flow` is NOT a thin orchestrator\n- `import_flow` functions as a **contract façade module**.\n- Many “private” helpers are imported **directly by tests**.\n- Attempting to convert it into a thin orchestrator at this stage was **strategically incorrect**.\n\n---\n\n### 3. Execution Summary\n\n#### Phase A — Preparation (SUCCESS)\n- #118 introduced behavior-based contract tests.\n- A stable, non-negotiable reference point was established.\n\n#### Phase B — Safe Refactors (SUCCESS)\nSteps 1–7:\n- helper extraction (discovery, preflight, processing, logging),\n- **no behavior change**,\n- ruff / pytest / mypy remained green.\n\n#### Phase C — Step 8 (CANCELLED)\n- Attempted thin-orchestrator refactor of `import_flow`.\n- Resulted in massive contract breakage (~40 failing tests).\n- **Step 8 was invalidated and reverted**, not fixed.\n\n---\n\n### 4. Final Resolution\n\n- Step 8 is **explicitly cancelled**\n- No Step 8 changes exist on `main`\n- `import_flow` remains a **contract façade**\n\n---\n\n### 5. Outcome\n\n- Branch: `main`\n- Tests: **111/111 passing**\n- Ruff: clean\n- Mypy: clean\n- Zero user-visible behavior change\n- Technical debt reduced safely\n\n---\n\n### 6. Commits Included in #117\n\n```\na9bf732 Refactor: extract BookGroup type + ruff import ordering (Step 1 fix) (Issue #117)\n1efa9b6 Refactor: fix discovery step ruff issues (unused imports, ordering) (Step 2 fix) (Issue #117)\nc8c540f Refactor: Step 3 final mypy fix — guard state.OPTS None (Issue #117)\n226d4bb Refactor: Step 4 fix — staging imports ruff-clean (Issue #117)\n2ff1be4 Refactor: Step 5 fix — provide full write_tags signature (mypy clean) (Issue #117)\ne1d7f9a Refactor: Step 6 fix — ruff clean imports (Issue #117)\nb0bc6f7 Refactor: Step 7 fix — ruff clean logging imports (Issue #117)\n```\n\n*(Authoritative source: git history)*\n\n---\n\n### 7. One-Sentence PM Summary\n\nIssue #117 successfully reduced technical debt and prepared `import_flow` for future work without changing behavior; an attempted thin-orchestrator refactor was correctly cancelled thanks to contract tests from #118, preventing regressions.\n"
+  -
+    number: 118
+    title: "Refactor test suite to reduce execution time"
+    state: "OPEN"
+    created_at: "2026-01-11T09:17:01Z"
+    updated_at: "2026-01-11T09:17:01Z"
+    closed_at: null
+    body: "### Problem\n\nThe current test suite execution time is excessively long (multiple minutes),\nwhich significantly slows down iterative development and cleanup work.\n\nThis is a practical developer productivity issue: frequent `pytest -q` runs\nare required during refactors and typing fixes, and test runtime dominates\nfeedback time.\n\n### Scope (this issue)\n\nThis issue is **test-only refactor / hygiene**:\n- No production code changes\n- No behavior changes\n- No reduction of test coverage\n\nThe goal is **performance and structure**, not semantics.\n\n### Observations\n\nLikely contributors (to be confirmed during implementation):\n- Repeated expensive setup across tests\n- Integration-style tests mixed with unit tests\n- Heavy filesystem and subprocess usage\n- Missing or suboptimal fixture scoping\n- No clear separation between fast and slow tests\n\n### Non-goals\n\n- Do NOT change application behavior\n- Do NOT weaken assertions just to gain speed\n- Do NOT mix this work with unrelated refactors (typing, ruff, core logic)\n\n### Expected outcomes\n\n- Significantly reduced wall-clock time for default `pytest` runs\n- Clear separation of fast unit tests vs slow integration tests\n- Ability to run a fast test subset during development\n- Optional markers (e.g. `@pytest.mark.slow`) for expensive tests\n\n### Notes\n\nThis issue is intentionally deferred until after current cleanup work\n(#109 / #114 / #115 / #117). It should be addressed once the codebase\nis structurally clean and typing noise is reduced.\n"
+  -
+    number: 119
+    title: "Feat: Accept more image formats from URL and normalize cover output"
+    state: "OPEN"
+    created_at: "2026-01-11T09:55:39Z"
+    updated_at: "2026-01-11T09:58:25Z"
+    closed_at: null
+    body: "Problem\n- Cover download from URL should accept more image types (e.g., PNG, GIF, AVIF) and normalize to a single on-disk format for consistency.\n\nScope\n- When a cover is provided via URL, allow common image formats (at least: jpg/jpeg, png, gif, avif).\n- Normalize output to a single format (default: JPEG) using the existing conversion mechanism (ffmpeg), preserving current cover filename conventions.\n- Maintain existing behavior for non-URL cover selection modes.\n\nAcceptance criteria\n- URL-based covers work for png/gif/avif (when ffmpeg supports the input).\n- Output is normalized to the chosen standard format (JPEG) whenever conversion is required.\n- No behavior changes for non-URL modes.\n- pytest stays green.\n\nNotes\n- If ffmpeg is missing, behavior must remain consistent with current conversion behavior (hard-fail via die(...) where conversion is required)."
+  -
+    number: 120
+    title: "Feat: Detect cover images next to audio files (various filenames) and prompt to use them"
+    state: "OPEN"
+    created_at: "2026-01-11T09:56:08Z"
+    updated_at: "2026-01-11T09:58:37Z"
+    closed_at: null
+    body: "Problem\n- Some books have no embedded cover in the audio files, but a cover image exists in the same directory with a non-standard filename.\n\nScope\n- During cover selection, search the book/audio directory for image files (at least: *.jpg, *.jpeg, *.png, *.gif, *.avif).\n- Use a conservative heuristic:\n  - Prefer names that look like covers (cover, folder, front, jacket, artwork).\n  - If multiple candidates exist, select the best candidate deterministically.\n- Prompt the user to confirm using the detected file (respect --yes / non-interactive behavior).\n- Normalize to the standard cover output format and filename, preserving existing conversion rules.\n\nAcceptance criteria\n- If a directory image exists, the tool offers it as a candidate.\n- Heuristic is conservative (does not pick random images without prompting).\n- Existing behavior for embedded/file/url modes remains unchanged unless this new detection path is reached.\n- pytest stays green."
+  -
+    number: 121
+    title: "Bug: Tests rely on brittle source-code string matching (break on formatting)"
+    state: "CLOSED"
+    created_at: "2026-01-11T10:48:31Z"
+    updated_at: "2026-01-11T12:54:22Z"
+    closed_at: "2026-01-11T12:54:22Z"
+    body: "Several tests fail after ruff format because they assert exact source-code string layouts instead of semantic behavior.\\n\\nExamples:\\n- test_pipeline_steps_wired_into_process_book\\n- test_preflight_disable_callsites_do_not_bypass_pf_prompt_yes_no\\n- test_preflight_disable_cover_override_is_routed_via_pf_prompt\\n\\nUnderlying behavior is unchanged; only formatting/layout differs. Tests should assert semantics, not raw text."
+  -
+    number: 122
+    title: "am_patch: consolidate runner upgrades (logs, validation, guards, verify-only, lock, tests)"
+    state: "CLOSED"
+    created_at: "2026-01-12T10:11:25Z"
+    updated_at: "2026-01-12T10:45:47Z"
+    closed_at: "2026-01-12T10:45:47Z"
+    body: "## Goal\nUpgrade the am_patch runner in a single, consolidated change set.\n\nThis issue intentionally groups multiple accepted improvements to avoid fragmented runner behavior and repeated migrations.\n\n---\n\n## Scope (ACCEPTED)\n\n### 1) Pre-flight guards\n- Fail if HEAD is detached\n- Fail if branch has no upstream (before push)\n- Fail early if venv / required tools are missing\n\n### 2) Verify-only mode\n- Run patch + tests\n- No commit, no push\n- Explicit READY / NOT READY output\n\n### 3) Logs: dedicated directory + retention\n- Log dir: `/home/pi/apps/patches/logs/`\n- Per-run logs: `am_patch_<ISSUE>_<YYYYmmdd_HHMMSS>.log`\n- Stable symlink: `/home/pi/apps/patches/am_patch.log` → latest log\n- Automatic retention: keep last **20** logs\n- Prune only files matching `am_patch_*_*.log`\n\n### 4) Static validation of patch scripts (pre-exec gate)\n- Enforce required sections / anchors\n- Reject dangerous operations (e.g. shell-outs, destructive ops, network)\n\n### 5) Git diff / stat outputs\n- Print `git diff --name-status`\n- Print `git diff --stat`\n- Emit on success and on failure paths\n\n### 6) Lock outside patches directory\n- Primary: `/run/audiomason/am_patch.lock`\n- Fallback: `/tmp/audiomason/am_patch.lock`\n\n### 7) Test policy switches (safe-by-default)\n- Default remains strict (all tests)\n- Optional flags: `--tests`, `--no-mypy`, `--no-ruff`\n\n---\n\n## Non-goals\n- No change to core patch semantics beyond what is listed\n- No JSON summary output (explicitly deferred)\n\n## Notes\n- All changes must be deterministic, idempotent, and fully documented.\n- Documentation (`scripts/am_patch.md`) and repo manifest must be updated accordingly."
+  -
+    number: 123
+    title: "Bug: config.yaml is loaded but paths are ignored (fallback to ~/.local/share/audiomason)"
+    state: "CLOSED"
+    created_at: "2026-01-13T00:40:58Z"
+    updated_at: "2026-01-13T09:09:33Z"
+    closed_at: "2026-01-13T09:09:33Z"
+    body: "## Summary\n\nAfter the recent refactor, AudioMason logs that the user config was loaded, but runtime behavior ignores configured paths and falls back to the default XDG data directory.\n\n## Reproduction\n\n1. Ensure config exists at:\n   /home/pi/.config/audiomason/config.yaml\n2. Run:\n   am --debug\n\nObserved output:\n[TRACE] [config] loaded_from=/home/pi/.config/audiomason/config.yaml\n\n## Actual behavior\n\nDespite the config being reported as loaded, AudioMason writes data to:\n  ~/.local/share/audiomason/\n\nExample:\n  ~/.local/share/audiomason/abooks\n  ~/.local/share/audiomason/abooks_ready\n  ~/.local/share/audiomason/_am_stage\n\n## Expected behavior\n\nConfigured paths from config.yaml must be respected.\n\nExpected roots:\n- inbox:   /mnt/warez/am/inbox\n- library: /mnt/warez/abooks\n- staging: /mnt/warez/am/staging\n- cache:   /mnt/warez/am/.audiomason-cache\n- trash:   /mnt/media/am/.audiomason-trash\n\nNo writes should occur under ~/.local/share/audiomason unless explicitly configured.\n\n## Config used\n\npaths:\n  inbox: /mnt/warez/am/inbox\n  library: /mnt/warez/abooks\n  staging: /mnt/warez/am/staging\n  cache: /mnt/warez/am/.audiomason-cache\n  trash: /mnt/media/am/.audiomason-trash\n\n## Notes\n\nThis looks like a regression introduced by the refactor:\n- config is discovered and parsed (loaded_from is printed),\n- but paths are either not propagated into runtime state,\n  overridden later by defaults, or downstream code reads a different config object.\n\nThe bug is observable immediately on am --debug, without running an import.\n\n## Acceptance criteria\n\n- Configured paths.* are applied consistently across runtime.\n- No fallback to XDG data dir when paths are explicitly configured.\n- Add a regression test asserting path propagation."
+  -
+    number: 124
+    title: "Bug: missing preflight detection of required external tools (7z/unrar/ffmpeg)"
+    state: "OPEN"
+    created_at: "2026-01-13T08:23:11Z"
+    updated_at: "2026-01-13T08:23:11Z"
+    closed_at: null
+    body: "## Summary\n\nAudioMason does not preflight-check required external tools and capabilities.\nAs a result, valid inputs can fail late and with unclear errors when a required\nexternal program or capability is missing on the system.\n\n## Problem\n\nExample failure:\n- Valid RAR archive\n- System does not have unrar and current 7z build cannot extract it\n- Runtime error:\n  External tool failed: 7z (exit 2)\n  Sub items Errors: 152\n\nAt this point the user cannot distinguish:\n- corrupted archive\n- missing system capability\n- unsupported format on this platform\n\nSimilar issues apply to other required tools (e.g. ffmpeg).\n\n## Root cause\n\nAudioMason invokes external tools opportunistically but does NOT verify\ntool presence or capability up front. The pipeline therefore fails late\ninstead of fail-fast.\n\n## Expected behavior\n\nAudioMason MUST perform a preflight capability check before processing.\n\nAt minimum:\n- Detect required external tools:\n  - 7z / p7zip-full\n  - unrar (when RAR archive is detected)\n  - ffmpeg (when audio processing or cover conversion is required)\n- Fail fast with a clear, actionable error if a requirement is missing.\n- Design must allow adding future tool checks centrally.\n\n## Scope\n\nIN SCOPE:\n- Centralized external tool / capability detection\n- Clear fail-fast errors for missing tools\n- Extensible design for future tools\n\nOUT OF SCOPE:\n- Implementing new extractors\n- Bundling external binaries\n- Changing archive formats or workflows\n\n## Acceptance criteria\n\n- Missing required tools are detected before runtime execution.\n- Error messages clearly explain WHAT is missing and WHY execution cannot continue.\n- ffmpeg presence is validated before it is required.\n- Future tool checks can be added without ad-hoc logic."
+  -
+    number: 125
+    title: "Bug: logging output missing after refactor (no visible logs)"
+    state: "OPEN"
+    created_at: "2026-01-13T08:26:21Z"
+    updated_at: "2026-01-13T08:26:21Z"
+    closed_at: null
+    body: "## Summary\n\nAfter recent refactors, AudioMason no longer produces visible logging output.\nLogs are missing both in console output and expected log destinations, even\nwhen running with debug enabled.\n\nThis makes troubleshooting and error diagnosis extremely difficult.\n\n## Observed behavior\n\n- Running AudioMason produces little to no log output.\n- Debug mode does not visibly increase logging.\n- No clear indication where logs are written (if at all).\n\n## Expected behavior\n\n- AudioMason must emit logs consistently:\n  - to console (respecting verbosity / debug flags),\n  - and/or to a defined log destination when configured.\n- Logging behavior must be deterministic and documented.\n- Debug mode must visibly increase logging detail.\n\n## Suspected cause\n\nLogging initialization or propagation was lost or altered during refactor:\n- missing or broken logging configuration,\n- logger hierarchy not wired correctly across modules,\n- handlers not attached or log level overridden.\n\n## Scope\n\nIN SCOPE:\n- Restore functional logging\n- Ensure logs are visible and actionable\n- Fix regression introduced by refactor\n\nOUT OF SCOPE:\n- Redesign of logging system\n- New logging features\n- Log format changes (unless strictly required)\n\n## Acceptance criteria\n\n- Logs are visible during normal execution.\n- Debug mode produces clearly more verbose logs.\n- Logging works across refactored modules.\n- No silent execution without logs."
+  -
+    number: 126
+    title: "Bug: ignored-books file is written into inbox instead of the run working directory"
+    state: "OPEN"
+    created_at: "2026-01-13T08:38:17Z"
+    updated_at: "2026-01-13T08:41:00Z"
+    closed_at: null
+    body: "## Summary\n\nAudioMason writes the ignored-books state file into the inbox directory.\nInbox is an input-only area and must never be polluted with runtime or state artifacts.\n\nAffected file:\n- .abook_ignore\n\n## Evidence (authoritative)\n\nThe following file is present in the inbox after a run:\n/mnt/warez/am/inbox/.abook_ignore\n\nThis file is created by AudioMason during processing and is not part of the original input.\n\n## Actual behavior\n\n- .abook_ignore is written directly into the inbox directory.\n- Inbox content is modified as a side effect of a run.\n\n## Expected behavior\n\n- .abook_ignore MUST NOT be written into inbox.\n- It must be stored in the run working directory:\n  - stage directory, or\n  - per-run / per-source state directory,\n  - or another canonical working/state location defined by the pipeline.\n- Inbox must remain input-only and unchanged by runtime artifacts.\n\n## Why this is a bug\n\n- Inbox is a discovery and input contract and must remain clean.\n- Writing state into inbox breaks determinism and hygiene.\n- It can silently affect future runs by changing discovery behavior.\n- Users reasonably expect inbox contents to be user-controlled only.\n\n## Scope\n\nIN SCOPE:\n- Move .abook_ignore out of inbox into the canonical working/state directory.\n- Ensure no runtime artifacts are written into inbox.\n\nOUT OF SCOPE:\n- Redesign of ignore semantics.\n- Changes to ignore file format or naming.\n- Any new features.\n\n## Acceptance criteria\n\n- .abook_ignore is no longer created in inbox.\n- It is written only into the canonical working/state directory.\n- Inbox remains unchanged after a run (except explicit, user-driven actions).\n- A regression test asserts the correct artifact location."
+  -
+    number: 127
+    title: "Bug: test suite is green but misses key behaviors (false-green regressions)"
+    state: "OPEN"
+    created_at: "2026-01-13T08:43:45Z"
+    updated_at: "2026-01-13T08:43:45Z"
+    closed_at: null
+    body: "## Summary\n\nThe test suite can be fully green while core user-visible behaviors are broken.\nThis indicates missing or ineffective coverage (false-green regressions), especially after refactors.\n\n## Evidence / recent regressions not caught by tests\n\n- Config is reported as loaded, but configured paths are ignored (fallback to XDG defaults).\n- Logging output missing after refactor.\n- .abook_ignore artifact written into inbox instead of a working/state directory.\n- Missing preflight detection of required external tools/capabilities (7z/unrar/ffmpeg), causing late unclear failures.\n\n## Expected behavior\n\n- For every user-visible contract, tests must fail when the behavior is broken.\n- Refactors must be protected by behavior-based contract tests, not just unit tests of helpers.\n\n## Scope\n\nIN SCOPE:\n- Add/strengthen behavior-based tests that cover the critical contracts:\n  - config path propagation to runtime\n  - logging visibility/initialization contract\n  - artifact placement contract (no writes into inbox)\n  - external tool/capability preflight checks\n- Ensure each regression test fails on the broken state and passes after the fix.\n\nOUT OF SCOPE:\n- Test performance refactor (tracked separately).\n- Large architectural redesign.\n\n## Acceptance criteria\n\n- Each known regression has a corresponding test that fails before the fix and passes after.\n- Test suite prevents repeating these regressions in future refactors."
+  -
+    number: 128
+    title: "Refactor: split CLI init and runtime execution"
+    state: "OPEN"
+    created_at: "2026-01-13T09:53:30Z"
+    updated_at: "2026-01-13T09:53:30Z"
+    closed_at: null
+    body: "After recent fixes around logging initialization, it is clear that\nsrc/audiomason/cli.py mixes:\n\n- argument parsing\n- environment / logging initialization\n- runtime execution\n- error handling (nested try/except)\n\nin a single large control flow.\n\nThis makes safe integration of cross-cutting concerns (logging, metrics,\nprofiling) fragile and error-prone.\n\nGoal of this issue:\n- split CLI flow into explicit phases:\n  - init / setup\n  - runtime execution\n- reduce indentation depth and nested try/except blocks\n- make the CLI entrypoint structurally safe for future infra changes\n\nOut of scope:\n- behavioral changes\n- logging redesign (already handled elsewhere)\n- feature changes\n\nThis is a pure structural refactor."
+  -
+    number: 131
+    title: "Tooling: extend sync_issues_archive with full YAML issues export"
+    state: "OPEN"
+    created_at: "2026-01-14T17:52:03Z"
+    updated_at: "2026-01-14T17:52:03Z"
+    closed_at: null
+    body: "Extend sync_issues_archive tool to additionally generate a single deterministic YAML file containing all issues (open + closed), including full comments, timeline events, close metadata, and commit SHA references explaining when, why, and how issues were closed."
