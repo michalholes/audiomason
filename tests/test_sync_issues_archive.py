@@ -59,25 +59,42 @@ def test_rendering_stability_byte_identical():
 def test_yaml_export_includes_referenced_commit():
     calls = []
 
+    def _page_num(path: str) -> int:
+        # Robust query parsing: ...?per_page=100&page=N
+        # Defaults to 1 if absent.
+        from urllib.parse import urlparse, parse_qs
+
+        q = parse_qs(urlparse(path).query)
+        try:
+            return int((q.get("page") or ["1"])[0])
+        except Exception:
+            return 1
+
     def _run(cmd):
         calls.append(cmd)
+
+        # SAFETY_GUARD_TOO_MANY_CALLS
+        if len(calls) > 50:
+            raise AssertionError("too many gh api calls (possible pagination loop)")
+
         if cmd[:2] == ["gh", "api"]:
             path = cmd[-1]
 
-            # IMPORTANT: pagination adds query params; and issue core path is a prefix
-            # of the comments/timeline endpoints. So we must match those first.
-            if "comments" in path:
+            # comments pagination: always empty
+            if "/comments" in path:
                 return "[]"
-            if "timeline" in path:
-                # paginate: page=1 has events, page>=2 is empty
-                if "page=1" not in path:
+
+            # timeline pagination: page 1 has one event, later pages empty
+            if "/timeline" in path:
+                if _page_num(path) >= 2:
                     return "[]"
                 return (
                     '[{"id":1,"event":"referenced","created_at":"2020-01-03T00:00:00Z","actor":{"login":"z","id":3},'
                     '"commit_id":"78542b4","commit_url":"https://example/commit/78542b4"}]'
                 )
 
-            if path.startswith("repos/o/r/issues/96"):
+            # issue core (must not match comments/timeline)
+            if path == "repos/o/r/issues/96":
                 return (
                     '{"number":96,"title":"T96","state":"CLOSED","html_url":"u","created_at":"2020-01-01T00:00:00Z",'
                     '"updated_at":"2020-01-02T00:00:00Z","closed_at":"2020-01-03T00:00:00Z","user":{"login":"x","id":1},'
