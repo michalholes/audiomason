@@ -644,7 +644,7 @@ def _run_tests(root: Path, *, tests: str, no_ruff: bool, no_mypy: bool) -> None:
             raise SystemExit(r.returncode)
 
     print("[am_patch] running pytest in venv")
-    r = _run_logged([str(tools["python"]), "-m", "pytest", "-q"], cwd=root, label="pytest -q")
+    r = _run_logged([str(tools["python"]), "-m", "pytest", ""], cwd=root, label="pytest -q")
     if r.returncode != 0:
         _emit_failure_fingerprint(
             stage="TESTS",
