@@ -1,1 +1,93 @@
-*.zip\n*.mp3\n*.wav\n*.pth\n__pycache__/\n.cache/
+# --- Python basics ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.dll
+
+# --- Environments ---
+.env
+.venv/
+venv/
+ENV/
+env/
+.venv.bak/
+.poetry/
+
+# --- Build / packaging ---
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+pip-wheel-metadata/
+
+# --- IDEs / Editors ---
+.vscode/
+.idea/
+*.iml
+
+# --- Testing / Reports ---
+.pytest_cache/
+.coverage
+htmlcov/
+.cache/
+.mypy_cache/
+.dmypy.json
+
+# --- Logs / Temp ---
+*.log
+*.tmp
+*.bak
+*.swp
+
+# --- OS generated ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Audio & Media ---
+*.mp3
+*.wav
+*.flac
+*.m4a
+*.ogg
+*.aiff
+*.aif
+*.aac
+*.opus
+*.cue
+*.iso
+*.bin
+*.zip
+*.tar
+*.gz
+
+# --- AI / Models / Checkpoints ---
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.npy
+*.npz
+*.pkl
+*.h5
+*.joblib
+model_cache/
+transformers_cache/
+huggingface/
+.openai/
+
+# --- Project specific ---
+audiomason/data/
+audiomason/samples/
+audiomason/tmp/
+audiomason/cache/
+audiomason/__pycache__/
+
+# --- System files ---
+*.bak
+*.orig
+*.rej
+
