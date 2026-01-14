@@ -1,0 +1,171 @@
+# Auto-generated module map for AudioMason
+# Generated: 2026-01-14
+# Maintainer: michalholes
+# Purpose: Architectural contract for module scope and dependencies
+
+_meta:
+  generated: '2026-01-14'
+  maintainer: michalholes
+  purpose: Architectural contract for module scope and dependencies
+modules:
+  audiomason.__init__:
+    path: src/audiomason/__init__.py
+    sha: <auto>
+    purpose: Package initializer for AudioMason
+    scope: Core setup
+    side_effects: []
+    imports: []
+    boundary_rules:
+    - Must remain empty or import-safe
+    refactor_status: stable
+  audiomason.__main__:
+    path: src/audiomason/__main__.py
+    sha: <auto>
+    purpose: Module entrypoint for python -m audiomason
+    scope: CLI entrypoint
+    side_effects:
+    - stdout
+    imports:
+    - audiomason.cli
+    boundary_rules:
+    - Only calls main() from audiomason.cli
+    refactor_status: stable
+  audiomason.args:
+    path: src/audiomason/args.py
+    sha: <auto>
+    purpose: Shared argument definitions for CLI and subcommands
+    scope: CLI helper
+    side_effects: []
+    imports:
+    - argparse
+    boundary_rules:
+    - No runtime logic
+    refactor_status: stable
+  audiomason.audio:
+    path: src/audiomason/audio.py
+    sha: <auto>
+    purpose: Audio file management and loudness normalization
+    scope: Core audio logic
+    side_effects:
+    - filesystem
+    imports:
+    - soundfile
+    - pydub
+    - os
+    boundary_rules:
+    - Do not call CLI or config directly
+    refactor_status: stable
+  audiomason.cache_gc:
+    path: src/audiomason/cache_gc.py
+    sha: <auto>
+    purpose: Garbage collection for cache and temporary files
+    scope: Support
+    side_effects:
+    - filesystem
+    imports:
+    - os
+    - shutil
+    boundary_rules:
+    - No user data removal outside cache path
+    refactor_status: stable
+  audiomason.cli:
+    path: src/audiomason/cli.py
+    sha: <auto>
+    purpose: Command-line interface and orchestrator
+    scope: CLI layer
+    side_effects:
+    - filesystem
+    - stdout
+    imports:
+    - argparse
+    - audiomason.config
+    - audiomason.import_flow
+    boundary_rules:
+    - Must not call external APIs directly
+    - Should delegate core logic to audiomason.core.*
+    refactor_status: monolithic — requires split into init/runtime
+  audiomason.config:
+    path: src/audiomason/config.py
+    sha: <auto>
+    purpose: Configuration management for AudioMason
+    scope: Core support
+    side_effects:
+    - filesystem read
+    imports:
+    - yaml
+    - os
+    - pathlib
+    boundary_rules:
+    - No network access
+    - Config must remain deterministic
+    refactor_status: stable
+  audiomason.covers:
+    path: src/audiomason/covers.py
+    sha: <auto>
+    purpose: Manage cover art and image metadata
+    scope: Core domain
+    side_effects:
+    - filesystem
+    imports:
+    - PIL
+    - os
+    - pathlib
+    boundary_rules:
+    - No network access
+    refactor_status: stable
+  audiomason.googlebooks:
+    path: src/audiomason/googlebooks.py
+    sha: <auto>
+    purpose: Google Books API integration for metadata lookup
+    scope: Integration layer
+    side_effects:
+    - network
+    imports:
+    - requests
+    - json
+    boundary_rules:
+    - No direct file IO
+    refactor_status: stable
+  audiomason.import_flow:
+    path: src/audiomason/import_flow.py
+    sha: <auto>
+    purpose: Main orchestration of the import pipeline
+    scope: Core domain
+    side_effects:
+    - filesystem
+    - network
+    imports:
+    - pathlib
+    - audiomason.import_stage
+    - audiomason.import_process
+    boundary_rules:
+    - No CLI parsing logic
+    - Avoid implicit state mutations
+    refactor_status: large — candidate for phase split
+  audiomason.import_process:
+    path: src/audiomason/import_process.py
+    sha: <auto>
+    purpose: Handle import transformations and data preparation
+    scope: Core domain
+    side_effects:
+    - filesystem
+    imports:
+    - pathlib
+    - shutil
+    boundary_rules:
+    - No network or CLI calls
+    refactor_status: stable
+  audiomason.util:
+    path: src/audiomason/util.py
+    sha: <auto>
+    purpose: Generic utility functions used across modules
+    scope: Support layer
+    side_effects:
+    - filesystem optional
+    imports:
+    - os
+    - pathlib
+    - re
+    boundary_rules:
+    - Avoid becoming a catch-all utility
+    refactor_status: split recommended into fs/string/git
