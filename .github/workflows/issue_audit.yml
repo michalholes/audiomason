@@ -1,0 +1,61 @@
+name: Quarterly Issue Audit
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "0 0 1 * *"   # Run at 00:00 UTC on the 1st of every month
+  workflow_dispatch:
+
+jobs:
+  audit:
+    name: Run Issue Audit & Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install -r requirements.txt || true
+          pip install pytest mypy ruff
+
+      - name: Run static checks
+        run: |
+          echo "🔍 Running ruff and mypy..."
+          ruff check .
+          mypy --strict src || true
+
+      - name: Run tests (fast)
+        run: |
+          echo "🧪 Running tests..."
+          pytest -q --disable-warnings -m "not longrun"
+
+      - name: Generate issue audit summary
+        run: |
+          echo "📊 Generating issue audit summary..."
+          python3 tools/sync_issues_archive.py
+
+      - name: Upload audit summary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue_audit_summary
+          path: docs/audit/issues_summary.json
+
+      - name: Commit updated audit summary
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config --global user.name "audiomason-bot"
+          git config --global user.email "bot@audiomason.local"
+          git add docs/audit/issues_summary.json || true
+          git commit -m "ci(audit): update issue summary [auto]" || echo "No changes to commit"
+          git push || echo "No push permission (skipped)"
+
