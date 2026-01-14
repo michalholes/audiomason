@@ -1,0 +1,1 @@
+# Čítanie audio informácií

@@ -1,0 +1,1 @@
+# Validácia metadát a balíkov

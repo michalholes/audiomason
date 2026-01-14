@@ -1,0 +1,67 @@
+[tool.poetry]
+name = "audiomason"
+version = "2.0.0"
+description = "Audiomason v2 – čistá, modulárna a testovateľná architektúra pre spracovanie audiokníh."
+authors = ["Tvoj tím <dev@audiomason.io>"]
+license = "MIT"
+readme = "README.md"
+packages = [{ include = "audiomason" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+# runtime dependencies
+pydantic = "^2.6.1"
+typer = "^0.12.3"
+structlog = "^24.2.0"
+requests = "^2.31.0"
+aiohttp = "^3.9.1"
+rich = "^13.7.0"
+tqdm = "^4.66.2"
+mutagen = "^1.47.0"         # práca s audio tagmi
+Pillow = "^10.2.0"          # spracovanie obalov (obrázky)
+pydub = "^0.25.1"           # spracovanie audia
+soundfile = "^0.12.1"       # čítanie a zápis zvukových formátov
+pyyaml = "^6.0.1"           # YAML konfigurácia
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+pytest-cov = "^5.0.0"
+mypy = "^1.8.0"
+ruff = "^0.2.0"
+black = "^24.1.0"
+pre-commit = "^3.6.0"
+types-requests = "^2.31.0.20240106"
+
+[build-system]
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"
+
+# ----------------------------
+# 🧹 Code Quality Tools
+# ----------------------------
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "B", "UP", "N", "ANN", "TCH"]
+ignore = ["ANN101", "ANN102", "ANN401"]
+target-version = "py311"
+cache-dir = ".cache/ruff"
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+addopts = "-v --tb=short --color=yes --maxfail=1 --disable-warnings"
+testpaths = ["audiomason/tests"]
+

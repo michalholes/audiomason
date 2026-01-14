@@ -1,0 +1,1 @@
+# Voliteľná AI pomoc (napr. generovanie obalu)

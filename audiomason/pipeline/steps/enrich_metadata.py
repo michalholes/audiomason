@@ -1,0 +1,1 @@
+# Krok: obohatenie metadát

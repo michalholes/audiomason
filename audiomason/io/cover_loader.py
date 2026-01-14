@@ -1,0 +1,1 @@
+# Načítanie obalu

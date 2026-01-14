@@ -1,0 +1,1 @@
+# CLI príkaz: overenie metadát

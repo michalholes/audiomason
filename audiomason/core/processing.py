@@ -1,0 +1,1 @@
+# Spracovanie, normalizácia, obohatenie

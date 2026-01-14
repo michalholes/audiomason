@@ -1,0 +1,239 @@
+- module: __init__
+  functions: []
+- module: __main__
+  functions: []
+- module: archives
+  functions:
+  - _require_tool
+  - unpack
+- module: args
+  functions: []
+- module: audio
+  functions:
+  - ffprobe_json
+  - m4a_chapters
+  - ffmpeg_common_input
+  - opus_to_mp3_single
+  - m4a_to_mp3_single
+  - m4a_split_by_chapters
+  - convert_opus_in_place
+  - convert_m4a_in_place
+- module: cache_gc
+  functions:
+  - _is_known_cache_file
+  - _iter_entries
+  - cache_gc
+- module: cli
+  functions:
+  - _version_kv_line
+  - _parent_parser
+  - _parse_args
+  - _cmd_requires_config
+  - _apply_config_defaults
+  - _argv_config_path
+  - _apply_builtin_defaults
+  - _ns_to_opts
+  - main
+- module: config
+  functions:
+  - _deep_merge
+  - _load_yaml
+  - user_config_path
+  - _validate_prompts_disable
+  - load_config
+- module: covers
+  functions:
+  - extract_embedded_cover_from_mp3
+  - convert_image_to_jpg
+  - _sha1
+  - _sniff_image_ext
+  - download_url
+  - cover_from_input
+  - find_file_cover
+  - extract_cover_from_m4a
+  - choose_cover
+- module: googlebooks
+  functions:
+  - _dry_run
+  - _norm
+  - _author_match
+  - _get_json
+  - _pick_best
+  - suggest_title
+  - _dia_score
+- module: guess
+  functions:
+  - guess_author_book
+- module: ignore
+  functions:
+  - _resolve_ignore_file
+  - load_ignore
+  - add_ignore
+- module: import_flow
+  functions:
+  - _ol_enabled
+  - _resolved_preflight_steps
+  - _resolved_preflight_disable
+  - _resolved_prompts_disable
+  - _prompt_disabled
+  - _pf_disabled
+  - _pf_prompt_yes_no
+  - _pf_prompt
+  - _build_json_report
+  - _ol_offer_top
+  - _list_sources
+  - _choose_source
+  - _reset_dir
+  - _stage_source
+  - _has_audio_files_here
+  - _find_first_m4a
+  - _detect_books
+  - _choose_books
+  - _collect_audio_files
+  - _preflight_global
+  - _preflight_book
+  - _is_dir_nonempty
+  - _next_available_title
+  - _output_dir
+  - _copy_audio_to_out_no_rename
+  - _copy_audio_to_out_raw
+  - _copy_audio_to_out
+  - _apply_book_steps
+  - _write_dry_run_summary
+  - _process_book
+  - _resolve_source_arg
+  - _resolved_pipeline_steps
+  - _is_interactive
+  - _stage_cover_from_raw
+  - run_import
+  - _norm
+  - visit
+  - _pl_resolve_target
+  - _process_one_source
+  - _run_one_source
+  - __init__
+  - write
+  - flush
+  - isatty
+  - _pl_prompt
+  - _pl_prompt_yes_no
+  - _norm
+  - _step_publish_wipe
+  - _step_clean_stage
+  - _exec_step
+- module: inspect
+  functions:
+  - _is_audio
+  - _is_archive
+  - inspect_source
+- module: manifest
+  functions:
+  - source_fingerprint
+  - manifest_path
+  - load_manifest
+  - _deep_merge
+  - write_manifest_atomic
+  - update_manifest
+- module: naming
+  functions:
+  - normalize_name
+  - normalize_sentence
+- module: openlibrary
+  functions:
+  - _cache_path
+  - _cache_load
+  - _cache_get
+  - _cache_put
+  - _get_json
+  - validate_author
+  - _norm_title
+  - _sanitize_title_suggestion
+  - _best_title_suggestion
+  - _fallback_q
+  - _author_match
+  - _lang_codes
+  - _pick_edition_title
+  - validate_book
+- module: paths
+  functions:
+  - _default_user_base
+  - _find_repo_root
+  - _env_base
+  - require_audiomason_root
+  - _data_base
+  - _defaults_for
+  - _ensure_abs
+  - _resolve_path
+  - validate_paths_contract
+  - _get
+  - get_drop_root
+  - get_stage_root
+  - get_output_root
+  - get_archive_root
+  - get_cache_root
+  - get_ignore_file
+- module: pipeline_steps
+  functions:
+  - _validate_step_order
+  - resolve_pipeline_steps
+- module: preflight_orchestrator
+  functions:
+  - __init__
+  - resolve_order
+  - _eligible
+  - plan
+  - materialize_pending
+- module: preflight_registry
+  functions:
+  - default_steps
+  - validate_steps_list
+  - _req
+- module: publish
+  functions: []
+- module: rename
+  functions:
+  - extract_track_num
+  - natural_sort
+  - rename_sequential
+  - key
+- module: state
+  functions: []
+- module: tags
+  functions:
+  - _load_id3
+  - wipe_id3
+  - write_tags
+  - write_cover
+- module: util
+  functions:
+  - run_cmd
+  - out
+  - die
+  - strip_diacritics
+  - clean_text
+  - slug
+  - two
+  - ensure_dir
+  - unique_path
+  - prompt
+  - prompt_yes_no
+  - prune_empty_dirs
+  - is_url
+  - find_archive_match
+  - enable_trace
+  - __init__
+  - _t
+  - run
+  - check_call
+  - check_output
+  - __init__
+  - _wrap
+  - _wrap
+  - w
+  - w
+- module: verify
+  functions:
+  - verify_library
+- module: version
+  functions:
+  - _pkg_version

@@ -1,0 +1,1 @@
+# Pravidlá a opravy

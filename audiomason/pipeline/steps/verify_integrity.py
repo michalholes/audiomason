@@ -1,0 +1,1 @@
+# Krok: kontrola integrity

@@ -1,0 +1,1 @@
+# Pokyny pre vývojárov a architektonické zásady

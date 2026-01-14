@@ -1,0 +1,1 @@
+# Extrakcia a zlúčenie metadát
