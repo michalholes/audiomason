@@ -190,3 +190,4 @@ Support is fully optional and never enabled by default.
   support:
     enabled: false
   ```
+_Note (2026-01): main reset to 5b446b2 (v1.3.6b2); previous main preserved as old_main._
