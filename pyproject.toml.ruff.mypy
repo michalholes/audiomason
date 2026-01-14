@@ -43,9 +43,12 @@ exclude = [
 # Baseline, low-churn:
 # - E/F: pycodestyle + pyflakes
 # - I: import sorting
-select = []
+select = ["E", "F", "I"]
 
 [tool.mypy]
 python_version = "3.11"
-files = []
-ignore_errors = true
+files = ["src/audiomason"]
+ignore_missing_imports = true
+warn_unused_ignores = true
+show_error_codes = true
+pretty = true
