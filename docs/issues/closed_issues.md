@@ -1,5 +1,352 @@
 # Closed Issues
 
+## #123 – Bug: config.yaml is loaded but paths are ignored (fallback to ~/.local/share/audiomason)
+- State: **CLOSED**
+- Labels: bug
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-13T00:40:58Z
+- Updated: 2026-01-13T09:09:33Z
+- Closed: 2026-01-13T09:09:33Z
+
+## Summary
+
+After the recent refactor, AudioMason logs that the user config was loaded, but runtime behavior ignores configured paths and falls back to the default XDG data directory.
+
+## Reproduction
+
+1. Ensure config exists at:
+   /home/pi/.config/audiomason/config.yaml
+2. Run:
+   am --debug
+
+Observed output:
+[TRACE] [config] loaded_from=/home/pi/.config/audiomason/config.yaml
+
+## Actual behavior
+
+Despite the config being reported as loaded, AudioMason writes data to:
+  ~/.local/share/audiomason/
+
+Example:
+  ~/.local/share/audiomason/abooks
+  ~/.local/share/audiomason/abooks_ready
+  ~/.local/share/audiomason/_am_stage
+
+## Expected behavior
+
+Configured paths from config.yaml must be respected.
+
+Expected roots:
+- inbox:   /mnt/warez/am/inbox
+- library: /mnt/warez/abooks
+- staging: /mnt/warez/am/staging
+- cache:   /mnt/warez/am/.audiomason-cache
+- trash:   /mnt/media/am/.audiomason-trash
+
+No writes should occur under ~/.local/share/audiomason unless explicitly configured.
+
+## Config used
+
+paths:
+  inbox: /mnt/warez/am/inbox
+  library: /mnt/warez/abooks
+  staging: /mnt/warez/am/staging
+  cache: /mnt/warez/am/.audiomason-cache
+  trash: /mnt/media/am/.audiomason-trash
+
+## Notes
+
+This looks like a regression introduced by the refactor:
+- config is discovered and parsed (loaded_from is printed),
+- but paths are either not propagated into runtime state,
+  overridden later by defaults, or downstream code reads a different config object.
+
+The bug is observable immediately on am --debug, without running an import.
+
+## Acceptance criteria
+
+- Configured paths.* are applied consistently across runtime.
+- No fallback to XDG data dir when paths are explicitly configured.
+- Add a regression test asserting path propagation.
+
+---
+
+## #109 – EPIC: Codebase cleanup for strict ruff + mypy compliance
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:16Z
+- Updated: 2026-01-12T11:33:41Z
+- Closed: 2026-01-12T11:33:41Z
+
+GOAL (AUTHORITATIVE)
+Systematically clean up the existing codebase so that:
+- ruff check .
+- ruff format --check .
+- mypy src/audiomason
+all pass with no exceptions in strict mode, without changing user-facing behavior.
+
+SCOPE (STRICT)
+- Cleanup only (no new features)
+- No CLI UX changes
+- No new runtime dependencies
+- No governance changes
+
+OUT OF SCOPE
+- New features
+- Architectural refactors unless strictly required for typing
+- CI wiring changes (introduced in #106)
+
+ACCEPTANCE CRITERIA (EPIC)
+- Repo is ruff-clean and mypy-clean
+- CI can be re-enabled for push triggers after cleanup
+- Cleanup is delivered via small, auditable sub-issues
+
+EXECUTION RULE
+- Each sub-issue: small diff, isolated commit, independently closable
+- Close this EPIC only after all sub-issues are closed.
+
+SUB-ISSUES
+- Ruff: apply formatter repo-wide
+- Ruff: autofix all fixable lint errors
+- Ruff: resolve remaining lint findings
+- Mypy: fix Optional & None handling
+- Mypy: fix return types & helpers
+- Mypy: resolve remaining typing errors
+- CI: re-enable push-triggered runs
+
+
+---
+
+## #122 – am_patch: consolidate runner upgrades (logs, validation, guards, verify-only, lock, tests)
+- State: **CLOSED**
+- Labels: tooling
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-12T10:11:25Z
+- Updated: 2026-01-12T10:45:47Z
+- Closed: 2026-01-12T10:45:47Z
+
+## Goal
+Upgrade the am_patch runner in a single, consolidated change set.
+
+This issue intentionally groups multiple accepted improvements to avoid fragmented runner behavior and repeated migrations.
+
+---
+
+## Scope (ACCEPTED)
+
+### 1) Pre-flight guards
+- Fail if HEAD is detached
+- Fail if branch has no upstream (before push)
+- Fail early if venv / required tools are missing
+
+### 2) Verify-only mode
+- Run patch + tests
+- No commit, no push
+- Explicit READY / NOT READY output
+
+### 3) Logs: dedicated directory + retention
+- Log dir: `/home/pi/apps/patches/logs/`
+- Per-run logs: `am_patch_<ISSUE>_<YYYYmmdd_HHMMSS>.log`
+- Stable symlink: `/home/pi/apps/patches/am_patch.log` → latest log
+- Automatic retention: keep last **20** logs
+- Prune only files matching `am_patch_*_*.log`
+
+### 4) Static validation of patch scripts (pre-exec gate)
+- Enforce required sections / anchors
+- Reject dangerous operations (e.g. shell-outs, destructive ops, network)
+
+### 5) Git diff / stat outputs
+- Print `git diff --name-status`
+- Print `git diff --stat`
+- Emit on success and on failure paths
+
+### 6) Lock outside patches directory
+- Primary: `/run/audiomason/am_patch.lock`
+- Fallback: `/tmp/audiomason/am_patch.lock`
+
+### 7) Test policy switches (safe-by-default)
+- Default remains strict (all tests)
+- Optional flags: `--tests`, `--no-mypy`, `--no-ruff`
+
+---
+
+## Non-goals
+- No change to core patch semantics beyond what is listed
+- No JSON summary output (explicitly deferred)
+
+## Notes
+- All changes must be deterministic, idempotent, and fully documented.
+- Documentation (`scripts/am_patch.md`) and repo manifest must be updated accordingly.
+
+---
+
+## #121 – Bug: Tests rely on brittle source-code string matching (break on formatting)
+- State: **CLOSED**
+- Labels: bug, cleanup
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-11T10:48:31Z
+- Updated: 2026-01-11T12:54:22Z
+- Closed: 2026-01-11T12:54:22Z
+
+Several tests fail after ruff format because they assert exact source-code string layouts instead of semantic behavior.\n\nExamples:\n- test_pipeline_steps_wired_into_process_book\n- test_preflight_disable_callsites_do_not_bypass_pf_prompt_yes_no\n- test_preflight_disable_cover_override_is_routed_via_pf_prompt\n\nUnderlying behavior is unchanged; only formatting/layout differs. Tests should assert semantics, not raw text.
+
+---
+
+## #107 – CI: avoid writing /etc/audiomason/config.yaml; use --config with repo config
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T11:14:52Z
+- Updated: 2026-01-11T11:13:28Z
+- Closed: 2026-01-11T11:13:28Z
+
+Decision: Variant A.
+
+Problem:
+- CI currently writes config to /etc/audiomason/config.yaml using sudo.
+- This makes tests less isolated and hides config-loading brittleness.
+
+Scope:
+- Remove sudo copy into /etc from CI workflow.
+- Use `--config <repo>/debian/config.yaml` (or equivalent) in CI invocations.
+
+Acceptance criteria:
+- CI completes without writing to /etc and without sudo copy of config.
+- CI explicitly points CLI to a config via `--config`.
+- At least one test/execution path runs in a clean env (no /etc config present) to prevent regressions.
+
+---
+
+## #110 – Ruff: apply formatter repo-wide
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:17Z
+- Updated: 2026-01-11T10:49:31Z
+- Closed: 2026-01-11T10:49:31Z
+
+SCOPE
+- Run ruff formatter across the repo (one-time normalization).
+- No intentional behavior changes.
+
+ACCEPTANCE CRITERIA
+- `ruff format --check .` passes.
+- Tests still pass.
+
+NOTES
+- Large file count is expected; this is mechanical churn only.
+
+
+---
+
+## #115 – Mypy: resolve remaining typing errors
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:23Z
+- Updated: 2026-01-11T10:24:28Z
+- Closed: 2026-01-11T10:24:28Z
+
+SCOPE
+- Resolve all remaining mypy errors in `src/audiomason`.
+- Use minimal, explicit typing fixes; avoid architecture changes.
+
+ACCEPTANCE CRITERIA
+- `mypy src/audiomason` passes.
+- Tests pass.
+
+
+---
+
+## #114 – Mypy: fix return types & helpers
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:22Z
+- Updated: 2026-01-11T09:35:08Z
+- Closed: 2026-01-11T09:35:08Z
+
+SCOPE
+- Fix mypy errors related to return types, helper utilities, and implicit Any.
+- Minimal annotations/overloads where appropriate.
+
+ACCEPTANCE CRITERIA
+- Mypy error count is further reduced.
+- Tests pass.
+
+
+---
+
+## #113 – Mypy: fix Optional & None handling
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:21Z
+- Updated: 2026-01-11T08:43:06Z
+- Closed: 2026-01-11T08:43:06Z
+
+SCOPE
+- Fix mypy errors related to Optional/None (guards, asserts, casts as needed).
+- Keep changes minimal; avoid broad refactors.
+
+ACCEPTANCE CRITERIA
+- Mypy error count is reduced for Optional/None-related issues.
+- Tests pass.
+
+
+---
+
+## #112 – Ruff: resolve remaining lint findings
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:19Z
+- Updated: 2026-01-10T23:58:19Z
+- Closed: 2026-01-10T23:58:19Z
+
+SCOPE
+- Manually address remaining ruff findings after formatter + autofix.
+- Prefer minimal edits; no unrelated refactors.
+
+ACCEPTANCE CRITERIA
+- `ruff check .` passes.
+- Tests pass.
+
+
+---
+
+## #111 – Ruff: autofix all fixable lint errors
+- State: **CLOSED**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T20:55:18Z
+- Updated: 2026-01-10T21:11:40Z
+- Closed: 2026-01-10T21:11:40Z
+
+SCOPE
+- Apply `ruff check --fix` for all safe/auto-fixable findings.
+- Keep changes mechanical where possible.
+
+ACCEPTANCE CRITERIA
+- Ruff error count is significantly reduced.
+- No user-facing behavior changes.
+- Tests pass.
+
+
+---
+
 ## #106 – Dev tooling: add ruff + mypy (CI + local workflow)
 - State: **CLOSED**
 - Labels: —

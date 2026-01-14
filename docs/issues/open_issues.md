@@ -628,27 +628,516 @@ Acceptance criteria:
 
 ---
 
-## #107 – CI: avoid writing /etc/audiomason/config.yaml; use --config with repo config
+## #116 – CI: re-enable push-triggered runs
 - State: **OPEN**
 - Labels: —
 - Assignees: —
 - Milestone: —
-- Created: 2026-01-10T11:14:52Z
-- Updated: 2026-01-10T11:14:52Z
+- Created: 2026-01-10T20:55:24Z
+- Updated: 2026-01-10T20:55:24Z
 
-Decision: Variant A.
+SCOPE
+- Restore CI workflow trigger to run on both push and pull_request.
 
-Problem:
-- CI currently writes config to /etc/audiomason/config.yaml using sudo.
-- This makes tests less isolated and hides config-loading brittleness.
+CHANGE
+- In `.github/workflows/ci.yml`, set:
+  on:
+    push:
+    pull_request:
 
-Scope:
-- Remove sudo copy into /etc from CI workflow.
-- Use `--config <repo>/debian/config.yaml` (or equivalent) in CI invocations.
+ACCEPTANCE CRITERIA
+- CI runs on push and PR.
+- CI passes with ruff + mypy + pytest.
 
-Acceptance criteria:
-- CI completes without writing to /etc and without sudo copy of config.
-- CI explicitly points CLI to a config via `--config`.
-- At least one test/execution path runs in a clean env (no /etc config present) to prevent regressions.
+
+---
+
+## #117 – Refactor: split import_flow.py monolith (address E501 structurally)
+- State: **OPEN**
+- Labels: —
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-10T23:58:24Z
+- Updated: 2026-01-13T00:14:46Z
+
+## 📌 PM SUMMARY — Issue #117
+**Refactor `import_flow` (safety-first, contract-driven)**
+
+**Status:** ✅ DONE / CLOSED  
+**Dependency:** Issue #118 — Behavior-based contract tests (completed, stable)
+
+---
+
+### 1. Goal (PM Perspective)
+
+The goal of #117 was **not to change user-visible behavior**, but to:
+
+- reduce technical debt in `import_flow`,
+- separate responsibilities (discovery, preflight, processing, logging),
+- prepare the codebase for future changes,
+- **without any regression risk**.
+
+This work was executed strictly under the protection of **behavior-based contracts introduced in #118**.
+
+> From a PM perspective: **#117 is infrastructure work, not a feature.**
+
+---
+
+### 2. Key Decisions (Authoritative)
+
+#### 2.1 Contracts are absolute
+- Tests from **#118 are authoritative**.
+- Any refactor that removes symbols, changes importability, or alters behavior is **invalid**, even if architecturally cleaner.
+
+#### 2.2 `import_flow` is NOT a thin orchestrator
+- `import_flow` functions as a **contract façade module**.
+- Many “private” helpers are imported **directly by tests**.
+- Attempting to convert it into a thin orchestrator at this stage was **strategically incorrect**.
+
+---
+
+### 3. Execution Summary
+
+#### Phase A — Preparation (SUCCESS)
+- #118 introduced behavior-based contract tests.
+- A stable, non-negotiable reference point was established.
+
+#### Phase B — Safe Refactors (SUCCESS)
+Steps 1–7:
+- helper extraction (discovery, preflight, processing, logging),
+- **no behavior change**,
+- ruff / pytest / mypy remained green.
+
+#### Phase C — Step 8 (CANCELLED)
+- Attempted thin-orchestrator refactor of `import_flow`.
+- Resulted in massive contract breakage (~40 failing tests).
+- **Step 8 was invalidated and reverted**, not fixed.
+
+---
+
+### 4. Final Resolution
+
+- Step 8 is **explicitly cancelled**
+- No Step 8 changes exist on `main`
+- `import_flow` remains a **contract façade**
+
+---
+
+### 5. Outcome
+
+- Branch: `main`
+- Tests: **111/111 passing**
+- Ruff: clean
+- Mypy: clean
+- Zero user-visible behavior change
+- Technical debt reduced safely
+
+---
+
+### 6. Commits Included in #117
+
+```
+a9bf732 Refactor: extract BookGroup type + ruff import ordering (Step 1 fix) (Issue #117)
+1efa9b6 Refactor: fix discovery step ruff issues (unused imports, ordering) (Step 2 fix) (Issue #117)
+c8c540f Refactor: Step 3 final mypy fix — guard state.OPTS None (Issue #117)
+226d4bb Refactor: Step 4 fix — staging imports ruff-clean (Issue #117)
+2ff1be4 Refactor: Step 5 fix — provide full write_tags signature (mypy clean) (Issue #117)
+e1d7f9a Refactor: Step 6 fix — ruff clean imports (Issue #117)
+b0bc6f7 Refactor: Step 7 fix — ruff clean logging imports (Issue #117)
+```
+
+*(Authoritative source: git history)*
+
+---
+
+### 7. One-Sentence PM Summary
+
+Issue #117 successfully reduced technical debt and prepared `import_flow` for future work without changing behavior; an attempted thin-orchestrator refactor was correctly cancelled thanks to contract tests from #118, preventing regressions.
+
+
+---
+
+## #118 – Refactor test suite to reduce execution time
+- State: **OPEN**
+- Labels: bug, tech-debt, performance, tests
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-11T09:17:01Z
+- Updated: 2026-01-11T09:17:01Z
+
+### Problem
+
+The current test suite execution time is excessively long (multiple minutes),
+which significantly slows down iterative development and cleanup work.
+
+This is a practical developer productivity issue: frequent `pytest -q` runs
+are required during refactors and typing fixes, and test runtime dominates
+feedback time.
+
+### Scope (this issue)
+
+This issue is **test-only refactor / hygiene**:
+- No production code changes
+- No behavior changes
+- No reduction of test coverage
+
+The goal is **performance and structure**, not semantics.
+
+### Observations
+
+Likely contributors (to be confirmed during implementation):
+- Repeated expensive setup across tests
+- Integration-style tests mixed with unit tests
+- Heavy filesystem and subprocess usage
+- Missing or suboptimal fixture scoping
+- No clear separation between fast and slow tests
+
+### Non-goals
+
+- Do NOT change application behavior
+- Do NOT weaken assertions just to gain speed
+- Do NOT mix this work with unrelated refactors (typing, ruff, core logic)
+
+### Expected outcomes
+
+- Significantly reduced wall-clock time for default `pytest` runs
+- Clear separation of fast unit tests vs slow integration tests
+- Ability to run a fast test subset during development
+- Optional markers (e.g. `@pytest.mark.slow`) for expensive tests
+
+### Notes
+
+This issue is intentionally deferred until after current cleanup work
+(#109 / #114 / #115 / #117). It should be addressed once the codebase
+is structurally clean and typing noise is reduced.
+
+
+---
+
+## #119 – Feat: Accept more image formats from URL and normalize cover output
+- State: **OPEN**
+- Labels: enhancement
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-11T09:55:39Z
+- Updated: 2026-01-11T09:58:25Z
+
+Problem
+- Cover download from URL should accept more image types (e.g., PNG, GIF, AVIF) and normalize to a single on-disk format for consistency.
+
+Scope
+- When a cover is provided via URL, allow common image formats (at least: jpg/jpeg, png, gif, avif).
+- Normalize output to a single format (default: JPEG) using the existing conversion mechanism (ffmpeg), preserving current cover filename conventions.
+- Maintain existing behavior for non-URL cover selection modes.
+
+Acceptance criteria
+- URL-based covers work for png/gif/avif (when ffmpeg supports the input).
+- Output is normalized to the chosen standard format (JPEG) whenever conversion is required.
+- No behavior changes for non-URL modes.
+- pytest stays green.
+
+Notes
+- If ffmpeg is missing, behavior must remain consistent with current conversion behavior (hard-fail via die(...) where conversion is required).
+
+---
+
+## #120 – Feat: Detect cover images next to audio files (various filenames) and prompt to use them
+- State: **OPEN**
+- Labels: enhancement
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-11T09:56:08Z
+- Updated: 2026-01-11T09:58:37Z
+
+Problem
+- Some books have no embedded cover in the audio files, but a cover image exists in the same directory with a non-standard filename.
+
+Scope
+- During cover selection, search the book/audio directory for image files (at least: *.jpg, *.jpeg, *.png, *.gif, *.avif).
+- Use a conservative heuristic:
+  - Prefer names that look like covers (cover, folder, front, jacket, artwork).
+  - If multiple candidates exist, select the best candidate deterministically.
+- Prompt the user to confirm using the detected file (respect --yes / non-interactive behavior).
+- Normalize to the standard cover output format and filename, preserving existing conversion rules.
+
+Acceptance criteria
+- If a directory image exists, the tool offers it as a candidate.
+- Heuristic is conservative (does not pick random images without prompting).
+- Existing behavior for embedded/file/url modes remains unchanged unless this new detection path is reached.
+- pytest stays green.
+
+---
+
+## #124 – Bug: missing preflight detection of required external tools (7z/unrar/ffmpeg)
+- State: **OPEN**
+- Labels: bug
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-13T08:23:11Z
+- Updated: 2026-01-13T08:23:11Z
+
+## Summary
+
+AudioMason does not preflight-check required external tools and capabilities.
+As a result, valid inputs can fail late and with unclear errors when a required
+external program or capability is missing on the system.
+
+## Problem
+
+Example failure:
+- Valid RAR archive
+- System does not have unrar and current 7z build cannot extract it
+- Runtime error:
+  External tool failed: 7z (exit 2)
+  Sub items Errors: 152
+
+At this point the user cannot distinguish:
+- corrupted archive
+- missing system capability
+- unsupported format on this platform
+
+Similar issues apply to other required tools (e.g. ffmpeg).
+
+## Root cause
+
+AudioMason invokes external tools opportunistically but does NOT verify
+tool presence or capability up front. The pipeline therefore fails late
+instead of fail-fast.
+
+## Expected behavior
+
+AudioMason MUST perform a preflight capability check before processing.
+
+At minimum:
+- Detect required external tools:
+  - 7z / p7zip-full
+  - unrar (when RAR archive is detected)
+  - ffmpeg (when audio processing or cover conversion is required)
+- Fail fast with a clear, actionable error if a requirement is missing.
+- Design must allow adding future tool checks centrally.
+
+## Scope
+
+IN SCOPE:
+- Centralized external tool / capability detection
+- Clear fail-fast errors for missing tools
+- Extensible design for future tools
+
+OUT OF SCOPE:
+- Implementing new extractors
+- Bundling external binaries
+- Changing archive formats or workflows
+
+## Acceptance criteria
+
+- Missing required tools are detected before runtime execution.
+- Error messages clearly explain WHAT is missing and WHY execution cannot continue.
+- ffmpeg presence is validated before it is required.
+- Future tool checks can be added without ad-hoc logic.
+
+---
+
+## #125 – Bug: logging output missing after refactor (no visible logs)
+- State: **OPEN**
+- Labels: bug
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-13T08:26:21Z
+- Updated: 2026-01-13T08:26:21Z
+
+## Summary
+
+After recent refactors, AudioMason no longer produces visible logging output.
+Logs are missing both in console output and expected log destinations, even
+when running with debug enabled.
+
+This makes troubleshooting and error diagnosis extremely difficult.
+
+## Observed behavior
+
+- Running AudioMason produces little to no log output.
+- Debug mode does not visibly increase logging.
+- No clear indication where logs are written (if at all).
+
+## Expected behavior
+
+- AudioMason must emit logs consistently:
+  - to console (respecting verbosity / debug flags),
+  - and/or to a defined log destination when configured.
+- Logging behavior must be deterministic and documented.
+- Debug mode must visibly increase logging detail.
+
+## Suspected cause
+
+Logging initialization or propagation was lost or altered during refactor:
+- missing or broken logging configuration,
+- logger hierarchy not wired correctly across modules,
+- handlers not attached or log level overridden.
+
+## Scope
+
+IN SCOPE:
+- Restore functional logging
+- Ensure logs are visible and actionable
+- Fix regression introduced by refactor
+
+OUT OF SCOPE:
+- Redesign of logging system
+- New logging features
+- Log format changes (unless strictly required)
+
+## Acceptance criteria
+
+- Logs are visible during normal execution.
+- Debug mode produces clearly more verbose logs.
+- Logging works across refactored modules.
+- No silent execution without logs.
+
+---
+
+## #126 – Bug: ignored-books file is written into inbox instead of the run working directory
+- State: **OPEN**
+- Labels: bug
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-13T08:38:17Z
+- Updated: 2026-01-13T08:41:00Z
+
+## Summary
+
+AudioMason writes the ignored-books state file into the inbox directory.
+Inbox is an input-only area and must never be polluted with runtime or state artifacts.
+
+Affected file:
+- .abook_ignore
+
+## Evidence (authoritative)
+
+The following file is present in the inbox after a run:
+/mnt/warez/am/inbox/.abook_ignore
+
+This file is created by AudioMason during processing and is not part of the original input.
+
+## Actual behavior
+
+- .abook_ignore is written directly into the inbox directory.
+- Inbox content is modified as a side effect of a run.
+
+## Expected behavior
+
+- .abook_ignore MUST NOT be written into inbox.
+- It must be stored in the run working directory:
+  - stage directory, or
+  - per-run / per-source state directory,
+  - or another canonical working/state location defined by the pipeline.
+- Inbox must remain input-only and unchanged by runtime artifacts.
+
+## Why this is a bug
+
+- Inbox is a discovery and input contract and must remain clean.
+- Writing state into inbox breaks determinism and hygiene.
+- It can silently affect future runs by changing discovery behavior.
+- Users reasonably expect inbox contents to be user-controlled only.
+
+## Scope
+
+IN SCOPE:
+- Move .abook_ignore out of inbox into the canonical working/state directory.
+- Ensure no runtime artifacts are written into inbox.
+
+OUT OF SCOPE:
+- Redesign of ignore semantics.
+- Changes to ignore file format or naming.
+- Any new features.
+
+## Acceptance criteria
+
+- .abook_ignore is no longer created in inbox.
+- It is written only into the canonical working/state directory.
+- Inbox remains unchanged after a run (except explicit, user-driven actions).
+- A regression test asserts the correct artifact location.
+
+---
+
+## #127 – Bug: test suite is green but misses key behaviors (false-green regressions)
+- State: **OPEN**
+- Labels: bug
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-13T08:43:45Z
+- Updated: 2026-01-13T08:43:45Z
+
+## Summary
+
+The test suite can be fully green while core user-visible behaviors are broken.
+This indicates missing or ineffective coverage (false-green regressions), especially after refactors.
+
+## Evidence / recent regressions not caught by tests
+
+- Config is reported as loaded, but configured paths are ignored (fallback to XDG defaults).
+- Logging output missing after refactor.
+- .abook_ignore artifact written into inbox instead of a working/state directory.
+- Missing preflight detection of required external tools/capabilities (7z/unrar/ffmpeg), causing late unclear failures.
+
+## Expected behavior
+
+- For every user-visible contract, tests must fail when the behavior is broken.
+- Refactors must be protected by behavior-based contract tests, not just unit tests of helpers.
+
+## Scope
+
+IN SCOPE:
+- Add/strengthen behavior-based tests that cover the critical contracts:
+  - config path propagation to runtime
+  - logging visibility/initialization contract
+  - artifact placement contract (no writes into inbox)
+  - external tool/capability preflight checks
+- Ensure each regression test fails on the broken state and passes after the fix.
+
+OUT OF SCOPE:
+- Test performance refactor (tracked separately).
+- Large architectural redesign.
+
+## Acceptance criteria
+
+- Each known regression has a corresponding test that fails before the fix and passes after.
+- Test suite prevents repeating these regressions in future refactors.
+
+---
+
+## #128 – Refactor: split CLI init and runtime execution
+- State: **OPEN**
+- Labels: refactor
+- Assignees: —
+- Milestone: —
+- Created: 2026-01-13T09:53:30Z
+- Updated: 2026-01-13T09:53:30Z
+
+After recent fixes around logging initialization, it is clear that
+src/audiomason/cli.py mixes:
+
+- argument parsing
+- environment / logging initialization
+- runtime execution
+- error handling (nested try/except)
+
+in a single large control flow.
+
+This makes safe integration of cross-cutting concerns (logging, metrics,
+profiling) fragile and error-prone.
+
+Goal of this issue:
+- split CLI flow into explicit phases:
+  - init / setup
+  - runtime execution
+- reduce indentation depth and nested try/except blocks
+- make the CLI entrypoint structurally safe for future infra changes
+
+Out of scope:
+- behavioral changes
+- logging redesign (already handled elsewhere)
+- feature changes
+
+This is a pure structural refactor.
 
 ---
