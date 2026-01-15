@@ -1,0 +1,13 @@
+"""audiomason.utils
+---------------------------------
+Module auto-generated for Audiomason v2 scaffold.
+TODO: migrate logic from v1 implementation.
+"""\n
+def normalize_path(*args, **kwargs):
+    """TODO: migrate from v1 – implement normalize_path"""
+    raise NotImplementedError("Pending migration to Audiomason v2")
+
+def hash_file(*args, **kwargs): ...
+def safe_filename(*args, **kwargs): ...
+def ensure_dir(*args, **kwargs): ...
+def run_shell_command(*args, **kwargs): ...
