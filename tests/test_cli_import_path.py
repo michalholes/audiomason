@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from pathlib import Path
 import sys
-import importlib
+from pathlib import Path
+
 import pytest
-from audiomason.util import AmExit
+
+from audiomason.util import AmExitError
 
 
 def test_cli_import_accepts_path(monkeypatch, tmp_path):
@@ -16,6 +17,7 @@ def test_cli_import_accepts_path(monkeypatch, tmp_path):
     (tmp_path / "abooks").mkdir(parents=True, exist_ok=True)
     # parse_args is internal; we only assert that argparse accepts the positional PATH.
     import audiomason.cli as cli
+
     monkeypatch.setattr(sys, "argv", ["audiomason", "import", "/some/where/SomeBook"])
     ns = cli._parse_args()
     assert ns.cmd == "import"
@@ -36,5 +38,5 @@ def test_resolve_source_arg_enforces_drop_root(tmp_path):
 
     outside = tmp_path / "outside"
     outside.mkdir()
-    with pytest.raises(AmExit):
+    with pytest.raises(AmExitError):
         _resolve_source_arg(drop, outside)

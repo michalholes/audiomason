@@ -2,7 +2,7 @@ from pathlib import Path
 
 from mutagen.id3 import ID3
 
-from audiomason.tags import write_tags, write_cover
+from audiomason.tags import write_cover, write_tags
 
 
 def _mk_id3_file(p: Path) -> None:
@@ -25,9 +25,9 @@ def test_write_cover_adds_and_can_clear(tmp_path: Path):
 
     write_cover([mp3], cover=b"IMG", cover_mime="image/png")
     id3 = ID3(mp3)
-    assert any(k.startswith("APIC") for k in id3.keys())
+    assert any(k.startswith("APIC") for k in id3)
 
     # deterministic clear
     write_cover([mp3], cover=None, cover_mime=None)
     id3 = ID3(mp3)
-    assert not any(k.startswith("APIC") for k in id3.keys())
+    assert not any(k.startswith("APIC") for k in id3)

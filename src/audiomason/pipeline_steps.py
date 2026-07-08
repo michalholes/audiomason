@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+from typing import cast
+
 from audiomason.util import AmConfigError
 
 DEFAULT_ORDER = [
@@ -14,7 +17,6 @@ DEFAULT_ORDER = [
 ]
 
 REQUIRED = {
-
     "unpack",
     "convert",
     "rename",
@@ -46,26 +48,30 @@ def _validate_step_order(steps: list[str]) -> None:
         if a in idx and b in idx and idx[a] > idx[b]:
             raise AmConfigError(f"invalid pipeline_steps order: '{a}' must come before '{b}'")
 
-def resolve_pipeline_steps(cfg: dict) -> list[str]:
+
+def resolve_pipeline_steps(cfg: Mapping[str, object]) -> list[str]:
     steps = cfg.get("pipeline_steps")
     if steps is None:
         resolved = list(DEFAULT_ORDER)
         _validate_step_order(resolved)
         return resolved
 
-    if not isinstance(steps, list) or not all(isinstance(s, str) for s in steps):
+    if not isinstance(steps, list) or not all(
+        isinstance(s, str) for s in cast(list[object], steps)
+    ):
         raise AmConfigError("pipeline_steps must be a list of strings")
 
-    unknown = [s for s in steps if s not in DEFAULT_ORDER]
+    str_steps: list[str] = cast(list[str], steps)
+    unknown = [s for s in str_steps if s not in DEFAULT_ORDER]
     if unknown:
         raise AmConfigError(f"unknown pipeline step(s): {', '.join(unknown)}")
 
-    if len(steps) != len(set(steps)):
+    if len(str_steps) != len(set(str_steps)):
         raise AmConfigError("duplicate pipeline step in pipeline_steps")
 
-    missing = REQUIRED - set(steps)
+    missing = REQUIRED - set(str_steps)
     if missing:
         raise AmConfigError(f"missing required pipeline step(s): {', '.join(sorted(missing))}")
 
-    _validate_step_order(list(steps))
-    return list(steps)
+    _validate_step_order(str_steps)
+    return str_steps

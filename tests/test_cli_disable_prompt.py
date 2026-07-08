@@ -17,9 +17,7 @@ def test_cli_disable_prompt_overrides_config(monkeypatch, tmp_path):
 
     cfg_path = tmp_path / "configuration.yaml"
     cfg_path.write_text(
-        "prompts:\n"
-        "  disable:\n"
-        "    - choose_source\n",
+        "prompts:\n  disable:\n    - choose_source\n",
         encoding="utf-8",
     )
 
@@ -32,7 +30,9 @@ def test_cli_disable_prompt_overrides_config(monkeypatch, tmp_path):
         return None
 
     monkeypatch.setattr(cli, "run_import", _fake_run_import)
-    monkeypatch.setattr(sys, "argv", ["am", "--config", str(cfg_path), "import", "--disable-prompt", "choose_books"])
+    monkeypatch.setattr(
+        sys, "argv", ["am", "--config", str(cfg_path), "import", "--disable-prompt", "choose_books"]
+    )
 
     rc = cli.main()
     assert rc == 0
@@ -50,7 +50,11 @@ def test_cli_disable_prompt_validation_failfast(monkeypatch, tmp_path, capsys):
 
     from audiomason import cli
 
-    monkeypatch.setattr(sys, "argv", ["am", "--config", str(cfg_path), "import", "--disable-prompt", "no_such_prompt"])
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["am", "--config", str(cfg_path), "import", "--disable-prompt", "no_such_prompt"],
+    )
 
     rc = cli.main()
     out = capsys.readouterr().out

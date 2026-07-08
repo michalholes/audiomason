@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+
 import audiomason.import_flow as imp
 
 
@@ -13,11 +14,11 @@ def test_issue_75_output_dir_rejects_empty():
     dest = Path("/tmp/out")
     try:
         imp._output_dir(dest, "", "X")
-        assert False, "expected error"
+        raise AssertionError("expected error")
     except Exception:
         pass
     try:
         imp._output_dir(dest, "A", "")
-        assert False, "expected error"
+        raise AssertionError("expected error")
     except Exception:
         pass

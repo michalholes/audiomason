@@ -1,5 +1,5 @@
-from pathlib import Path
 from audiomason.verify import verify_library
+
 
 def test_verify_library_smoke(tmp_path, capsys):
     # Empty library should not crash

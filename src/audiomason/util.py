@@ -1,21 +1,19 @@
 from __future__ import annotations
 
 import re
-import unicodedata
-from pathlib import Path
-from typing import Optional
-
 import subprocess
+import unicodedata
+from collections.abc import Sequence
+from pathlib import Path
+from typing import IO
 
-import shutil
-
-import os
 
 # ======================
 # Controlled exits (Issue #41)
 # ======================
-class AmExit(RuntimeError):
+class AmExitError(RuntimeError):
     """Expected termination (no traceback)."""
+
     exit_code: int = 2
 
     def __init__(self, msg: str, exit_code: int | None = None):
@@ -24,34 +22,41 @@ class AmExit(RuntimeError):
             self.exit_code = int(exit_code)
 
 
-class AmConfigError(AmExit):
+class AmConfigError(AmExitError):
     pass
 
 
-class AmValidationError(AmExit):
+class AmValidationError(AmExitError):
     pass
 
 
-class AmExternalToolError(AmExit):
+class AmExternalToolError(AmExitError):
     pass
 
 
-class AmAbort(AmExit):
+class AmAbortError(AmExitError):
     exit_code = 130
 
 
-def run_cmd(cmd, *, tool: str | None = None, install: str | None = None, **kwargs):
-    """subprocess.run wrapper that turns expected failures into AmExit."""
+def run_cmd(
+    cmd: Sequence[str | Path],
+    *,
+    check: bool = True,
+    stdout: int | IO[str] | None = None,
+    tool: str | None = None,
+    install: str | None = None,
+) -> subprocess.CompletedProcess[bytes]:
+    """subprocess.run wrapper that turns expected failures into AmExitError."""
     try:
-        kwargs.pop("check", None)
-        return subprocess.run(cmd, check=True, **kwargs)
+        return subprocess.run(cmd, check=check, stdout=stdout)
     except FileNotFoundError as e:
         name = tool or (cmd[0] if isinstance(cmd, (list, tuple)) and cmd else str(cmd))
-        raise AmExternalToolError(f"Missing external tool: {name} (install {install or name})") from e
+        raise AmExternalToolError(
+            f"Missing external tool: {name} (install {install or name})"
+        ) from e
     except subprocess.CalledProcessError as e:
         name = tool or (cmd[0] if isinstance(cmd, (list, tuple)) and cmd else "external tool")
         raise AmExternalToolError(f"External tool failed: {name} (exit {e.returncode})") from e
-
 
 
 def out(msg: str) -> None:
@@ -59,21 +64,24 @@ def out(msg: str) -> None:
         import audiomason.state as state
 
         # --quiet => only errors
-        if bool(getattr(getattr(state, "OPTS", None), "quiet", False)):
+        opts = state.OPTS
+        if opts is not None and opts.quiet:
             m = str(msg)
             if not m.lstrip().startswith(("[ERROR]", "ERROR:", "[FATAL]", "FATAL:")):
                 return
 
-        if bool(getattr(state, "DEBUG", False)):
+        if state.DEBUG:
             print(f"[TRACE] {msg}", flush=True)
         else:
             print(msg, flush=True)
     except BrokenPipeError:
         return
+
+
 def die(msg: str, code: int = 2) -> None:
     # Backward-compatible helper: raise a controlled exit instead of printing/traceback.
     m = str(msg)
-    cls = AmExit
+    cls = AmExitError
     if m.startswith("Missing external tool:"):
         cls = AmExternalToolError
     elif m.startswith("Invalid configuration"):
@@ -116,13 +124,14 @@ def unique_path(p: Path) -> Path:
     return outp
 
 
-def prompt(msg: str, default: Optional[str] = None) -> str:
+def prompt(msg: str, default: str | None = None) -> str:
     try:
         import audiomason.state as state
-        _opts = getattr(state, 'OPTS', None)
+
+        opts = state.OPTS
     except Exception:
-        _opts = None
-    if _opts is not None and getattr(_opts, 'yes', False):
+        opts = None
+    if opts is not None and opts.yes:
         return default or ""
     try:
         if default is not None and default != "":
@@ -131,7 +140,7 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
         s = input(f"{msg}: ").strip()
         return s
     except KeyboardInterrupt as e:
-        raise AmAbort("cancelled by user") from e
+        raise AmAbortError("cancelled by user") from e
         raise
         return default or ""
 
@@ -139,18 +148,19 @@ def prompt(msg: str, default: Optional[str] = None) -> str:
 def prompt_yes_no(msg: str, default_no: bool = True) -> bool:
     try:
         import audiomason.state as state
-        _opts = getattr(state, 'OPTS', None)
+
+        opts = state.OPTS
     except Exception:
-        _opts = None
-    if _opts is not None and getattr(_opts, 'yes', False):
-        return False if default_no else True
+        opts = None
+    if opts is not None and opts.yes:
+        return not default_no
     d = "y/N" if default_no else "Y/n"
     try:
         ans = input(f"{msg} [{d}] ").strip().lower()
     except KeyboardInterrupt as e:
-        raise AmAbort("cancelled by user") from e
+        raise AmAbortError("cancelled by user") from e
     if not ans:
-        return False if default_no else True
+        return not default_no
     return ans in {"y", "yes"}
 
 
@@ -170,7 +180,9 @@ def is_url(s: str) -> bool:
     return bool(re.match(r"^https?://", s.strip(), flags=re.I))
 
 
-def find_archive_match(archive_ro: str, author_hint: str, book_hint: str):
+def find_archive_match(
+    archive_ro: str, author_hint: str, book_hint: str
+) -> tuple[str | None, str | None]:
     """
     Best-effort lookup in archive_ro for an existing book.
     Returns (author_dirname, book_dirname) if exactly one strong match is found,
@@ -197,14 +209,18 @@ def find_archive_match(archive_ro: str, author_hint: str, book_hint: str):
     a_slug = slug(a).lower() if a else ""
     b_slug = slug(b).lower() if b else ""
 
-    hits = []
+    hits: list[tuple[str, str, int]] = []
 
     for author_dir in root.iterdir():
         if not author_dir.is_dir():
             continue
 
         # if author hint exists, require author match
-        if a_slug and slug(author_dir.name).lower() != a_slug and a_slug not in slug(author_dir.name).lower():
+        if (
+            a_slug
+            and slug(author_dir.name).lower() != a_slug
+            and a_slug not in slug(author_dir.name).lower()
+        ):
             continue
 
         for book_dir in author_dir.iterdir():
@@ -223,92 +239,18 @@ def find_archive_match(archive_ro: str, author_hint: str, book_hint: str):
                 continue
 
     # prefer exact match
-    exact = [(a,b) for a,b,score in hits if score == 2]
+    exact: list[tuple[str, str]] = [(a, b) for a, b, score in hits if score == 2]
     if len(exact) == 1:
         return exact[0]
 
     # if only one fuzzy hit overall, accept
-    uniq = []
-    seen = set()
-    for a,b,_ in hits:
-        if (a,b) not in seen:
-            seen.add((a,b))
-            uniq.append((a,b))
+    uniq: list[tuple[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for a, b, _ in hits:
+        if (a, b) not in seen:
+            seen.add((a, b))
+            uniq.append((a, b))
     if len(uniq) == 1:
         return uniq[0]
 
     return (None, None)
-
-_TRACE_ENABLED = False
-
-def enable_trace() -> None:
-    """
-    ISSUE #9: Full TRACE mode.
-    When enabled, prints every low-level action (subprocess/shutil/os) as [TRACE-OP] ...
-    Deterministic: no behavior change, logging only.
-    """
-    global _TRACE_ENABLED
-    if _TRACE_ENABLED:
-        return
-    _TRACE_ENABLED = True
-
-    def _t(msg: str) -> None:
-        # Respect --quiet (runtime state, not a stale imported name)
-        try:
-            import audiomason.state as state
-            if getattr(getattr(state, "OPTS", None), "quiet", False):
-                return
-        except Exception:
-            pass
-        print(f"[TRACE-OP] {msg}", flush=True)
-
-    # --- subprocess ---
-    _sub_run = subprocess.run
-    _sub_cc = subprocess.check_call
-    _sub_co = subprocess.check_output
-    _sub_popen = subprocess.Popen
-
-    def run(*args, **kwargs):
-        _t(f"subprocess.run args={args!r} kwargs={kwargs!r}")
-        return _sub_run(*args, **kwargs)
-
-    def check_call(*args, **kwargs):
-        _t(f"subprocess.check_call args={args!r} kwargs={kwargs!r}")
-        return _sub_cc(*args, **kwargs)
-
-    def check_output(*args, **kwargs):
-        _t(f"subprocess.check_output args={args!r} kwargs={kwargs!r}")
-        return _sub_co(*args, **kwargs)
-
-    class Popen(_sub_popen):
-        def __init__(self, *args, **kwargs):
-            _t(f"subprocess.Popen args={args!r} kwargs={kwargs!r}")
-            super().__init__(*args, **kwargs)
-
-    subprocess.run = run
-    subprocess.check_call = check_call
-    subprocess.check_output = check_output
-    subprocess.Popen = Popen
-
-    # --- shutil ---
-    for name in ["copy2", "copytree", "rmtree", "move", "copyfile", "copymode", "copystat", "make_archive", "unpack_archive"]:
-        if hasattr(shutil, name):
-            fn = getattr(shutil, name)
-            def _wrap(fn, nm):
-                def w(*args, **kwargs):
-                    _t(f"shutil.{nm} args={args!r} kwargs={kwargs!r}")
-                    return fn(*args, **kwargs)
-                return w
-            setattr(shutil, name, _wrap(fn, name))
-
-    # --- os (covers Path ops internally: rename/unlink/mkdir/etc.) ---
-    for name in ["rename", "replace", "remove", "unlink", "mkdir", "rmdir", "makedirs", "chmod", "chown", "utime"]:
-        if hasattr(os, name):
-            fn = getattr(os, name)
-            def _wrap(fn, nm):
-                def w(*args, **kwargs):
-                    _t(f"os.{nm} args={args!r} kwargs={kwargs!r}")
-                    return fn(*args, **kwargs)
-                return w
-            setattr(os, name, _wrap(fn, name))
-

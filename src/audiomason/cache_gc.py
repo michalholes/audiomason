@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
 import audiomason.state as state
 from audiomason.paths import get_cache_root
-from audiomason.util import out, ensure_dir
-
+from audiomason.util import ensure_dir, out
 
 KNOWN_EXTS = {".jpg", ".png", ".webp", ".img"}
 
@@ -19,10 +19,7 @@ def _is_known_cache_file(p: Path) -> bool:
     if len(stem) != 40:
         return False
     # sha1 hex
-    for ch in stem:
-        if ch not in "0123456789abcdef":
-            return False
-    return True
+    return all(ch in "0123456789abcdef" for ch in stem)
 
 
 @dataclass(frozen=True)
@@ -49,7 +46,13 @@ def _iter_entries(cache_root: Path) -> list[CacheEntry]:
     return out_entries
 
 
-def cache_gc(cfg: dict, *, days: int | None = None, max_mb: int | None = None, dry_run: bool = False) -> int:
+def cache_gc(
+    cfg: Mapping[str, object],
+    *,
+    days: int | None = None,
+    max_mb: int | None = None,
+    dry_run: bool = False,
+) -> int:
     cache_root = get_cache_root(cfg).expanduser().resolve()
     ensure_dir(cache_root)
 
@@ -86,7 +89,7 @@ def cache_gc(cfg: dict, *, days: int | None = None, max_mb: int | None = None, d
 
     removed = 0
     reclaimed = 0
-    for pth, why in sorted(to_remove.items(), key=lambda kv: kv[0].name):
+    for pth, why in sorted(to_remove.items(), key=lambda kv: kv[0].name):  # type: ignore[misc]
         rp = pth.resolve()
         try:
             if not rp.is_relative_to(cache_root):
@@ -103,10 +106,10 @@ def cache_gc(cfg: dict, *, days: int | None = None, max_mb: int | None = None, d
         except FileNotFoundError:
             continue
 
-        if getattr(state, "DEBUG", False):
+        if state.DEBUG:
             out(f"[cache-gc][debug] rm {rp.name} bytes={sz} why={why}")
 
-        if dry_run or (state.OPTS and getattr(state.OPTS, "dry_run", False)):
+        if dry_run or (state.OPTS is not None and state.OPTS.dry_run):
             out(f"[cache-gc] would remove: {rp.name}")
             continue
 

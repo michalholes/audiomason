@@ -39,8 +39,8 @@ def test_version_banner_shows_when_enabled(monkeypatch, tmp_path, capsys):
     _make_contract_dirs(tmp_path)
     cfg = _write_min_config(tmp_path, banner=True)
 
-    from audiomason.version import __version__
     from audiomason import cli
+    from audiomason.version import __version__
 
     monkeypatch.setattr(sys, "argv", ["am", "--config", cfg, "cache", "gc"])
     rc = cli.main()
@@ -55,8 +55,8 @@ def test_version_banner_suppressed_on_quiet(monkeypatch, tmp_path, capsys):
     _make_contract_dirs(tmp_path)
     cfg = _write_min_config(tmp_path, banner=True)
 
-    from audiomason.version import __version__
     from audiomason import cli
+    from audiomason.version import __version__
 
     monkeypatch.setattr(sys, "argv", ["am", "--quiet", "--config", cfg, "cache", "gc"])
     rc = cli.main()
@@ -72,8 +72,8 @@ def test_version_banner_still_present_on_quiet_json(monkeypatch, tmp_path, capsy
     _make_contract_dirs(tmp_path)
     cfg = _write_min_config(tmp_path, banner=True)
 
-    from audiomason.version import __version__
     from audiomason import cli
+    from audiomason.version import __version__
 
     monkeypatch.setattr(sys, "argv", ["am", "--quiet", "--json", "--config", cfg, "cache", "gc"])
     rc = cli.main()

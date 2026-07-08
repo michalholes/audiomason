@@ -1,0 +1,26 @@
+{
+  "pythonVersion": "3.11",
+  "typeCheckingMode": "strict",
+  "include": ["src", "plugins"],
+  "exclude": [
+    "tests",
+    "patches",
+    "scripts",
+    "badguys",
+    "**/__pycache__"
+  ],
+  "strictListInference": true,
+  "strictDictionaryInference": true,
+  "strictSetInference": true,
+  "reportUnknownVariableType": "error",
+  "reportUnknownMemberType": "error",
+  "reportUnknownArgumentType": "error",
+  "reportUnknownParameterType": "error",
+  "reportUnknownLambdaType": "error",
+  "reportMissingTypeArgument": "error",
+  "reportUntypedFunctionDecorator": "error",
+  "reportUntypedClassDecorator": "error",
+  "reportUntypedBaseClass": "error",
+  "reportUntypedNamedTuple": "error",
+  "reportUnnecessaryCast": "error"
+}

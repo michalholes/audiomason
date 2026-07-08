@@ -1,9 +1,8 @@
 # Issue #93: Preflight Step Registry
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, Optional
-
 
 # One-list ordering model (Design #92):
 # - preflight_steps is a single linear list
@@ -27,7 +26,7 @@ class PreflightStepMeta:
     non_movable: bool
     min_context: str
     default_apply_scope: str  # run/source/book/author (min run/source/book)
-    condition: Optional[Callable[[dict], bool]] = None
+    condition: Callable[[dict[str, object]], bool] | None = None
 
 
 # Canonical default ordering baseline (NO-CONFIG = NO-CHANGE).

@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from typing import Optional
 
-
-def guess_author_book(name: str, root_name: str = "__ROOT_AUDIO__") -> tuple[Optional[str], str]:
+def guess_author_book(name: str, root_name: str = "__ROOT_AUDIO__") -> tuple[str | None, str]:
     """Heuristic: 'Author - Title' -> ('Surname.GivenNames', 'Title'); otherwise (None, 'Title')."""
     s = (name or "").strip()
     if not s or s == root_name:

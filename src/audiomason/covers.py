@@ -2,25 +2,25 @@ from __future__ import annotations
 
 import hashlib
 import shutil
-import subprocess
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import cast
 
-from mutagen.id3 import ID3, ID3NoHeaderError, APIC
+from mutagen.id3 import APIC, ID3, ID3NoHeaderError  # type: ignore[attr-defined]
 
-from audiomason.paths import COVER_NAME, get_cache_root
 import audiomason.state as state
-from audiomason.util import run_cmd, out, die, ensure_dir, is_url, prompt
+from audiomason.paths import COVER_NAME, get_cache_root
+from audiomason.util import die, ensure_dir, is_url, out, prompt, run_cmd
 
 
-def extract_embedded_cover_from_mp3(mp3: Path) -> Optional[Tuple[bytes, str]]:
+def extract_embedded_cover_from_mp3(mp3: Path) -> tuple[bytes, str] | None:
     try:
-        id3 = ID3(mp3)
+        id3 = ID3(mp3)  # type: ignore[no-untyped-call]
     except ID3NoHeaderError:
         return None
-    for tag in id3.values():
-        if isinstance(tag, APIC) and getattr(tag, "data", None):
-            return tag.data, (tag.mime or "image/jpeg")
+    for tag in id3.values():  # type: ignore[no-untyped-call, misc]
+        if isinstance(tag, APIC) and tag.data:  # type: ignore[attr-defined, misc]
+            return tag.data, (tag.mime or "image/jpeg")  # type: ignore[attr-defined, misc]
     return None
 
 
@@ -31,15 +31,20 @@ def convert_image_to_jpg(src: Path, dst: Path) -> bytes:
         "ffmpeg",
         "-hide_banner",
         "-nostdin",
-        "-loglevel", "error",
+        "-loglevel",
+        "error",
         "-y",
-        "-i", str(src),
-        "-frames:v", "1",
-        "-update", "1",
-        "-pix_fmt", "yuv420p",
+        "-i",
+        str(src),
+        "-frames:v",
+        "1",
+        "-update",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
         str(dst),
     ]
-    if state.OPTS and state.OPTS.dry_run:
+    if state.OPTS is not None and state.OPTS.dry_run:
         out("[dry-run] " + " ".join(cmd))
         return b""
     run_cmd(cmd)
@@ -50,19 +55,19 @@ def _sha1(s: str) -> str:
     return hashlib.sha1(s.encode("utf-8", errors="ignore")).hexdigest()
 
 
-
 def _sniff_image_ext(data: bytes) -> tuple[str, str]:
-    # Detect image type from magic bytes (no external deps)
-    if len(data) >= 3 and data[0:3] == b"\xFF\xD8\xFF":
+    if len(data) >= 3 and data[0:3] == b"\xff\xd8\xff":
         return ("jpg", "image/jpeg")
     if len(data) >= 8 and data[0:8] == b"\x89PNG\r\n\x1a\n":
         return ("png", "image/png")
     if len(data) >= 12 and data[0:4] == b"RIFF" and data[8:12] == b"WEBP":
         return ("webp", "image/webp")
     return ("img", "application/octet-stream")
+
+
 def download_url(url: str, outpath: Path) -> None:
     ensure_dir(outpath.parent)
-    if state.OPTS and state.OPTS.dry_run:
+    if state.OPTS is not None and state.OPTS.dry_run:
         out(f"[dry-run] would download: {url} -> {outpath}")
         return
     if shutil.which("curl"):
@@ -74,7 +79,7 @@ def download_url(url: str, outpath: Path) -> None:
     die("Need curl or wget to download URL covers")
 
 
-def cover_from_input(cfg: dict, raw: str) -> Optional[Path]:
+def cover_from_input(cfg: Mapping[str, object], raw: str) -> Path | None:
     raw = raw.strip()
     if not raw:
         return None
@@ -83,16 +88,14 @@ def cover_from_input(cfg: dict, raw: str) -> Optional[Path]:
         cache_root = get_cache_root(cfg)
         ensure_dir(cache_root)
         sha = _sha1(raw)
-        # Scan for existing cached variants
         for ext in ("jpg", "png", "webp", "img"):
             cand = cache_root / f"{sha}.{ext}"
             if cand.exists():
                 out("[cover] using cached URL cover")
                 return cand
 
-        # Respect --dry-run (no writes)
-        if state.OPTS and getattr(state.OPTS, "dry_run", False):
-            if getattr(state.OPTS, "debug", False):
+        if state.OPTS is not None and state.OPTS.dry_run:
+            if state.OPTS.debug:
                 out("[cover][debug] dry-run: would download; mime=unknown ext=.img")
             return cache_root / f"{sha}.img"
 
@@ -101,7 +104,7 @@ def cover_from_input(cfg: dict, raw: str) -> Optional[Path]:
         download_url(raw, tmp)
         data = tmp.read_bytes()
         ext, mime = _sniff_image_ext(data)
-        if getattr(state.OPTS, "debug", False):
+        if state.OPTS is not None and state.OPTS.debug:
             out(f"[cover][debug] mime={mime} ext=.{ext}")
         outpath = cache_root / f"{sha}.{ext}"
         if outpath.exists():
@@ -117,7 +120,8 @@ def cover_from_input(cfg: dict, raw: str) -> Optional[Path]:
     out("[cover] invalid path/url")
     return None
 
-def find_file_cover(stage_root: Path, group_root: Path) -> Optional[Path]:
+
+def find_file_cover(stage_root: Path, group_root: Path) -> Path | None:
     for ext in [".avif", ".jpg", ".jpeg", ".png", ".webp"]:
         for cand in [group_root / f"cover{ext}", stage_root / f"cover{ext}"]:
             if cand.exists() and cand.is_file():
@@ -125,7 +129,7 @@ def find_file_cover(stage_root: Path, group_root: Path) -> Optional[Path]:
     return None
 
 
-def extract_cover_from_m4a(m4a: Path, bookdir: Path) -> Optional[Tuple[bytes, str]]:
+def extract_cover_from_m4a(m4a: Path, bookdir: Path) -> tuple[bytes, str] | None:
     if not shutil.which("ffmpeg"):
         return None
     dst = bookdir / COVER_NAME
@@ -133,17 +137,23 @@ def extract_cover_from_m4a(m4a: Path, bookdir: Path) -> Optional[Tuple[bytes, st
         "ffmpeg",
         "-hide_banner",
         "-nostdin",
-        "-loglevel", "error",
+        "-loglevel",
+        "error",
         "-y",
-        "-i", str(m4a),
+        "-i",
+        str(m4a),
         "-an",
-        "-map", "0:v:0",
-        "-frames:v", "1",
-        "-update", "1",
-        "-pix_fmt", "yuv420p",
+        "-map",
+        "0:v:0",
+        "-frames:v",
+        "1",
+        "-update",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
         str(dst),
     ]
-    if state.OPTS and state.OPTS.dry_run:
+    if state.OPTS is not None and state.OPTS.dry_run:
         out("[dry-run] " + " ".join(cmd))
         return None
     try:
@@ -157,25 +167,24 @@ def extract_cover_from_m4a(m4a: Path, bookdir: Path) -> Optional[Tuple[bytes, st
 
 
 def choose_cover(
-    cfg: dict,
-    mp3_first: Optional[Path],
-    m4a_source: Optional[Path],
+    cfg: Mapping[str, object],
+    mp3_first: Path | None,
+    m4a_source: Path | None,
     bookdir: Path,
     stage_root: Path,
     group_root: Path,
-    mode: Optional[str] = None,  # 'file' | 'embedded' | 'skip' | None
-) -> Optional[Tuple[bytes, str]]:
+    mode: str | None = None,
+) -> tuple[bytes, str] | None:
     file_cover = find_file_cover(stage_root, group_root)
     embedded = extract_embedded_cover_from_mp3(mp3_first) if mp3_first else None
 
-    # ISSUE #12: allow preflight to force cover choice (no prompts during processing)
     if mode == "skip":
         out("[cover] skipped")
         return None
     if mode == "embedded":
         if embedded:
             data, mime = embedded
-            if not (state.OPTS and state.OPTS.dry_run):
+            if not (state.OPTS is not None and state.OPTS.dry_run):
                 (bookdir / COVER_NAME).write_bytes(data)
             out("[cover] used embedded cover")
             return data, mime
@@ -186,35 +195,42 @@ def choose_cover(
             dst = bookdir / COVER_NAME
             ext = file_cover.suffix.lower()
             if ext in {".jpg", ".jpeg"}:
-                data = file_cover.read_bytes() if not (state.OPTS and state.OPTS.dry_run) else b""
-                if not (state.OPTS and state.OPTS.dry_run):
+                data = (
+                    file_cover.read_bytes()
+                    if not (state.OPTS is not None and state.OPTS.dry_run)
+                    else b""
+                )
+                if not (state.OPTS is not None and state.OPTS.dry_run):
                     dst.write_bytes(data)
                 out(f"[cover] used file cover: {file_cover.name}")
                 return (data, "image/jpeg")
             if ext == ".png":
-                data = file_cover.read_bytes() if not (state.OPTS and state.OPTS.dry_run) else b""
-                if not (state.OPTS and state.OPTS.dry_run):
+                data = (
+                    file_cover.read_bytes()
+                    if not (state.OPTS is not None and state.OPTS.dry_run)
+                    else b""
+                )
+                if not (state.OPTS is not None and state.OPTS.dry_run):
                     dst.write_bytes(data)
                 out(f"[cover] used file cover: {file_cover.name}")
                 return (data, "image/png")
-        # fallback
         if embedded:
             data, mime = embedded
-            if not (state.OPTS and state.OPTS.dry_run):
+            if not (state.OPTS is not None and state.OPTS.dry_run):
                 (bookdir / COVER_NAME).write_bytes(data)
             out("[cover] used embedded cover")
             return data, mime
         out("[cover] skipped")
         return None
 
-    # interactive/default path (legacy behavior)
-    if embedded and file_cover and not (state.OPTS and state.OPTS.yes):
+    if embedded and file_cover and not (state.OPTS is not None and state.OPTS.yes):
         out("Cover options found:")
         out("  1) embedded cover from audio")
         out(f"  2) {file_cover.name} (preferred)")
         try:
-            dis = (cfg.get('prompts', {}) or {}).get('disable', [])
-            if dis == ['*'] or 'choose_cover' in (dis or []):
+            prompts = cast(Mapping[str, object], cfg.get("prompts", {}))
+            dis = cast(list[object], prompts.get("disable", []))
+            if dis == ["*"] or "choose_cover" in (cast(list[str], dis) if dis else []):
                 ans = "2"
             else:
                 ans = prompt("Choose cover [1/2]", "2").strip()
@@ -223,7 +239,7 @@ def choose_cover(
             return None
         if ans == "1":
             data, mime = embedded
-            if not (state.OPTS and state.OPTS.dry_run):
+            if not (state.OPTS is not None and state.OPTS.dry_run):
                 (bookdir / COVER_NAME).write_bytes(data)
             out("[cover] used embedded cover")
             return data, mime
@@ -232,8 +248,12 @@ def choose_cover(
         dst = bookdir / COVER_NAME
         ext = file_cover.suffix.lower()
         if ext in {".jpg", ".jpeg"}:
-            data = file_cover.read_bytes() if not (state.OPTS and state.OPTS.dry_run) else b""
-            if not (state.OPTS and state.OPTS.dry_run):
+            data = (
+                file_cover.read_bytes()
+                if not (state.OPTS is not None and state.OPTS.dry_run)
+                else b""
+            )
+            if not (state.OPTS is not None and state.OPTS.dry_run):
                 dst.write_bytes(data)
             out(f"[cover] used {file_cover.name}")
             return data, "image/jpeg"
@@ -243,7 +263,7 @@ def choose_cover(
 
     if embedded:
         data, mime = embedded
-        if not (state.OPTS and state.OPTS.dry_run):
+        if not (state.OPTS is not None and state.OPTS.dry_run):
             (bookdir / COVER_NAME).write_bytes(data)
         out("[cover] used embedded cover")
         return data, mime
@@ -253,8 +273,9 @@ def choose_cover(
         if got:
             return got
 
-    dis = (cfg.get('prompts', {}) or {}).get('disable', [])
-    if dis == ['*'] or 'cover_input' in (dis or []):
+    prompts = cast(Mapping[str, object], cfg.get("prompts", {}))
+    dis = cast(list[object], prompts.get("disable", []))
+    if dis == ["*"] or "cover_input" in (cast(list[str], dis) if dis else []):
         raw = ""
     else:
         raw = prompt("No cover found. Path or URL to image (Enter=skip)", "")
@@ -268,8 +289,8 @@ def choose_cover(
     dst = bookdir / COVER_NAME
     ext = img.suffix.lower()
     if ext in {".jpg", ".jpeg"}:
-        data = img.read_bytes() if not (state.OPTS and state.OPTS.dry_run) else b""
-        if not (state.OPTS and state.OPTS.dry_run):
+        data = img.read_bytes() if not (state.OPTS is not None and state.OPTS.dry_run) else b""
+        if not (state.OPTS is not None and state.OPTS.dry_run):
             dst.write_bytes(data)
         out("[cover] saved cover.jpg")
         return data, "image/jpeg"

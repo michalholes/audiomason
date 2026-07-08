@@ -5,6 +5,7 @@ import unicodedata
 
 # Read-only normalization helper (NO FS changes)
 
+
 def normalize_name(s: str) -> str:
     if not s:
         return s
@@ -19,7 +20,7 @@ def normalize_name(s: str) -> str:
     s = s.replace("_", " ")
 
     # Title case but keep acronyms/numbers
-    parts = []
+    parts: list[str] = []
     for w in s.split(" "):
         if w.isupper() or any(c.isdigit() for c in w):
             parts.append(w)
@@ -28,6 +29,7 @@ def normalize_name(s: str) -> str:
     s = " ".join(parts)
 
     return s
+
 
 def normalize_sentence(s: str) -> str:
     """

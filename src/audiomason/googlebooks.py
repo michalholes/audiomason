@@ -1,15 +1,14 @@
 from __future__ import annotations
 
+import difflib
 import json
 import re
 import time
-import difflib
 import unicodedata
-from dataclasses import dataclass
-from typing import Any
+from collections.abc import Mapping
+from typing import cast
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
-
 
 BASE = "https://www.googleapis.com/books/v1"
 UA = "AudioMason/1.0 (https://github.com/michalholes/audiomason)"
@@ -18,7 +17,8 @@ UA = "AudioMason/1.0 (https://github.com/michalholes/audiomason)"
 def _dry_run() -> bool:
     try:
         import audiomason.state as state
-        return bool(getattr(getattr(state, "OPTS", None), "dry_run", False))
+
+        return state.OPTS is not None and state.OPTS.dry_run
     except Exception:
         return False
 
@@ -28,8 +28,24 @@ def _norm(s: str) -> str:
     s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
     s = s.lower()
     s = re.sub(r"\s+", " ", s).strip()
-    # deterministic token normalization (helps minor CZ/SK preposition diffs)
-    stop = {"a","i","v","vo","na","do","od","po","pri","ku","k","z","zo","s","so","u"}
+    stop = {
+        "a",
+        "i",
+        "v",
+        "vo",
+        "na",
+        "do",
+        "od",
+        "po",
+        "pri",
+        "ku",
+        "k",
+        "z",
+        "zo",
+        "s",
+        "so",
+        "u",
+    }
     toks = [t for t in s.split(" ") if t and t not in stop]
     s = " ".join(toks).strip()
     return s
@@ -41,7 +57,7 @@ def _author_match(author: str, authors: object) -> bool:
         return False
     vals: list[str] = []
     if isinstance(authors, list):
-        vals = [str(x) for x in authors if x is not None]
+        vals = [str(x) for x in cast(list[object], authors) if x is not None]
     elif isinstance(authors, str):
         vals = [authors]
     else:
@@ -55,25 +71,28 @@ def _author_match(author: str, authors: object) -> bool:
     return False
 
 
-def _get_json(path: str, params: dict[str, Any], timeout: float = 10.0) -> dict[str, Any]:
+def _get_json(path: str, params: Mapping[str, object], timeout: float = 10.0) -> dict[str, object]:
     qs = urlencode(params)
     url = f"{BASE}{path}?{qs}"
     req = Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
-    with urlopen(req, timeout=timeout) as r:
-        raw = r.read().decode("utf-8", errors="replace")
-    return json.loads(raw)
+    with urlopen(req, timeout=timeout) as r:  # type: ignore[misc]
+        raw = r.read().decode("utf-8", errors="replace")  # type: ignore[misc]
+    return cast(dict[str, object], json.loads(raw))  # type: ignore[misc]
 
 
-def _pick_best(entered_title: str, author: str, items: list[dict[str, Any]]) -> str | None:
+def _sort_key(item: tuple[float, str]) -> tuple[float, str]:
+    return (-item[0], item[1])
+
+
+def _pick_best(entered_title: str, author: str, items: list[dict[str, object]]) -> str | None:
     t0 = _norm(entered_title)
     if not t0:
         return None
 
     cand: list[tuple[float, str]] = []
     for it in items:
-        if not isinstance(it, dict):
-            continue
-        vi = it.get("volumeInfo") if isinstance(it.get("volumeInfo"), dict) else {}
+        vi_raw = it.get("volumeInfo")
+        vi: dict[str, object] = cast(dict[str, object], vi_raw) if isinstance(vi_raw, dict) else {}
         title = str(vi.get("title") or "").strip()
         if not title:
             continue
@@ -85,22 +104,21 @@ def _pick_best(entered_title: str, author: str, items: list[dict[str, Any]]) -> 
     if not cand:
         return None
 
-    cand.sort(key=lambda x: (-x[0], x[1]))
+    cand.sort(key=_sort_key)
     best_s, best_t = cand[0]
     second_s = cand[1][0] if len(cand) > 1 else 0.0
 
-    # conservative guard (same as OL): strong + clear gap
     if best_s >= 0.92 and (best_s - second_s) >= 0.03:
         return best_t
 
-    # Special-case: multiple perfect/near-perfect matches (often diacritics variants).
-    # Still safe: require extremely high score, then deterministically prefer diacritics.
     if best_s >= 0.98:
         top = [t for (sc, t) in cand if sc >= 0.98]
         if len(top) >= 2:
+
             def _dia_score(x: str) -> tuple[int, int, str]:
                 non_ascii = sum(1 for ch in x if ord(ch) > 127)
                 return (non_ascii, len(x), x)
+
             top.sort(key=_dia_score, reverse=True)
             return top[0]
 
@@ -108,7 +126,6 @@ def _pick_best(entered_title: str, author: str, items: list[dict[str, Any]]) -> 
 
 
 def suggest_title(author: str, title: str) -> str | None:
-    # No network calls in --dry-run
     if _dry_run():
         return None
 
@@ -117,36 +134,41 @@ def suggest_title(author: str, title: str) -> str | None:
     if not a or not t:
         return None
 
-    # deterministic, limited, language-restricted
-    q = f'intitle:{t} inauthor:{a}'
+    q = f"intitle:{t} inauthor:{a}"
     fields = "items(volumeInfo/title,volumeInfo/authors,volumeInfo/language)"
 
     for lang in ("cs", "sk"):
-        # be polite; deterministic delay
         time.sleep(0.2)
         try:
-            data = _get_json("/volumes", {
-                "q": q,
-                "maxResults": 20,
-                "langRestrict": lang,
-                "printType": "books",
-                "fields": fields,
-            })
+            data = _get_json(
+                "/volumes",
+                {
+                    "q": q,
+                    "maxResults": 20,
+                    "langRestrict": lang,
+                    "printType": "books",
+                    "fields": fields,
+                },
+            )
         except Exception:
             continue
-        items = data.get("items") or []
-        if not isinstance(items, list):
-            continue
+        raw_items_obj = data.get("items")
+        raw_items: list[object] = (
+            cast(list[object], raw_items_obj) if isinstance(raw_items_obj, list) else []
+        )
 
-        # keep only matching language (defensive; langRestrict should already do it)
-        filtered: list[dict[str, Any]] = []
-        for it in items:
+        filtered: list[dict[str, object]] = []
+        for it in raw_items:
             if not isinstance(it, dict):
                 continue
-            vi = it.get("volumeInfo") if isinstance(it.get("volumeInfo"), dict) else {}
+            it_dict = cast(dict[str, object], it)
+            vi_raw = it_dict.get("volumeInfo")
+            vi: dict[str, object] = (
+                cast(dict[str, object], vi_raw) if isinstance(vi_raw, dict) else {}
+            )
             if str(vi.get("language") or "").strip().lower() != lang:
                 continue
-            filtered.append(it)
+            filtered.append(it_dict)
 
         best = _pick_best(t, a, filtered)
         if best:

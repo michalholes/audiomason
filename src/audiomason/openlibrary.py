@@ -1,30 +1,33 @@
 from __future__ import annotations
 
-from pathlib import Path
-import json
-import time
+# pyright: reportUnusedFunction=false
 import difflib
+import json
 import re
+import time
 import unicodedata
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
+from pathlib import Path
+from typing import cast
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
-from audiomason.util import strip_diacritics
-from audiomason.googlebooks import suggest_title
 
+from audiomason.googlebooks import suggest_title
+from audiomason.util import strip_diacritics
 
 BASE = "https://openlibrary.org"
 UA = "AudioMason/1.0 (https://github.com/michalholes/audiomason)"
 
 
-
 # Disk cache (deterministic): AUDIOMASON_ROOT/_state/openlibrary_cache.json
-_CACHE: dict[str, dict] | None = None
+_cache: dict[str, dict[str, object]] | None = None
+
 
 def _cache_path() -> Path | None:
     try:
         import os
+
         root = os.environ.get("AUDIOMASON_ROOT")
         if not root:
             return None
@@ -32,33 +35,36 @@ def _cache_path() -> Path | None:
     except Exception:
         return None
 
-def _cache_load() -> dict[str, dict]:
-    global _CACHE
-    if _CACHE is not None:
-        return _CACHE
+
+def _cache_load() -> dict[str, dict[str, object]]:
+    global _cache
+    if _cache is not None:
+        return _cache
     cp = _cache_path()
     if not cp or not cp.exists():
-        _CACHE = {}
-        return _CACHE
+        _cache = {}
+        return _cache
     try:
         raw = cp.read_text(encoding="utf-8")
-        data = json.loads(raw)
-        _CACHE = data if isinstance(data, dict) else {}
-        return _CACHE
+        _cache = cast(dict[str, dict[str, object]], json.loads(raw))
+        return _cache
     except Exception:
-        _CACHE = {}
-        return _CACHE
+        _cache = {}
+        return _cache
 
-def _cache_get(key: str) -> dict | None:
+
+def _cache_get(key: str) -> dict[str, object] | None:
     c = _cache_load()
     v = c.get(key)
     return v if isinstance(v, dict) else None
 
-def _cache_put(key: str, payload: dict) -> None:
+
+def _cache_put(key: str, payload: dict[str, object]) -> None:
     # respect dry-run: no cache writes
     try:
         import audiomason.state as state
-        if getattr(getattr(state, "OPTS", None), "dry_run", False):
+
+        if state.OPTS is not None and state.OPTS.dry_run:
             return
     except Exception:
         pass
@@ -84,13 +90,13 @@ class OLResult:
     top: str | None = None
 
 
-def _get_json(path: str, params: dict[str, Any], timeout: float = 10.0) -> dict[str, Any]:
+def _get_json(path: str, params: Mapping[str, object], timeout: float = 10.0) -> dict[str, object]:
     qs = urlencode(params)
     url = f"{BASE}{path}?{qs}"
     req = Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
-    with urlopen(req, timeout=timeout) as r:
-        raw = r.read().decode("utf-8", errors="replace")
-    return json.loads(raw)
+    with urlopen(req, timeout=timeout) as r:  # type: ignore[misc]
+        raw = r.read().decode("utf-8", errors="replace")  # type: ignore[misc]
+    return cast(dict[str, object], json.loads(raw))  # type: ignore[misc]
 
 
 def validate_author(name: str) -> OLResult:
@@ -101,15 +107,20 @@ def validate_author(name: str) -> OLResult:
     ck = "author:" + q
     hit = _cache_get(ck)
     if hit is not None:
-        return OLResult(bool(hit.get("ok")), str(hit.get("status")), int(hit.get("hits") or 0), hit.get("top"))
+        return OLResult(
+            bool(hit.get("ok")),
+            str(hit.get("status")),
+            int(str(hit.get("hits") or 0)),
+            hit.get("top"),  # type: ignore[arg-type]
+        )
 
     try:
         data = _get_json("/search/authors.json", {"q": q, "limit": 5})
     except Exception as e:
         return OLResult(False, f"author:error:{type(e).__name__}", 0, None)
 
-    hits = int(data.get("numFound") or 0)
-    docs = data.get("docs") or []
+    hits = int(str(data.get("numFound") or 0))
+    docs = cast(list[dict[str, object]], data.get("docs")) or []
     top = None
     if docs:
         top = str(docs[0].get("name") or "") or None
@@ -133,6 +144,7 @@ def _norm_title(s: str) -> str:
     s = re.sub(r"\s+", " ", s).strip()
     return s
 
+
 def _sanitize_title_suggestion(entered: str, suggested: str | None) -> str | None:
     """No-diacritics suggestion, and suppress suggestion if it matches entered."""
     if not suggested:
@@ -145,12 +157,13 @@ def _sanitize_title_suggestion(entered: str, suggested: str | None) -> str | Non
         return None
     return ss
 
+
 def _best_title_suggestion(entered: str, titles: list[str]) -> tuple[str | None, float, float]:
     n0 = _norm_title(entered)
     if not n0:
         return (None, 0.0, 0.0)
     scored: list[tuple[float, str]] = []
-    seen = set()
+    seen: set[str] = set()
     for t in titles:
         tt = (t or "").strip()
         if not tt:
@@ -159,10 +172,10 @@ def _best_title_suggestion(entered: str, titles: list[str]) -> tuple[str | None,
         if not nt or nt in seen:
             continue
         seen.add(nt)
-        scored.append((difflib.SequenceMatcher(None, n0, nt).ratio(), tt))
+        scored.append((float(difflib.SequenceMatcher(None, n0, nt).ratio()), tt))
     if not scored:
         return (None, 0.0, 0.0)
-    scored.sort(key=lambda x: (-x[0], x[1]))
+    scored.sort(key=lambda x: (-x[0], x[1]))  # type: ignore[misc]
     best_score, best_title = scored[0]
     second_score = scored[1][0] if len(scored) > 1 else 0.0
     return (best_title, float(best_score), float(second_score))
@@ -183,7 +196,7 @@ def _author_match(author: str, author_name: object) -> bool:
         return False
     vals: list[str] = []
     if isinstance(author_name, list):
-        vals = [str(x) for x in author_name if x is not None]
+        vals = [str(x) for x in cast(list[object], author_name) if x is not None]
     elif isinstance(author_name, str):
         vals = [author_name]
     else:
@@ -199,14 +212,17 @@ def _author_match(author: str, author_name: object) -> bool:
 
 def _lang_codes(lang_obj: object) -> set[str]:
     out: set[str] = set()
-    items = lang_obj if isinstance(lang_obj, list) else [lang_obj]
-    for it in items:
-        if isinstance(it, dict):
-            k = str(it.get("key") or "")
-            if k.startswith("/languages/"):
-                out.add(k.split("/languages/", 1)[1])
-        elif isinstance(it, str) and it.startswith("/languages/"):
-            out.add(it.split("/languages/", 1)[1])
+    if isinstance(lang_obj, list):
+        for it in cast(list[object], lang_obj):
+            if isinstance(it, dict):
+                entry = cast(dict[str, object], it)
+                k = str(entry.get("key") or "")
+                if k.startswith("/languages/"):
+                    out.add(k.split("/languages/", 1)[1])
+            elif isinstance(it, str) and it.startswith("/languages/"):
+                out.add(it.split("/languages/", 1)[1])
+    elif isinstance(lang_obj, str) and lang_obj.startswith("/languages/"):
+        out.add(lang_obj.split("/languages/", 1)[1])
     return out
 
 
@@ -216,11 +232,12 @@ def _pick_edition_title(work_key: str, prefer: list[str]) -> str | None:
     try:
         time.sleep(0.2)
         data = _get_json(work_key + "/editions.json", {"limit": 50, "fields": "title,languages"})
-        entries = data.get("entries") or []
+        entries_obj = data.get("entries")
+        entries = (
+            cast(list[dict[str, object]], entries_obj) if isinstance(entries_obj, list) else []
+        )
         for code in prefer:
             for e in entries:
-                if not isinstance(e, dict):
-                    continue
                 langs = _lang_codes(e.get("languages"))
                 if code in langs:
                     t = str(e.get("title") or "").strip()
@@ -240,10 +257,15 @@ def validate_book(author: str, title: str) -> OLResult:
     ck = f"book:{a}|{t}"
     hit = _cache_get(ck)
     if hit is not None:
-        return OLResult(bool(hit.get("ok")), str(hit.get("status")), int(hit.get("hits") or 0), hit.get("top"))
+        return OLResult(
+            bool(hit.get("ok")),
+            str(hit.get("status")),
+            int(str(hit.get("hits") or 0)),
+            hit.get("top"),  # type: ignore[arg-type]
+        )
 
     # Explicit fields due to /search.json default field changes.
-    params = {
+    params: dict[str, object] = {
         "title": t,
         "author": a,
         "limit": 5,
@@ -258,8 +280,9 @@ def validate_book(author: str, title: str) -> OLResult:
     except Exception as e:
         return OLResult(False, f"book:error:{type(e).__name__}", 0, None)
 
-    hits = int(data.get("numFound") or 0)
-    docs = data.get("docs") or []
+    hits = int(str(data.get("numFound") or 0))
+    docs_obj = data.get("docs")
+    docs = cast(list[dict[str, object]], docs_obj) if isinstance(docs_obj, list) else []
     top = None
     if docs:
         top = str(docs[0].get("title") or "") or None
@@ -270,12 +293,15 @@ def validate_book(author: str, title: str) -> OLResult:
             try:
                 time.sleep(0.2)
                 q = _fallback_q(t)
-                data2 = _get_json("/search.json", {"q": q, "limit": 50, "fields": "key,title,author_name"})
-                docs2 = data2.get("docs") or []
+                data2 = _get_json(
+                    "/search.json", {"q": q, "limit": 50, "fields": "key,title,author_name"}
+                )
+                docs2_obj = data2.get("docs")
+                docs2 = (
+                    cast(list[dict[str, object]], docs2_obj) if isinstance(docs2_obj, list) else []
+                )
                 cand: list[tuple[float, str, str]] = []  # (score, title, key)
                 for d in docs2:
-                    if not isinstance(d, dict):
-                        continue
                     if not _author_match(a, d.get("author_name")):
                         continue
                     key = str(d.get("key") or "").strip()
@@ -287,14 +313,19 @@ def validate_book(author: str, title: str) -> OLResult:
 
                 if cand:
                     # Prefer scoring against localized edition title (CZ/SK) when available.
-                    cand.sort(key=lambda x: (-x[0], x[1], x[2]))
+                    def _cand_key(x: tuple[float, str, str]) -> tuple[float, str, str]:
+                        return (-x[0], x[1], x[2])
+
+                    cand.sort(key=_cand_key)
                     rescored: list[tuple[float, str]] = []
                     for _, tt, kk in cand[:5]:
                         loc = _pick_edition_title(kk, ["cze", "slo"])
                         sugg = loc or tt
-                        score2 = difflib.SequenceMatcher(None, _norm_title(t), _norm_title(sugg)).ratio()
+                        score2 = difflib.SequenceMatcher(
+                            None, _norm_title(t), _norm_title(sugg)
+                        ).ratio()
                         rescored.append((score2, sugg))
-                    rescored.sort(key=lambda x: (-x[0], x[1]))
+                    rescored.sort(key=lambda x: (-x[0], x[1]))  # type: ignore[misc]
                     best_s, best_t = rescored[0]
                     second_s = rescored[1][0] if len(rescored) > 1 else 0.0
                     if best_t and best_s >= 0.92 and (best_s - second_s) >= 0.03:

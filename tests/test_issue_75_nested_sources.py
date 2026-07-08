@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+
 import audiomason.import_flow as imp
 
 
@@ -21,7 +22,15 @@ def test_issue_75_nested_sources_detect_multiple_books(tmp_path: Path):
 
     books = imp._detect_books(root)
     labels = sorted([b.label for b in books], key=lambda x: str(x).casefold())
-    assert labels == ["__ROOT_AUDIO__", "kniha", "kniha2", "kniha3", "seria/kniha1", "seria/kniha2", "seria/kniha3"]
+    assert labels == [
+        "__ROOT_AUDIO__",
+        "kniha",
+        "kniha2",
+        "kniha3",
+        "seria/kniha1",
+        "seria/kniha2",
+        "seria/kniha3",
+    ]
 
 
 def test_issue_75_nonrecursive_collect_does_not_steal_subdir_audio(tmp_path: Path):

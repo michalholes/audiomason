@@ -14,5 +14,5 @@ def test_preflight_prompts_do_not_bypass_pf_wrappers():
     # Direct prompt calls must not exist for these preflight decisions
     assert "prompt(\"Choose source number, or 'a' for all\"" not in txt
     assert "prompt(\"Choose book number, or 'a' for all\"" not in txt
-    assert "prompt_yes_no(\"Skip already processed books?\"" not in txt
-    assert "prompt_yes_no(\"Destination exists. Overwrite?\"" not in txt
+    assert 'prompt_yes_no("Skip already processed books?"' not in txt
+    assert 'prompt_yes_no("Destination exists. Overwrite?"' not in txt

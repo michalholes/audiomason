@@ -3,8 +3,8 @@ import urllib.request
 
 import pytest
 
-import audiomason.openlibrary as ol
 import audiomason.import_flow as imp
+import audiomason.openlibrary as ol
 
 
 @pytest.fixture(autouse=True)
@@ -61,4 +61,3 @@ def disable_external_book_metadata(monkeypatch):
             )
 
         monkeypatch.setattr(urllib.request, "urlopen", _blocked_urlopen, raising=True)
-

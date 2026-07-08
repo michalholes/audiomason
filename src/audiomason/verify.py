@@ -1,18 +1,16 @@
 from __future__ import annotations
 
-READ_ONLY_VERIFY = True
-
-
-
 from pathlib import Path
 
-from mutagen.id3 import ID3, ID3NoHeaderError
+from mutagen.id3 import ID3
+from mutagen.id3._util import ID3NoHeaderError
 
+from audiomason.naming import normalize_name
+from audiomason.openlibrary import validate_author, validate_book
 from audiomason.paths import COVER_NAME
 from audiomason.util import out
-from audiomason.naming import normalize_name
 
-from audiomason.openlibrary import validate_author, validate_book
+READ_ONLY_VERIFY = True
 
 
 def verify_library(root: Path) -> None:
@@ -21,8 +19,8 @@ def verify_library(root: Path) -> None:
     - each book dir has cover.jpg
     - mp3 files have ID3 tags
     """
-    authors = [p for p in sorted(root.iterdir()) if p.is_dir()]
-    books = []
+    authors: list[Path] = [p for p in sorted(root.iterdir()) if p.is_dir()]
+    books: list[Path] = []
     for a in authors:
         books.extend([p for p in sorted(a.iterdir()) if p.is_dir()])
     out(f"[verify] scanning {len(books)} book(s) under {root}")
@@ -40,7 +38,8 @@ def verify_library(root: Path) -> None:
     # OpenLibrary validation (read-only)
     try:
         import audiomason.state as state
-        do_lookup = bool(getattr(getattr(state, "OPTS", None), "lookup", False))
+
+        do_lookup = bool(state.OPTS is not None and state.OPTS.lookup)
     except Exception:
         do_lookup = False
 
@@ -50,11 +49,17 @@ def verify_library(root: Path) -> None:
         out(f"[verify] openlibrary: authors={len(authors)}")
         for a in authors:
             ar = validate_author(a.name)
-            out(f"[ol] {a.name}: {ar.status} hits={ar.hits}" + (f" top='{ar.top}'" if ar.top else ""))
+            out(
+                f"[ol] {a.name}: {ar.status} hits={ar.hits}"
+                + (f" top='{ar.top}'" if ar.top else "")
+            )
             books = [p for p in sorted(a.iterdir()) if p.is_dir()]
             for b in books:
                 br = validate_book(a.name, b.name)
-                out(f"[ol]   {b.name}: {br.status} hits={br.hits}" + (f" top='{br.top}'" if br.top else ""))
+                out(
+                    f"[ol]   {b.name}: {br.status} hits={br.hits}"
+                    + (f" top='{br.top}'" if br.top else "")
+                )
 
     missing_cover = 0
     missing_tags = 0
@@ -68,7 +73,7 @@ def verify_library(root: Path) -> None:
         mp3s = sorted(book.glob("*.mp3"))
         for mp3 in mp3s:
             try:
-                ID3(mp3)
+                ID3(mp3)  # type: ignore[no-untyped-call]
             except ID3NoHeaderError:
                 out(f"[verify] missing ID3 tags: {book.name}/{mp3.name}")
                 missing_tags += 1

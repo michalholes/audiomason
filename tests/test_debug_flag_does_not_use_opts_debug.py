@@ -14,9 +14,7 @@ def test_debug_uses_state_debug_not_opts_debug(monkeypatch, tmp_path):
 
     monkeypatch.setattr(imp, "ensure_dir", boom)
 
-    cfg = {
-        "pipeline_steps": ["unpack", "convert", "rename", "tags", "cover", "publish"]
-    }
+    cfg = {"pipeline_steps": ["unpack", "convert", "rename", "tags", "cover", "publish"]}
 
     with pytest.raises(AssertionError, match="stop before fs"):
         imp.run_import(cfg)

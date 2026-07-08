@@ -1,14 +1,25 @@
 from __future__ import annotations
 
-from pathlib import Path
 import os
+from collections.abc import Mapping
+from pathlib import Path
+from typing import cast
+
 from audiomason.util import AmConfigError
+
+_Cfg = Mapping[str, object]
+
+
+def _as_dict(value: object) -> dict[str, object]:
+    return (
+        cast(dict[str, object], value) if isinstance(value, dict) else cast(dict[str, object], {})
+    )
+
 
 def _default_user_base() -> Path:
     # Safe runtime default (does not require AUDIOMASON_ROOT / repo).
     # Debian package must work for unprivileged users.
     return (Path.home() / ".local" / "share" / "audiomason").resolve()
-
 
 
 def _find_repo_root() -> Path | None:
@@ -24,18 +35,8 @@ def _find_repo_root() -> Path | None:
 AUDIOMASON_ROOT = os.environ.get("AUDIOMASON_ROOT")
 
 
-def _env_base() -> Path | None:
-    env_root = os.environ.get("AUDIOMASON_ROOT")
-    if env_root:
-        return Path(env_root).expanduser().resolve()
-    # Fallback: repo root (pyproject.toml) where AudioMason app lives
-    return _find_repo_root()
-
-
-from pathlib import Path
-import os
-
 DEBIAN_DEFAULT_ROOT = Path("/etc/audiomason")
+
 
 def require_audiomason_root() -> Path:
     env = os.environ.get("AUDIOMASON_ROOT")
@@ -54,6 +55,7 @@ def require_audiomason_root() -> Path:
         "Expected /etc/audiomason/configuration.yaml."
     )
 
+
 def _data_base() -> Path:
     global _base
     if _base is not None:
@@ -67,7 +69,7 @@ def _data_base() -> Path:
     return _base
 
 
-def _defaults_for(cfg) -> dict[str, Path]:
+def _defaults_for(cfg: _Cfg) -> dict[str, Path]:
     base = _data_base()
     return {
         "inbox": (base / "abooksinbox").resolve(),
@@ -96,16 +98,16 @@ def _resolve_path(val: str) -> Path:
     return (_data_base() / p0).resolve()
 
 
-def validate_paths_contract(cfg) -> Path:
+def validate_paths_contract(cfg: _Cfg) -> Path:
     # NOTE: AUDIOMASON_ROOT is app-root (config discovery). Data paths may live anywhere.
     base = require_audiomason_root()
-    cfg = cfg or {}
-    paths = cfg.get("paths", {}) if isinstance(cfg.get("paths", {}), dict) else {}
+    cfg2 = _as_dict(cfg)
+    paths = _as_dict(cfg2.get("paths"))
 
     # validate configured paths (if present)
     for key in ("inbox", "stage", "output", "ready", "archive", "archive_ro", "cache"):
         val = paths.get(key)
-        if val:
+        if val and isinstance(val, str):
             p = _resolve_path(val)
             _ensure_abs(f"paths.{key}", p)
 
@@ -121,25 +123,20 @@ def validate_paths_contract(cfg) -> Path:
 # ======================
 # Config-based resolvers
 # ======================
-def _get(cfg, key, default: Path) -> Path:
-    cfg0 = cfg or {}
-    if not isinstance(cfg0, dict):
-        raise AmConfigError(f"Invalid configuration: expected mapping at root, got {type(cfg0).__name__}")
-
-    paths = cfg0.get("paths", {}) or {}
-    if not isinstance(paths, dict):
-        raise AmConfigError(f"Invalid configuration: 'paths' must be a mapping, got {type(paths).__name__}")
+def _get(cfg: _Cfg, key: str | tuple[str, ...], default: Path) -> Path:
+    cfg0 = _as_dict(cfg)
+    paths = _as_dict(cfg0.get("paths"))
 
     if isinstance(key, (list, tuple)):
         for k in key:
             val = paths.get(k)
-            if val:
+            if val and isinstance(val, str):
                 p = _resolve_path(val)
                 _ensure_abs(f"paths.{k}", p)
                 return p
     else:
         val = paths.get(key)
-        if val:
+        if val and isinstance(val, str):
             p = _resolve_path(val)
             _ensure_abs(f"paths.{key}", p)
             return p
@@ -149,27 +146,27 @@ def _get(cfg, key, default: Path) -> Path:
     return d
 
 
-def get_drop_root(cfg) -> Path:
+def get_drop_root(cfg: _Cfg) -> Path:
     return _get(cfg, ("inbox", "drop_root"), _defaults_for(cfg)["inbox"])
 
 
-def get_stage_root(cfg) -> Path:
+def get_stage_root(cfg: _Cfg) -> Path:
     return _get(cfg, ("stage", "stage_root"), _defaults_for(cfg)["stage"])
 
 
-def get_output_root(cfg) -> Path:
+def get_output_root(cfg: _Cfg) -> Path:
     return _get(cfg, ("output", "ready", "output_root"), _defaults_for(cfg)["output"])
 
 
-def get_archive_root(cfg) -> Path:
+def get_archive_root(cfg: _Cfg) -> Path:
     return _get(cfg, ("archive", "archive_ro", "archive_root"), _defaults_for(cfg)["archive"])
 
 
-def get_cache_root(cfg) -> Path:
+def get_cache_root(cfg: _Cfg) -> Path:
     return _get(cfg, "cache", _defaults_for(cfg)["cache"])
 
 
-def get_ignore_file(cfg) -> Path:
+def get_ignore_file(cfg: _Cfg) -> Path:
     return get_drop_root(cfg) / ".abook_ignore"
 
 
@@ -178,7 +175,7 @@ def get_ignore_file(cfg) -> Path:
 # (DO NOT REMOVE)
 # NOTE: Strict enforcement happens via validate_paths_contract() + getters.
 # ======================
-_base = None  # lazy-initialized
+_base: Path | None = None  # lazy-initialized
 
 DROP_ROOT = (_default_user_base() / "abooksinbox").resolve()
 STAGE_ROOT = (_default_user_base() / "_am_stage").resolve()

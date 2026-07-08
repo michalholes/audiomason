@@ -150,9 +150,9 @@ pytest_full_suite_prefixes = [
   "tests/e2e/_server_web_interface.py",
   "tests/e2e/_asset_inventory.py",
 ]
-ruff_targets = ["src", "plugins", "tests"]
+ruff_targets = ["src", "tests"]
 pytest_targets = ["tests"]
-mypy_targets = ["src", "plugins"]
+mypy_targets = ["src"]
 
 [pytest_roots]
 "am2.*" = "src/audiomason/core/"

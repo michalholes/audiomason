@@ -1,6 +1,6 @@
 import pytest
 
-from audiomason.pipeline_steps import resolve_pipeline_steps, DEFAULT_ORDER
+from audiomason.pipeline_steps import DEFAULT_ORDER, resolve_pipeline_steps
 from audiomason.util import AmConfigError
 
 
