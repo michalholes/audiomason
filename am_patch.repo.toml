@@ -1,0 +1,227 @@
+# Repo-local AMP policy for the audiomason2 repo.
+# Intended destination: .am_patch/am_patch.repo.toml
+# This file contains only repo-owned policy. Bootstrap/layout/IPC keys stay in the bootstrap config.
+
+[git]
+allow_push_fail = true
+default_branch = "main"
+require_up_to_date = true
+enforce_main_branch = true
+
+[gates]
+compile_check = true
+compile_targets = ["."]
+compile_exclude = ["patches"]
+
+ruff_autofix = true
+ruff_autofix_legalize_outside = false
+ruff_format = true
+
+
+# Repo-local Python gate interpreter policy.
+python_gate_mode = "runner"
+python_gate_python = ".venv/bin/python"
+
+gates_allow_fail = false
+gates_skip_dont_touch = false
+dont_touch_paths = [
+  ".am_patch/am_patch.repo.toml",
+  "tsconfig.json",
+  "biome.json",
+  "pytest.ini",
+  "pyproject.toml",
+  ".github/workflows/ci.yml",
+]
+apply_failure_partial_gates_policy = "repair_only"
+apply_failure_zero_gates_policy = "repair_only"
+
+gates_skip_ruff = false
+gates_skip_pytest = false
+gates_skip_mypy = false
+
+gates_skip_js = false
+gate_js_extensions = [".js"]
+gate_js_command = ["node", "--check"]
+
+gates_skip_biome = false
+biome_format = true
+biome_autofix = true
+biome_autofix_legalize_outside = true
+gate_biome_extensions = [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx"]
+gate_biome_format_command = ["npx", "--yes", "@biomejs/biome", "format", "--write"]
+gate_biome_command = ["npx", "--yes", "@biomejs/biome", "lint", "--diagnostic-level=error", "--max-diagnostics=10000"]
+gate_biome_fix_command = ["npx", "--yes", "@biomejs/biome", "lint", "--write", "--diagnostic-level=error", "--max-diagnostics=10000"]
+
+gates_skip_typescript = false
+gate_typescript_extensions = [".js", ".ts", ".tsx", ".mts", ".cts", ".d.ts"]
+gate_typescript_command = ["tsc", "--noEmit", "--pretty", "false", "--allowJs", "--checkJs", "--target", "ES2022", "--lib", "ES2022,DOM"]
+gate_typescript_mode = "auto"
+gate_typescript_base_tsconfig = "tsconfig.json"
+typescript_targets = ["plugins/", "am2-globals.d.ts", "playwright.config.ts"]
+
+gates_skip_docs = false
+gate_docs_include = ["src", "plugins"]
+gate_docs_exclude = ["badguys", "patches"]
+gate_docs_required_files = ["docs/change_fragments/"]
+
+gate_badguys_runner = "off"
+gate_badguys_command = ["badguys/badguys.py", "-q", "--exclude=test_900_commit_push_timestamp"]
+gate_badguys_cwd = "auto"
+
+gates_skip_monolith = false
+gate_monolith_enabled = true
+gate_monolith_mode = "strict"
+gate_monolith_scan_scope = "patch"
+gate_monolith_extensions = [".py", ".js"]
+gate_monolith_compute_fanin = true
+gate_monolith_on_parse_error = "fail"
+
+gate_monolith_large_loc = 900
+gate_monolith_huge_loc = 1300
+
+gate_monolith_large_allow_loc_increase = 20
+gate_monolith_huge_allow_loc_increase = 0
+gate_monolith_large_allow_exports_delta = 2
+gate_monolith_huge_allow_exports_delta = 0
+gate_monolith_large_allow_imports_delta = 1
+gate_monolith_huge_allow_imports_delta = 0
+
+gate_monolith_new_file_max_loc = 400
+gate_monolith_new_file_max_exports = 25
+gate_monolith_new_file_max_imports = 15
+
+gate_monolith_hub_fanin_delta = 5
+gate_monolith_hub_fanout_delta = 5
+gate_monolith_hub_exports_delta_min = 3
+gate_monolith_hub_loc_delta_min = 100
+
+gate_monolith_crossarea_min_distinct_areas = 3
+
+gate_monolith_catchall_basenames = ["utils.py", "common.py", "helpers.py", "misc.py"]
+gate_monolith_catchall_dirs = ["utils", "common", "helpers", "misc"]
+gate_monolith_catchall_allowlist = []
+
+gate_monolith_areas_prefixes = [
+  "src/audiomason/",
+  "plugins/",
+  "tests/",
+  "scripts/",
+  "wizards/",
+]
+
+gate_monolith_areas_names = [
+  "core",
+  "plugins",
+  "tests",
+  "tooling",
+  "wizards",
+]
+
+gate_monolith_areas_dynamic = [
+  "",
+  "plugins.<name>",
+  "",
+  "",
+  "",
+]
+
+[promotion]
+fail_if_live_files_changed = true
+live_changed_resolution = "fail"
+commit_and_push = true
+no_rollback = false
+
+[audit]
+post_success_audit = false
+audit_rubric_guard = false
+
+gate_ruff_mode = "auto"
+gate_mypy_mode = "auto"
+gate_pytest_mode = "auto"
+gate_pytest_py_prefixes = ["src", "plugins", "tests"]
+gate_pytest_js_prefixes = ["plugins"]
+pytest_routing_mode = "bucketed"
+pytest_full_suite_prefixes = [
+  "pyproject.toml",
+  "pytest.ini",
+  "tests/conftest.py",
+  "tests/e2e/conftest.py",
+  "tests/e2e/_server.py",
+  "tests/e2e/_server_web_interface.py",
+  "tests/e2e/_asset_inventory.py",
+]
+ruff_targets = ["src", "plugins", "tests"]
+pytest_targets = ["tests"]
+mypy_targets = ["src", "plugins"]
+
+[pytest_roots]
+"am2.*" = "src/audiomason/core/"
+"*" = "*"
+
+[pytest_tree]
+"am2.plugins" = "plugins/"
+"am2.plugins.audio_processor" = "plugins/audio_processor/"
+"am2.plugins.cmd_interface" = "plugins/cmd_interface/"
+"am2.plugins.cover_handler" = "plugins/cover_handler/"
+"am2.plugins.daemon" = "plugins/daemon/"
+"am2.plugins.diagnostics_console" = "plugins/diagnostics_console/"
+"am2.plugins.example_plugin" = "plugins/example_plugin/"
+"am2.plugins.file_io" = "plugins/file_io/"
+"am2.plugins.id3_tagger" = "plugins/id3_tagger/"
+"am2.plugins.import" = "plugins/import/"
+"am2.plugins.metadata_googlebooks" = "plugins/metadata_googlebooks/"
+"am2.plugins.metadata_openlibrary" = "plugins/metadata_openlibrary/"
+"am2.plugins.syslog" = "plugins/syslog/"
+"am2.plugins.test_all_plugin" = "plugins/test_all_plugin/"
+"am2.plugins.text_utils" = "plugins/text_utils/"
+"am2.plugins.tui" = "plugins/tui/"
+"am2.plugins.ui_rich" = "plugins/ui_rich/"
+"am2.plugins.web_interface" = "plugins/web_interface/"
+
+[pytest_namespace_modules]
+"am2" = ["audiomason.core"]
+"am2.plugins" = ["plugins"]
+"am2.plugins.audio_processor" = ["plugins.audio_processor"]
+"am2.plugins.cmd_interface" = ["plugins.cmd_interface"]
+"am2.plugins.cover_handler" = ["plugins.cover_handler"]
+"am2.plugins.daemon" = ["plugins.daemon"]
+"am2.plugins.diagnostics_console" = ["plugins.diagnostics_console"]
+"am2.plugins.example_plugin" = ["plugins.example_plugin"]
+"am2.plugins.file_io" = ["plugins.file_io"]
+"am2.plugins.id3_tagger" = ["plugins.id3_tagger"]
+"am2.plugins.import" = ["plugins.import"]
+"am2.plugins.metadata_googlebooks" = ["plugins.metadata_googlebooks"]
+"am2.plugins.metadata_openlibrary" = ["plugins.metadata_openlibrary"]
+"am2.plugins.syslog" = ["plugins.syslog"]
+"am2.plugins.test_all_plugin" = ["plugins.test_all_plugin"]
+"am2.plugins.text_utils" = ["plugins.text_utils"]
+"am2.plugins.tui" = ["plugins.tui"]
+"am2.plugins.ui_rich" = ["plugins.ui_rich"]
+"am2.plugins.web_interface" = ["plugins.web_interface"]
+
+[pytest_dependencies]
+"am2.plugins.import" = [
+  "am2.plugins.file_io",
+  "am2.plugins.cover_handler",
+  "am2.plugins.metadata_openlibrary",
+  "am2.plugins.audio_processor",
+  "am2.plugins.id3_tagger",
+]
+"am2.plugins.web_interface" = [
+  "am2.plugins.file_io",
+  "am2.plugins.import",
+]
+"am2.plugins.diagnostics_console" = ["am2.plugins.file_io"]
+"am2.plugins.syslog" = ["am2.plugins.file_io"]
+"am2.plugins.tui" = ["am2.plugins.file_io"]
+
+[pytest_external_dependencies]
+"am2.plugins.import" = [
+  "am2.plugins.cmd_interface",
+  "am2.plugins.daemon",
+  "am2.plugins.diagnostics_console",
+  "am2.plugins.metadata_googlebooks",
+  "am2.plugins.syslog",
+  "am2.plugins.text_utils",
+  "am2.plugins.web_interface",
+]

@@ -1,0 +1,25 @@
+{"type": "meta", "id": "META.LOCAL.GOVERNANCE", "version": "1.0.0", "description": "Cross-repo governance rules for local agents with direct repository access. Distilled from governance.jsonl — omits all ChatGPT-specific workflow ceremony (patch zips, handoffs, issue passports, plan freeze, navigator bootstrap)."}
+{"type": "rule", "id": "LOCAL.ARCH.001", "area": "anti-monolith", "statement": "A file with >= 1300 LOC must not grow: +0 LOC, +0 exports, +0 internal imports allowed."}
+{"type": "rule", "id": "LOCAL.ARCH.002", "area": "anti-monolith", "statement": "A file with >= 900 LOC has restricted growth: max +20 LOC, +2 exports, +1 internal import per change."}
+{"type": "rule", "id": "LOCAL.ARCH.003", "area": "anti-monolith", "statement": "A new file must not exceed 400 LOC, 25 exports, or 15 internal imports at creation."}
+{"type": "rule", "id": "LOCAL.ARCH.004", "area": "anti-monolith", "statement": "Catchall filenames are forbidden: utils.py, helpers.py, common.py, misc.py and equivalent JS variants."}
+{"type": "rule", "id": "LOCAL.ARCH.005", "area": "anti-monolith", "statement": "Catchall directories are forbidden: utils/, helpers/, common/, misc/."}
+{"type": "rule", "id": "LOCAL.ARCH.006", "area": "anti-monolith", "statement": "A single change touching 3 or more distinct ownership areas (src, plugins, scripts, tests, docs, badguys) is forbidden."}
+{"type": "rule", "id": "LOCAL.ARCH.007", "area": "anti-monolith", "statement": "Creating a hub module is forbidden: a file gaining >= 5 new importers and >= 3 new exports (fan-in hub), or >= 5 new imports and >= 100 new LOC (fan-out hub)."}
+{"type": "rule", "id": "LOCAL.ARCH.008", "area": "anti-monolith", "statement": "Cross-area coupling that breaks plugin or ownership boundaries is an architectural violation."}
+{"type": "rule", "id": "LOCAL.ARCH.009", "area": "anti-monolith", "statement": "If a monolith violation is detected, correct it before addressing any other issue (lint, types, tests)."}
+{"type": "rule", "id": "LOCAL.ARCH.010", "area": "anti-monolith", "statement": "Anti-monolith rules do not apply to .md and .json files."}
+{"type": "rule", "id": "LOCAL.CODE.001", "area": "code-quality", "statement": "All repository content must be written in English: source code, comments, commit messages, documentation, and specifications."}
+{"type": "rule", "id": "LOCAL.CODE.002", "area": "code-quality", "statement": "Non-ASCII characters are forbidden in source code comments, commit messages, specifications, and contracts."}
+{"type": "rule", "id": "LOCAL.CODE.003", "area": "code-quality", "statement": "Added or modified lines in .py and .js files must not exceed 100 characters."}
+{"type": "rule", "id": "LOCAL.CODE.004", "area": "code-quality", "statement": "Long function calls and collection literals in .py and .js must use parenthesized multi-line formatting when the line would exceed 100 characters."}
+{"type": "rule", "id": "LOCAL.DOCS.001", "area": "docs-gate", "statement": "Any change to src/, plugins/, or docs/ requires a corresponding new file under docs/change_fragments/. Direct editing of docs/changes.md is forbidden."}
+{"type": "rule", "id": "LOCAL.SPEC.001", "area": "specification", "statement": "If a specification change is needed, make it before the implementation change, in a separate commit."}
+{"type": "rule", "id": "LOCAL.SPEC.002", "area": "specification", "statement": "If a code deficiency is found and the specification is correct, fix the code only. Changing the specification to match broken code is forbidden."}
+{"type": "rule", "id": "LOCAL.SPEC.003", "area": "specification", "statement": "If both the code and the specification are deficient, both must be changed."}
+{"type": "rule", "id": "LOCAL.SPEC.004", "area": "specification", "statement": "Do not introduce new behavior without anchoring it explicitly in governance/specification.jsonl."}
+{"type": "rule", "id": "LOCAL.SPEC.005", "area": "specification", "statement": "Never create two truths: do not repeat the same constraint in multiple places in the specification."}
+{"type": "rule", "id": "LOCAL.AUTHORITY.001", "area": "authority-corpus", "statement": "Every change to governance/governance.jsonl or governance/governance_local.jsonl must increment meta.version."}
+{"type": "rule", "id": "LOCAL.AUTHORITY.002", "area": "authority-corpus", "statement": "If two copies of the corpus exist with the same meta.version but different content, this is a HARD STOP — do not proceed until the conflict is resolved."}
+{"type": "rule", "id": "LOCAL.AUTHORITY.003", "area": "authority-corpus", "statement": "The per-repo authoritative specification is governance/specification.jsonl. It is the single source of truth for what the code in this repository does, must do, and must not do."}
+{"type": "rule", "id": "LOCAL.BUG.001", "area": "bug-discipline", "statement": "When searching for a bug, find the root cause and all its consequences before proposing a fix. If another bug is discovered during the search, report it explicitly."}
