@@ -47,7 +47,7 @@ CI only runs `pytest` (no lint/typecheck in CI).
 
 ## Config
 
-Runtime config: `/etc/audiomason/config.yaml` (Debian install).
+Runtime config: `~/.config/audiomason1/config.yaml`.
 Override with `--config <path>`. CLI flags override config values.
 
 ## Gotchas

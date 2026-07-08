@@ -7,7 +7,7 @@ Installation steps:
 - docs/INSTALL.md
 
 Configuration:
-- /etc/audiomason/config.yaml
+- ~/.config/audiomason1/config.yaml
 - docs/CONFIGURATION.md
 
 ---

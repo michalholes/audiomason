@@ -35,7 +35,7 @@ def _find_repo_root() -> Path | None:
 AUDIOMASON_ROOT = os.environ.get("AUDIOMASON_ROOT")
 
 
-DEBIAN_DEFAULT_ROOT = Path("/etc/audiomason")
+USER_CONFIG_ROOT = Path.home() / ".config" / "audiomason1"
 
 
 def require_audiomason_root() -> Path:
@@ -43,17 +43,11 @@ def require_audiomason_root() -> Path:
     if env:
         return Path(env)
 
-    if DEBIAN_DEFAULT_ROOT.exists():
-        return DEBIAN_DEFAULT_ROOT
-
     repo = _find_repo_root()
     if repo:
         return repo
 
-    raise AmConfigError(
-        "AUDIOMASON_ROOT is not set and no default config found. "
-        "Expected /etc/audiomason/configuration.yaml."
-    )
+    return USER_CONFIG_ROOT
 
 
 def _data_base() -> Path:

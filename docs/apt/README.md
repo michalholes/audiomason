@@ -77,9 +77,13 @@ If signatures do not verify, do not publish. Fix signing first.
 
 User config lives at:
 
-- /etc/audiomason/config.yaml
+- ~/.config/audiomason1/config.yaml
 
-Package installs defaults, but users must set real paths before first run.
+Packaged example:
+
+- /usr/share/doc/audiomason/examples/config.yaml
+
+Users must set real paths before first run.
 
 ---
 

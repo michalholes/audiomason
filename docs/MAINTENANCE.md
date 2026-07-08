@@ -24,7 +24,7 @@ If installed via the signed APT repository:
 
 Main config file:
 
-- /etc/audiomason/config.yaml
+- ~/.config/audiomason1/config.yaml
 
 Recommended workflow:
 - keep paths stable

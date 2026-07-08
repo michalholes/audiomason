@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import IO, cast
 
@@ -79,14 +78,8 @@ def _load_yaml(p: Path) -> dict[str, object]:
         return _safe_load_yaml(f)
 
 
-SYSTEM_CONFIG_PATH = Path("/etc/audiomason/config.yaml")
-
-
 def user_config_path() -> Path:
-    """Deterministic user-space config path (XDG preferred)."""
-    xdg = os.environ.get("XDG_CONFIG_HOME")
-    if xdg:
-        return Path(xdg) / "audiomason1" / "config.yaml"
+    """Deterministic user-space config path."""
     return Path.home() / ".config" / "audiomason1" / "config.yaml"
 
 
@@ -145,29 +138,18 @@ def load_config(config_path: Path | None = None) -> dict[str, object]:
         tried.append(p)
         if not p.exists():
             raise AmConfigError(
-                f"Config not found: {p}. Resolution order: --config,"
-                " $XDG_CONFIG_HOME/audiomason1/config.yaml"
-                " (or ~/.config/audiomason1/config.yaml),"
-                " /etc/audiomason/config.yaml."
+                f"Config not found: {p}. Resolution order: "
+                "--config, ~/.config/audiomason1/config.yaml."
             )
     else:
-        up = user_config_path()
-        tried.append(up)
-        if up.exists():
-            p = up
-        else:
-            tried.append(SYSTEM_CONFIG_PATH)
-            if SYSTEM_CONFIG_PATH.exists():
-                p = SYSTEM_CONFIG_PATH
-            else:
-                tried_s = ", ".join(str(x) for x in tried)
-                raise AmConfigError(
-                    "Config not found. Tried (in order): " + tried_s + ". "
-                    "Provide --config or create a user-space config under"
-                    " $XDG_CONFIG_HOME/audiomason1/config.yaml"
-                    " (or ~/.config/audiomason1/config.yaml),"
-                    " or install /etc/audiomason/config.yaml."
-                )
+        p = user_config_path()
+        tried.append(p)
+        if not p.exists():
+            tried_s = ", ".join(str(x) for x in tried)
+            raise AmConfigError(
+                "Config not found. Tried (in order): " + tried_s + ". "
+                "Provide --config or create ~/.config/audiomason1/config.yaml."
+            )
 
     cfg = _deep_merge(DEFAULTS, _load_yaml(p))
     # Issue #76: validate prompts.disable (global prompt disable)

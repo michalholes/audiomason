@@ -64,14 +64,19 @@ Other installation methods (including GitHub Releases) are documented in:
 
 ## Configuration
 
-AudioMason uses a single system configuration file:
+AudioMason uses a single user configuration file:
 
 ```
-/etc/audiomason/config.yaml
+~/.config/audiomason1/config.yaml
 ```
 
-The file installed by the package is **fully commented** and safe by default.
-You must uncomment and set paths before first use.
+The package ships a commented example at:
+
+```
+/usr/share/doc/audiomason/examples/config.yaml
+```
+
+Copy it to the path above and set paths before first use.
 
 Minimal example:
 

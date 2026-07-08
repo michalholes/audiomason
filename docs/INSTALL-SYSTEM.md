@@ -21,7 +21,11 @@ AudioMason is packaged as a .deb and installs system-wide.
 
 Configuration file location:
 
-- /etc/audiomason/config.yaml
+- ~/.config/audiomason1/config.yaml
+
+Packaged example:
+
+- /usr/share/doc/audiomason/examples/config.yaml
 
 You must configure filesystem paths before first use.
 
@@ -57,11 +61,11 @@ Keep stage_root on fast storage if possible.
 
 2) Confirm config exists:
 
-    sudo ls -la /etc/audiomason/
+    ls -la ~/.config/audiomason1/
 
 3) Edit config:
 
-    sudoedit /etc/audiomason/config.yaml
+    cp /usr/share/doc/audiomason/examples/config.yaml ~/.config/audiomason1/config.yaml
 
 4) Create and permission your configured roots.
 

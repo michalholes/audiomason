@@ -1,1 +1,1 @@
-debian/config.yaml etc/audiomason/
+debian/config.yaml usr/share/doc/audiomason/examples/config.yaml

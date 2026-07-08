@@ -3,14 +3,11 @@
 AudioMason loads configuration using this precedence order:
 
 1) CLI: `--config /path/to/config.yaml` (highest priority)
-2) Environment: `AUDIOMASON_CONFIG=/path/to/config.yaml`
-3) User (XDG): `$XDG_CONFIG_HOME/audiomason1/config.yaml` (typically `~/.config/audiomason1/config.yaml`)
-4) System: `/etc/audiomason/config.yaml`
+2) Default user config: `~/.config/audiomason1/config.yaml`
 
-This supports both future daemon usage (system config in `/etc`) and per-user usage (XDG config),
-while keeping CI hermetic via `AUDIOMASON_CONFIG`.
+This keeps runtime configuration user-scoped and deterministic.
 
-This file is installed by the package and is safe by default, but you must set real paths before first use.
+The package ships a commented example at `/usr/share/doc/audiomason/examples/config.yaml`.
 
 Installation:
 - README.md
@@ -50,7 +47,7 @@ import:
 ### Paths precedence (runtime)
 
 If you explicitly configure any `paths.*` values in `config.yaml`, AudioMason must use them at runtime.
-When `paths.*` are present, **no fallback to XDG defaults** is allowed (no writes under `~/.local/share/audiomason/`).
+When `paths.*` are present, **no fallback to other config locations** is allowed.
 
 
 ---

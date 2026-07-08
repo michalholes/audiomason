@@ -1,5 +1,0 @@
-paths:
-  drop_root: /var/lib/audiomason/inbox
-  stage_root: /var/lib/audiomason/stage
-  output_root: /var/lib/audiomason/output
-  archive_root: /var/lib/audiomason/archive

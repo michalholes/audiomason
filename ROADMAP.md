@@ -14,7 +14,7 @@ This roadmap reflects the project state as of **v1.3.0** (2026-01-02).
 ### Packaging
 - Finish Debian packaging (buildable .deb, versioned release artifacts).
 - Install defaults:
-  - /etc/audiomason/config.yaml
+  - ~/.config/audiomason1/config.yaml
   - /var/lib/audiomason as a reasonable default data root (override via AUDIOMASON_DATA_ROOT).
 
 ### Documentation polish

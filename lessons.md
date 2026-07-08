@@ -10,3 +10,4 @@
 - For audiobook series titles, infer the numbering style from the root audio or batch suggestion first, then normalize the rest of the series to that single style.
 - For AI metadata hints, read existing ID3 tags read-only and pass them as small structured JSON samples instead of free-form prose.
 - For mixed numbering in a series, prefer arabic numerals as the canonical style.
+- For APT release keys, generate them non-interactively with `gpg --batch --pinentry-mode loopback --passphrase '' --quick-generate-key ...` to avoid TTY prompts during publish setup.
