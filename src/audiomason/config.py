@@ -85,8 +85,8 @@ def user_config_path() -> Path:
     """Deterministic user-space config path (XDG preferred)."""
     xdg = os.environ.get("XDG_CONFIG_HOME")
     if xdg:
-        return Path(xdg) / "audiomason" / "config.yaml"
-    return Path.home() / ".config" / "audiomason" / "config.yaml"
+        return Path(xdg) / "audiomason1" / "config.yaml"
+    return Path.home() / ".config" / "audiomason1" / "config.yaml"
 
 
 # Issue #76: global prompt disable (config validation)
@@ -145,8 +145,8 @@ def load_config(config_path: Path | None = None) -> dict[str, object]:
         if not p.exists():
             raise AmConfigError(
                 f"Config not found: {p}. Resolution order: --config,"
-                " $XDG_CONFIG_HOME/audiomason/config.yaml"
-                " (or ~/.config/audiomason/config.yaml),"
+                " $XDG_CONFIG_HOME/audiomason1/config.yaml"
+                " (or ~/.config/audiomason1/config.yaml),"
                 " /etc/audiomason/config.yaml."
             )
     else:
@@ -163,8 +163,8 @@ def load_config(config_path: Path | None = None) -> dict[str, object]:
                 raise AmConfigError(
                     "Config not found. Tried (in order): " + tried_s + ". "
                     "Provide --config or create a user-space config under"
-                    " $XDG_CONFIG_HOME/audiomason/config.yaml"
-                    " (or ~/.config/audiomason/config.yaml),"
+                    " $XDG_CONFIG_HOME/audiomason1/config.yaml"
+                    " (or ~/.config/audiomason1/config.yaml),"
                     " or install /etc/audiomason/config.yaml."
                 )
 

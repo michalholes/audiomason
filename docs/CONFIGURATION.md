@@ -4,7 +4,7 @@ AudioMason loads configuration using this precedence order:
 
 1) CLI: `--config /path/to/config.yaml` (highest priority)
 2) Environment: `AUDIOMASON_CONFIG=/path/to/config.yaml`
-3) User (XDG): `$XDG_CONFIG_HOME/audiomason/config.yaml` (typically `~/.config/audiomason/config.yaml`)
+3) User (XDG): `$XDG_CONFIG_HOME/audiomason1/config.yaml` (typically `~/.config/audiomason1/config.yaml`)
 4) System: `/etc/audiomason/config.yaml`
 
 This supports both future daemon usage (system config in `/etc`) and per-user usage (XDG config),
