@@ -44,6 +44,7 @@ DEFAULTS: dict[str, object] = {
         "model": "gpt-4o-mini",
         "api_key_env": "OPENAI_API_KEY",
         "timeout_s": 20,
+        "max_completion_tokens": 80,
     },
     "version-banner": True,
     # FEATURE #65: inbox cleanup control (delete processed source under DROP_ROOT)
@@ -229,6 +230,12 @@ def load_config(config_path: Path | None = None) -> dict[str, object]:
         _timeout = _ai.get("timeout_s")
         if not isinstance(_timeout, (int, float)) or float(_timeout) <= 0:
             raise AmConfigError("Invalid config: ai.timeout_s must be a positive number")
+    if "max_completion_tokens" in _ai:
+        _max_completion_tokens = _ai.get("max_completion_tokens")
+        if not isinstance(_max_completion_tokens, int) or _max_completion_tokens <= 0:
+            raise AmConfigError(
+                "Invalid config: ai.max_completion_tokens must be a positive integer"
+            )
     cfg["loaded_from"] = str(p)
     # Feature #72: expose runtime version (single source of truth)
     _rt = dict(_as_dict(cfg.get("runtime")))

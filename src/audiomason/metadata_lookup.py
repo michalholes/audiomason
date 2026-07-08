@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from typing import cast
 
 import audiomason.ai_lookup as ai_lookup
 import audiomason.openlibrary as openlibrary
 
 
 def _as_dict(value: object) -> dict[str, object]:
-    return value if isinstance(value, dict) else {}
+    return cast(dict[str, object], value) if isinstance(value, dict) else {}
 
 
 def _lookup_enabled(cfg: Mapping[str, object] | None) -> bool:
@@ -43,13 +44,15 @@ def is_enabled(cfg: Mapping[str, object] | None = None) -> bool:
 
 
 def _ai_cfg(cfg: Mapping[str, object] | None) -> Mapping[str, object] | None:
-    if cfg is None:
-        return None
-    raw = cfg.get("ai")
-    return raw if isinstance(raw, dict) else None
+    return cfg
 
 
-def validate_author(name: str, cfg: Mapping[str, object] | None = None) -> openlibrary.OLResult:
+def validate_author(
+    name: str,
+    cfg: Mapping[str, object] | None = None,
+    *,
+    context: str | None = None,
+) -> openlibrary.OLResult:
     q = (name or "").strip()
     if not q:
         return openlibrary.OLResult(False, "author:empty", 0, None)
@@ -61,7 +64,7 @@ def validate_author(name: str, cfg: Mapping[str, object] | None = None) -> openl
             return public_res
 
     if _ai_enabled(cfg):
-        suggestion = ai_lookup.suggest_author(q, cfg=_ai_cfg(cfg))
+        suggestion = ai_lookup.suggest_author(q, cfg=_ai_cfg(cfg), context=context)
         if suggestion:
             return openlibrary.OLResult(True, "author:ai", 1, suggestion, "ai")
 
@@ -71,7 +74,11 @@ def validate_author(name: str, cfg: Mapping[str, object] | None = None) -> openl
 
 
 def validate_book(
-    author: str, title: str, cfg: Mapping[str, object] | None = None
+    author: str,
+    title: str,
+    cfg: Mapping[str, object] | None = None,
+    *,
+    context: str | None = None,
 ) -> openlibrary.OLResult:
     a = (author or "").strip()
     t = (title or "").strip()
@@ -85,7 +92,7 @@ def validate_book(
             return public_res
 
     if _ai_enabled(cfg):
-        suggestion = ai_lookup.suggest_title(a, t, cfg=_ai_cfg(cfg))
+        suggestion = ai_lookup.suggest_title(a, t, cfg=_ai_cfg(cfg), context=context)
         if suggestion:
             return openlibrary.OLResult(True, "book:ai", 1, suggestion, "ai")
 

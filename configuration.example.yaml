@@ -90,6 +90,9 @@ ai:
   # Request timeout in seconds.
   timeout_s: 20
 
+  # Max completion tokens for chat-completion style backends.
+  max_completion_tokens: 80
+
 
 # FFMPEG / AUDIO
 ffmpeg:

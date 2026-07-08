@@ -162,6 +162,7 @@ ai:
   model: gpt-4o-mini
   api_key_env: OPENAI_API_KEY
   timeout_s: 20
+  max_completion_tokens: 80
 ```
 
 CLI override:
@@ -177,6 +178,7 @@ Rules:
 - `enabled: false` disables AI fallback entirely
 - AI is only used when public metadata lookup does not yield a safe suggestion
 - the suggestion is still offered explicitly; it never auto-overwrites metadata
+- `max_completion_tokens` controls the completion budget for compatible chat endpoints
 
 ## Related docs
 

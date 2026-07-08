@@ -187,6 +187,7 @@ ai:
   model: gpt-4o-mini
   api_key_env: OPENAI_API_KEY
   timeout_s: 20
+  max_completion_tokens: 80
 ```
 
 ### CLI

@@ -21,6 +21,7 @@ from audiomason.covers import (
     extract_embedded_cover_from_mp3,
     find_file_cover,
 )
+from audiomason.guess import guess_book_title_default, guess_source_author_default
 from audiomason.ignore import add_ignore, load_ignore
 from audiomason.manifest import load_manifest, source_fingerprint, update_manifest
 from audiomason.naming import normalize_name, normalize_sentence
@@ -1269,7 +1270,7 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
             if reuse_stage and use_manifest_answers and default_author:
                 author = default_author
             else:
-                dflt_author = default_author or src.name
+                dflt_author = default_author or guess_source_author_default(src.name)
                 author = _pf_prompt(cfg, "source_author", "[source] Author", dflt_author).strip()
                 na = normalize_name(author)
                 if na != author:
@@ -1281,7 +1282,7 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
                 if metadata_lookup.is_enabled(cfg):
                     if state.DEBUG:
                         out(f"[ol] validate author: author='{author}'")
-                    ar = metadata_lookup.validate_author(author, cfg)
+                    ar = metadata_lookup.validate_author(author, cfg, context=f"source={src.name}")
                     if state.DEBUG:
                         out(
                             f"[ol] author result: ok={ar.ok}"
@@ -1312,6 +1313,8 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
                 default_title = str(
                     bm_entry2.get("out_title") or bm_entry2.get("title") or ""
                 ).strip()
+                if not default_title:
+                    default_title = guess_book_title_default(b.label)
 
                 if reuse_stage and use_manifest_answers and default_title:
                     title = default_title
@@ -1328,7 +1331,12 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
                     if metadata_lookup.is_enabled(cfg):
                         if state.DEBUG:
                             out(f"[ol] validate book: author='{author}' title='{title}'")
-                        br = metadata_lookup.validate_book(author, title, cfg)
+                        br = metadata_lookup.validate_book(
+                            author,
+                            title,
+                            cfg,
+                            context=f"source={src.name}; book_label={b.label}",
+                        )
                         if (not br.ok) and (not br.top):
                             out(f"[ol] book not found: author='{author}' title='{title}'")
                         if state.DEBUG:

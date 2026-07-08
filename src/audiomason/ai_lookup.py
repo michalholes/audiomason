@@ -8,9 +8,10 @@ import time
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Protocol, cast
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from audiomason.util import strip_diacritics
+from audiomason.util import out, strip_diacritics
 
 DEFAULT_AI_CFG: dict[str, object] = {
     "enabled": False,
@@ -20,8 +21,11 @@ DEFAULT_AI_CFG: dict[str, object] = {
     "api_key_env": "OPENAI_API_KEY",
     "timeout_s": 20,
     "temperature": 0,
-    "max_tokens": 80,
+    "max_completion_tokens": 80,
 }
+
+MAX_AI_ATTEMPTS = 4
+RETRYABLE_HTTP_STATUSES = {429, 500, 502, 503, 504}
 
 _cache: dict[str, str | None] | None = None
 
@@ -49,6 +53,26 @@ def _request_text(req: Request, timeout: float) -> str:
     return raw_bytes.decode("utf-8", errors="replace")
 
 
+def _retry_after_seconds(exc: HTTPError, attempt: int) -> float:
+    delay = 1.0
+    for _ in range(max(attempt - 1, 0)):
+        delay *= 2.0
+    return delay
+
+
+def _request_text_with_retries(req: Request, timeout: float) -> str:
+    for attempt in range(1, MAX_AI_ATTEMPTS + 1):
+        try:
+            return _request_text(req, timeout)
+        except HTTPError as exc:
+            if exc.code not in RETRYABLE_HTTP_STATUSES or attempt >= MAX_AI_ATTEMPTS:
+                raise
+            delay = _retry_after_seconds(exc, attempt)
+            out(f"[ai] retry {attempt + 1}/{MAX_AI_ATTEMPTS} after {delay:.1f}s (HTTP {exc.code})")
+            time.sleep(delay)
+    raise RuntimeError("unreachable")
+
+
 def _cfg_path() -> Path | None:
     try:
         root = os.environ.get("AUDIOMASON_ROOT")
@@ -69,10 +93,11 @@ def _cache_load() -> dict[str, str | None]:
         return _cache
     try:
         raw = cp.read_text(encoding="utf-8")
-        data: object = _json_load_object(raw)
-        if not isinstance(data, dict):
+        data_obj = _json_load_object(raw)
+        if not isinstance(data_obj, dict):
             _cache = {}
             return _cache
+        data = cast(dict[str, object], data_obj)
         out: dict[str, str | None] = {}
         for k, v in data.items():
             out[str(k)] = str(v) if isinstance(v, str) else None
@@ -207,15 +232,19 @@ def _cache_key(kind: str, cfg: Mapping[str, object] | None, *parts: str) -> str:
 def _extract_content(raw: object) -> str | None:
     if not isinstance(raw, dict):
         return None
-    choices = raw.get("choices")
-    if not isinstance(choices, list) or not choices:
+    raw = cast(dict[str, object], raw)
+    choices_obj = raw.get("choices")
+    if not isinstance(choices_obj, list) or not choices_obj:
         return None
-    first = choices[0]
-    if not isinstance(first, dict):
+    choices = cast(list[object], choices_obj)
+    first_obj = choices[0]
+    if not isinstance(first_obj, dict):
         return None
+    first = cast(dict[str, object], first_obj)
     msg = first.get("message")
     if not isinstance(msg, dict):
         return None
+    msg = cast(dict[str, object], msg)
     content = msg.get("content")
     return str(content) if isinstance(content, str) else None
 
@@ -242,14 +271,14 @@ def _parse_json_suggestion(content: str) -> tuple[str | None, float]:
         return (data.strip() or None, 1.0)
     if not isinstance(data, dict):
         return (None, 0.0)
+    data = cast(dict[str, object], data)
 
     suggestion = data.get("suggestion") or data.get("title") or data.get("author")
     if not isinstance(suggestion, str):
+        confidence_raw = data.get("confidence")
         return (
             None,
-            float(data.get("confidence") or 0.0)
-            if isinstance(data.get("confidence"), (int, float))
-            else 0.0,
+            float(confidence_raw) if isinstance(confidence_raw, (int, float)) else 0.0,
         )
 
     confidence = data.get("confidence")
@@ -258,11 +287,17 @@ def _parse_json_suggestion(content: str) -> tuple[str | None, float]:
     return (suggestion.strip() or None, 1.0)
 
 
-def _call_ai(kind: str, prompt: str, cfg: Mapping[str, object] | None) -> str | None:
+def _call_ai(
+    kind: str,
+    prompt: str,
+    entered: str,
+    cfg: Mapping[str, object] | None,
+    context: str | None = None,
+) -> str | None:
     if not _enabled(cfg):
         return None
     if _dry_run():
-        return _cache_get(_cache_key(kind, cfg, prompt))
+        return _cache_get(_cache_key(kind, cfg, entered, context or ""))
 
     eff = _effective_cfg(cfg)
     endpoint = str(eff.get("endpoint") or DEFAULT_AI_CFG["endpoint"])
@@ -271,17 +306,24 @@ def _call_ai(kind: str, prompt: str, cfg: Mapping[str, object] | None) -> str | 
     timeout = _float_value(timeout_raw, 20.0)
     api_key = _api_key(cfg)
     if not api_key:
-        return _cache_get(_cache_key(kind, cfg, prompt))
+        return _cache_get(_cache_key(kind, cfg, entered, context or ""))
 
-    cache_key = _cache_key(kind, cfg, prompt)
+    cache_key = _cache_key(kind, cfg, entered, context or "")
     hit = _cache_get(cache_key)
     if hit is not None:
         return hit or None
 
+    user_prompt = prompt
+    if context:
+        user_prompt = prompt + "\n\nContext:\n" + context.strip()
+
     body = {
         "model": model,
         "temperature": _float_value(eff.get("temperature"), 0.0),
-        "max_tokens": _int_value(eff.get("max_tokens"), 80),
+        "max_completion_tokens": _int_value(
+            eff.get("max_completion_tokens"),
+            _int_value(eff.get("max_tokens"), 80),
+        ),
         "messages": [
             {
                 "role": "system",
@@ -291,7 +333,7 @@ def _call_ai(kind: str, prompt: str, cfg: Mapping[str, object] | None) -> str | 
                     "If unsure, return an empty suggestion."
                 ),
             },
-            {"role": "user", "content": prompt},
+            {"role": "user", "content": user_prompt},
         ],
     }
     req = Request(
@@ -304,8 +346,9 @@ def _call_ai(kind: str, prompt: str, cfg: Mapping[str, object] | None) -> str | 
         },
     )
     try:
+        out(f"[ai] ask {kind}: '{entered}'")
         time.sleep(0.2)
-        raw = _request_text(req, timeout)
+        raw = _request_text_with_retries(req, timeout)
         data: object = _json_load_object(raw)
         content = _extract_content(data)
         if not content:
@@ -318,14 +361,20 @@ def _call_ai(kind: str, prompt: str, cfg: Mapping[str, object] | None) -> str | 
         if confidence and confidence < 0.8:
             _cache_put(cache_key, None)
             return None
-        suggestion = _sanitize_suggestion(prompt, suggestion)
+        suggestion = _sanitize_suggestion(entered, suggestion)
         _cache_put(cache_key, suggestion)
         return suggestion
+    except HTTPError as exc:
+        out(f"[ai] failed {kind}: HTTP {exc.code}")
+        return _cache_get(cache_key)
     except Exception:
+        out(f"[ai] failed {kind}: unavailable")
         return _cache_get(cache_key)
 
 
-def suggest_author(name: str, cfg: Mapping[str, object] | None = None) -> str | None:
+def suggest_author(
+    name: str, cfg: Mapping[str, object] | None = None, *, context: str | None = None
+) -> str | None:
     q = (name or "").strip()
     if not q:
         return None
@@ -334,10 +383,16 @@ def suggest_author(name: str, cfg: Mapping[str, object] | None = None) -> str | 
         'Return JSON: {"suggestion": "...", "confidence": 0.0-1.0}. '
         f"Author: {q}"
     )
-    return _call_ai("author", prompt, cfg)
+    return _call_ai("author", prompt, q, cfg, context=context)
 
 
-def suggest_title(author: str, title: str, cfg: Mapping[str, object] | None = None) -> str | None:
+def suggest_title(
+    author: str,
+    title: str,
+    cfg: Mapping[str, object] | None = None,
+    *,
+    context: str | None = None,
+) -> str | None:
     a = (author or "").strip()
     t = (title or "").strip()
     if not a or not t:
@@ -348,4 +403,4 @@ def suggest_title(author: str, title: str, cfg: Mapping[str, object] | None = No
         'Return JSON: {"suggestion": "...", "confidence": 0.0-1.0}. '
         f"Author: {a}\nTitle: {t}"
     )
-    return _call_ai("title", prompt, cfg)
+    return _call_ai("title", prompt, t, cfg, context=context)
