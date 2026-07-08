@@ -1,6 +1,6 @@
 [project]
 name = "audiomason"
-version = "1.4.0-rc"
+version = "1.4.0rc0"
 description = "Ultra-modular audiobook processing framework"
 authors = [
     {name = "Michal Holes", email = "michal@holes.sk"}
