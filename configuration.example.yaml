@@ -74,6 +74,23 @@ cover:
   cache_dir: null
 
 
+# AI METADATA FALLBACK
+ai:
+  # Set to true to allow an LLM-based metadata fallback.
+  enabled: false
+
+  # OpenAI-compatible chat completion endpoint.
+  provider: openai_compatible
+  endpoint: https://api.openai.com/v1/chat/completions
+  model: gpt-4o-mini
+
+  # API key is loaded from environment by default.
+  api_key_env: OPENAI_API_KEY
+
+  # Request timeout in seconds.
+  timeout_s: 20
+
+
 # FFMPEG / AUDIO
 ffmpeg:
   # ffmpeg loglevel

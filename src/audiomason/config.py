@@ -37,6 +37,14 @@ DEFAULTS: dict[str, object] = {
     "prompts": {"disable": []},
     "processing_log": {"enabled": False, "path": None},
     "openlibrary": {"enabled": True},
+    "ai": {
+        "enabled": False,
+        "provider": "openai_compatible",
+        "endpoint": "https://api.openai.com/v1/chat/completions",
+        "model": "gpt-4o-mini",
+        "api_key_env": "OPENAI_API_KEY",
+        "timeout_s": 20,
+    },
     "version-banner": True,
     # FEATURE #65: inbox cleanup control (delete processed source under DROP_ROOT)
     # Default preserves current behavior: never delete inbox sources unless explicitly configured.
@@ -206,6 +214,21 @@ def load_config(config_path: Path | None = None) -> dict[str, object]:
     _ol = _as_dict(cfg.get("openlibrary"))
     if "enabled" in _ol and not isinstance(_ol.get("enabled"), bool):
         raise AmConfigError("Invalid config: openlibrary.enabled must be boolean")
+    _ai = _as_dict(cfg.get("ai"))
+    if "enabled" in _ai and not isinstance(_ai.get("enabled"), bool):
+        raise AmConfigError("Invalid config: ai.enabled must be boolean")
+    if "provider" in _ai and not isinstance(_ai.get("provider"), str):
+        raise AmConfigError("Invalid config: ai.provider must be a string")
+    if "endpoint" in _ai and not isinstance(_ai.get("endpoint"), str):
+        raise AmConfigError("Invalid config: ai.endpoint must be a string")
+    if "model" in _ai and not isinstance(_ai.get("model"), str):
+        raise AmConfigError("Invalid config: ai.model must be a string")
+    if "api_key_env" in _ai and not isinstance(_ai.get("api_key_env"), str):
+        raise AmConfigError("Invalid config: ai.api_key_env must be a string")
+    if "timeout_s" in _ai:
+        _timeout = _ai.get("timeout_s")
+        if not isinstance(_timeout, (int, float)) or float(_timeout) <= 0:
+            raise AmConfigError("Invalid config: ai.timeout_s must be a positive number")
     cfg["loaded_from"] = str(p)
     # Feature #72: expose runtime version (single source of truth)
     _rt = dict(_as_dict(cfg.get("runtime")))

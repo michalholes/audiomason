@@ -150,6 +150,34 @@ use the deterministic default or fail-fast if no default exists.
 > Guardrail: preflight prompts must route through the preflight wrappers/dispatcher.
 > Issue #94 adds a test to prevent reintroducing legacy bypasses.
 
+### 3) AI metadata fallback: `ai`
+
+AudioMason can optionally use an LLM as a last-resort metadata fallback when OpenLibrary / Google Books do not produce a safe suggestion.
+
+```yaml
+ai:
+  enabled: false
+  provider: openai_compatible
+  endpoint: https://api.openai.com/v1/chat/completions
+  model: gpt-4o-mini
+  api_key_env: OPENAI_API_KEY
+  timeout_s: 20
+```
+
+CLI override:
+
+```bash
+--ai-lookup
+--no-ai-lookup
+```
+
+Rules:
+
+- `enabled: true` allows AI fallback
+- `enabled: false` disables AI fallback entirely
+- AI is only used when public metadata lookup does not yield a safe suggestion
+- the suggestion is still offered explicitly; it never auto-overwrites metadata
+
 ## Related docs
 
 - docs/WORKFLOW.md
@@ -192,4 +220,3 @@ Notes (post-Issue #93):
   they must exist in the list, are validated, and are not offered as movable options in interactive selection.
 - All preflight prompts are executed via the **preflight registry + orchestrator/dispatcher**.
   Direct ad-hoc prompts in `import_flow.py` are treated as regressions.
-

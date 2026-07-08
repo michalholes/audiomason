@@ -4,16 +4,9 @@ from __future__ import annotations
 from collections.abc import Iterable
 from pathlib import Path
 
-from mutagen.id3 import (  # type: ignore[attr-defined]
-    APIC,
-    ID3,
-    TALB,
-    TCON,
-    TIT2,
-    TPE1,
-    TRCK,
-    ID3NoHeaderError,
-)
+from mutagen.id3 import ID3
+from mutagen.id3._frames import APIC, TALB, TCON, TIT2, TPE1, TRCK
+from mutagen.id3._util import ID3NoHeaderError
 
 from audiomason.paths import GENRE
 from audiomason.util import out

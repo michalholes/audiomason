@@ -334,6 +334,40 @@ def main() -> int:
             else:
                 _apply_builtin_defaults(ns)
 
+            # Issue #82: resolve metadata lookup enablement (CLI > config)
+            if "--lookup" in argv_set:
+                _ol_cli = True
+            elif "--no-lookup" in argv_set:
+                _ol_cli = False
+            else:
+                _ol_cli = None
+
+            if "--ai-lookup" in argv_set:
+                _ai_cli = True
+            elif "--no-ai-lookup" in argv_set:
+                _ai_cli = False
+            else:
+                _ai_cli = None
+
+            if cfg is not None:
+                _ol_cfg = _as_dict(cfg.get("openlibrary"))
+                _ol_effective = (
+                    _ol_cli if _ol_cli is not None else bool(_ol_cfg.get("enabled", True))
+                )
+                cfg["_openlibrary_enabled"] = bool(_ol_effective)
+
+                _ai_cfg = _as_dict(cfg.get("ai"))
+                _ai_effective = (
+                    _ai_cli if _ai_cli is not None else bool(_ai_cfg.get("enabled", False))
+                )
+                cfg["_ai_enabled"] = bool(_ai_effective)
+            else:
+                _ol_effective = _ol_cli if _ol_cli is not None else cast(bool, ns.lookup)
+                _ai_effective = _ai_cli if _ai_cli is not None else cast(bool, ns.ai_lookup)
+
+            ns.lookup = bool(_ol_effective)
+            ns.ai_lookup = bool(_ai_effective)
+
             state.OPTS = _ns_to_opts(ns)
 
             if state.DEBUG:
@@ -354,25 +388,11 @@ def main() -> int:
 
             if cast(str, ns.cmd) == "verify" and cfg is None:
                 root = cast(Path | None, getattr(ns, "root", None)) or state.OPTS.verify_root
-                verify_library(root)
+                verify_library(root, None)
                 return 0
 
             # From here on, commands are config-dependent.
             assert cfg is not None
-
-            # Issue #82: resolve OpenLibrary enablement (CLI > config)
-            if "--lookup" in argv_set:
-                _ol_cli = True
-            elif "--no-lookup" in argv_set:
-                _ol_cli = False
-            else:
-                _ol_cli = None
-
-            _ol_cfg = _as_dict(cfg.get("openlibrary"))
-            _ol_cfg_enabled = bool(_ol_cfg.get("enabled", True))
-            _ol_effective = _ol_cli if _ol_cli is not None else _ol_cfg_enabled
-            state.OPTS.lookup = bool(_ol_effective)
-            cfg["_openlibrary_enabled"] = bool(_ol_effective)
 
             # FEATURE #65: config default for clean_inbox when flag not provided
             argv_list = list(sys.argv[1:])
@@ -417,7 +437,7 @@ def main() -> int:
 
             if cast(str, ns.cmd) == "verify":
                 root = cast(Path | None, getattr(ns, "root", None)) or state.OPTS.verify_root
-                verify_library(root)
+                verify_library(root, cfg)
                 return 0
 
             if cast(str, ns.cmd) == "cache":

@@ -3,7 +3,7 @@ import urllib.request
 
 import pytest
 
-import audiomason.import_flow as imp
+import audiomason.metadata_lookup as ml
 import audiomason.openlibrary as ol
 
 
@@ -18,9 +18,9 @@ def disable_external_book_metadata(monkeypatch):
       Patching only `audiomason.openlibrary.validate_book` then DOES NOT affect
       already-bound references inside other modules.
 
-    This fixture patches:
+    This fixture patches provider functions used by metadata lookup:
     - audiomason.openlibrary.validate_author / validate_book
-    - common callsites in audiomason.import_flow (if present)
+    - audiomason.ai_lookup.suggest_author / suggest_title
     - optionally blocks *all* urllib network access (default ON)
 
     Opt-out:
@@ -34,22 +34,18 @@ def disable_external_book_metadata(monkeypatch):
     def _stub_book(author, title):
         return ol.OLResult(False, "book:not_found", 0, None)
 
+    def _stub_ai(*args, **kwargs):
+        return None
+
     # Patch OpenLibrary module API
     monkeypatch.setattr(ol, "validate_author", _stub_author, raising=True)
     monkeypatch.setattr(ol, "validate_book", _stub_book, raising=True)
 
-    # Patch callsites in import_flow, if it imported these by value
-    for attr in (
-        "validate_author",
-        "validate_book",
-        "ol_validate_author",
-        "ol_validate_book",
-    ):
-        if hasattr(imp, attr):
-            if "author" in attr:
-                monkeypatch.setattr(imp, attr, _stub_author, raising=False)
-            else:
-                monkeypatch.setattr(imp, attr, _stub_book, raising=False)
+    # Patch the provider functions used by metadata_lookup
+    monkeypatch.setattr(ml.openlibrary, "validate_author", _stub_author, raising=True)
+    monkeypatch.setattr(ml.openlibrary, "validate_book", _stub_book, raising=True)
+    monkeypatch.setattr(ml.ai_lookup, "suggest_author", _stub_ai, raising=True)
+    monkeypatch.setattr(ml.ai_lookup, "suggest_title", _stub_ai, raising=True)
 
     # As a safety net, block any accidental network access in tests
     if not allow_net:

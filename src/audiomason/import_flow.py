@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TextIO, cast
 
+import audiomason.metadata_lookup as metadata_lookup
 import audiomason.state as state
 from audiomason.archives import unpack
 from audiomason.audio import convert_m4a_in_place, convert_opus_in_place
@@ -23,7 +24,7 @@ from audiomason.covers import (
 from audiomason.ignore import add_ignore, load_ignore
 from audiomason.manifest import load_manifest, source_fingerprint, update_manifest
 from audiomason.naming import normalize_name, normalize_sentence
-from audiomason.openlibrary import OLResult, validate_author, validate_book
+from audiomason.openlibrary import OLResult
 from audiomason.paths import (
     ARCHIVE_EXTS,
     get_archive_root,
@@ -324,7 +325,8 @@ def _ol_offer_top(
         return entered
     from audiomason.util import out
 
-    out(f"[ol] {kind} suggestion: '{e}' -> '{top}'")
+    prefix = "[ai]" if res.source == "ai" else "[ol]"
+    out(f"{prefix} {kind} suggestion: '{e}' -> '{top}'")
     if _pf_prompt_yes_no(cfg, key, f"Use suggested {kind} '{top}'?", default_no=True):
         return top
     return entered
@@ -1276,10 +1278,10 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
                         cfg, "normalize_author", "Apply suggested author?", default_no=True
                     ):
                         author = na
-                if _ol_enabled(cfg):
+                if metadata_lookup.is_enabled(cfg):
                     if state.DEBUG:
                         out(f"[ol] validate author: author='{author}'")
-                    ar = validate_author(author)
+                    ar = metadata_lookup.validate_author(author, cfg)
                     if state.DEBUG:
                         out(
                             f"[ol] author result: ok={ar.ok}"
@@ -1322,11 +1324,11 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
                             cfg, bi, len(picked_books), b, default_title=default_title
                         )
 
-                    # OpenLibrary suggestion (book title)
-                    if _ol_enabled(cfg):
+                    # Metadata suggestion (book title)
+                    if metadata_lookup.is_enabled(cfg):
                         if state.DEBUG:
                             out(f"[ol] validate book: author='{author}' title='{title}'")
-                        br = validate_book(author, title)
+                        br = metadata_lookup.validate_book(author, title, cfg)
                         if (not br.ok) and (not br.top):
                             out(f"[ol] book not found: author='{author}' title='{title}'")
                         if state.DEBUG:

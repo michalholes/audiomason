@@ -168,3 +168,40 @@ OpenLibrary suggestions respect the existing prompt-control keys:
 - `normalize_book_title`
 
 ---
+
+## AI metadata fallback
+
+**Identifier:** `ai`
+**Scope:** import / verify (author, book title)
+**Default:** disabled
+
+AudioMason can use an LLM as a last-resort metadata fallback when public lookups do not produce a safe suggestion.
+
+### Configuration
+
+```yaml
+ai:
+  enabled: true
+  provider: openai_compatible
+  endpoint: https://api.openai.com/v1/chat/completions
+  model: gpt-4o-mini
+  api_key_env: OPENAI_API_KEY
+  timeout_s: 20
+```
+
+### CLI
+
+```bash
+--ai-lookup
+--no-ai-lookup
+```
+
+### Behavior
+
+- `enabled: true`
+  -> AI fallback may be used after public lookup does not yield a safe suggestion
+  -> returned suggestion is still offered explicitly to the user
+
+- `enabled: false`
+  -> no AI requests
+  -> deterministic fallback stays unchanged

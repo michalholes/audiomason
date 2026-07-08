@@ -6,7 +6,9 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import cast
 
-from mutagen.id3 import APIC, ID3, ID3NoHeaderError  # type: ignore[attr-defined]
+from mutagen.id3 import ID3
+from mutagen.id3._frames import APIC
+from mutagen.id3._util import ID3NoHeaderError
 
 import audiomason.state as state
 from audiomason.paths import COVER_NAME, get_cache_root

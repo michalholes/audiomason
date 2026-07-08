@@ -5,15 +5,15 @@ from pathlib import Path
 from mutagen.id3 import ID3
 from mutagen.id3._util import ID3NoHeaderError
 
+import audiomason.metadata_lookup as metadata_lookup
 from audiomason.naming import normalize_name
-from audiomason.openlibrary import validate_author, validate_book
 from audiomason.paths import COVER_NAME
 from audiomason.util import out
 
 READ_ONLY_VERIFY = True
 
 
-def verify_library(root: Path) -> None:
+def verify_library(root: Path, cfg: dict[str, object] | None = None) -> None:
     """
     Verify audiobook library:
     - each book dir has cover.jpg
@@ -35,27 +35,20 @@ def verify_library(root: Path) -> None:
             if nb != b.name:
                 out(f"[name]   book: '{b.name}' -> '{nb}'")
 
-    # OpenLibrary validation (read-only)
-    try:
-        import audiomason.state as state
-
-        do_lookup = bool(state.OPTS is not None and state.OPTS.lookup)
-    except Exception:
-        do_lookup = False
-
-    if do_lookup and root.exists():
+    # Metadata validation (read-only)
+    if metadata_lookup.is_enabled(cfg) and root.exists():
         # Expect layout: root/Author/Book
         authors = [p for p in sorted(root.iterdir()) if p.is_dir()]
-        out(f"[verify] openlibrary: authors={len(authors)}")
+        out(f"[verify] metadata: authors={len(authors)}")
         for a in authors:
-            ar = validate_author(a.name)
+            ar = metadata_lookup.validate_author(a.name, cfg)
             out(
                 f"[ol] {a.name}: {ar.status} hits={ar.hits}"
                 + (f" top='{ar.top}'" if ar.top else "")
             )
             books = [p for p in sorted(a.iterdir()) if p.is_dir()]
             for b in books:
-                br = validate_book(a.name, b.name)
+                br = metadata_lookup.validate_book(a.name, b.name, cfg)
                 out(
                     f"[ol]   {b.name}: {br.status} hits={br.hits}"
                     + (f" top='{br.top}'" if br.top else "")

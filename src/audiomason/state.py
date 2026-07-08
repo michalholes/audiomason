@@ -21,6 +21,7 @@ class Opts:
     verify: bool = False
     verify_root: Path = Path(".")
     lookup: bool = False
+    ai_lookup: bool = False
     cleanup_stage: bool = False
     clean_inbox_mode: str = "ask"  # ask | yes | no
     split_chapters: bool = True

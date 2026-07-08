@@ -88,6 +88,7 @@ class OLResult:
     status: str
     hits: int
     top: str | None = None
+    source: str | None = None
 
 
 def _get_json(path: str, params: Mapping[str, object], timeout: float = 10.0) -> dict[str, object]:
@@ -107,11 +108,13 @@ def validate_author(name: str) -> OLResult:
     ck = "author:" + q
     hit = _cache_get(ck)
     if hit is not None:
+        top = cast(str | None, hit.get("top"))
         return OLResult(
             bool(hit.get("ok")),
             str(hit.get("status")),
             int(str(hit.get("hits") or 0)),
-            hit.get("top"),  # type: ignore[arg-type]
+            top,
+            cast(str | None, hit.get("source")),
         )
 
     try:
@@ -257,11 +260,13 @@ def validate_book(author: str, title: str) -> OLResult:
     ck = f"book:{a}|{t}"
     hit = _cache_get(ck)
     if hit is not None:
+        top = cast(str | None, hit.get("top"))
         return OLResult(
             bool(hit.get("ok")),
             str(hit.get("status")),
             int(str(hit.get("hits") or 0)),
-            hit.get("top"),  # type: ignore[arg-type]
+            top,
+            cast(str | None, hit.get("source")),
         )
 
     # Explicit fields due to /search.json default field changes.

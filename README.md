@@ -20,7 +20,7 @@ If the same input ever produces a different result, something is wrong - and tha
 - Imports audiobooks from directories or archives
 - Normalizes structure and filenames
 - Applies clean, deterministic tagging
-- Optionally fetches metadata (OpenLibrary, Google Books)
+- Optionally fetches metadata (OpenLibrary, Google Books, AI fallback)
 - Publishes finished audiobooks to a final library
 
 **Core principles:**
