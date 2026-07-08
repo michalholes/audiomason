@@ -1,6 +1,6 @@
 [project]
 name = "audiomason"
-version = "1.4.0rc0"
+version = "1.4.0rc1"
 description = "Ultra-modular audiobook processing framework"
 authors = [
     {name = "Michal Holes", email = "michal@holes.sk"}
@@ -51,7 +51,7 @@ web = [
 ]
 
 [project.scripts]
-audiomason = "audiomason.core:main"
+audiomason = "audiomason.cli:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]

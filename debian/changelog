@@ -1,6 +1,6 @@
-audiomason (1.4.0~rc0) UNRELEASED; urgency=medium
+audiomason (1.4.0~rc1) UNRELEASED; urgency=medium
 
-  * Release 1.4.0rc0
+  * Fix console script entrypoint
 
  --  <pi@michal.holes.sk>  Fri, 02 Jan 2026 18:03:57 +0100
 

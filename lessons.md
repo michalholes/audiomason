@@ -12,3 +12,4 @@
 - For mixed numbering in a series, prefer arabic numerals as the canonical style.
 - For APT release keys, generate them non-interactively with `gpg --batch --pinentry-mode loopback --passphrase '' --quick-generate-key ...` to avoid TTY prompts during publish setup.
 - For Debian native packages, the package version comes from `debian/changelog`, so keep it aligned with `pyproject.toml` before building a release.
+- For console scripts, point `project.scripts` at a module that actually exists in the installed distribution; otherwise the packaged CLI can break even when the wheel builds cleanly.
