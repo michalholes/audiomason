@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import TextIO, cast
 
 import audiomason.metadata_lookup as metadata_lookup
+import audiomason.openlibrary as openlibrary
 import audiomason.state as state
 from audiomason.archives import unpack
 from audiomason.audio import convert_m4a_in_place, convert_opus_in_place
@@ -21,7 +22,12 @@ from audiomason.covers import (
     extract_embedded_cover_from_mp3,
     find_file_cover,
 )
-from audiomason.guess import guess_book_title_default, guess_source_author_default
+from audiomason.guess import (
+    guess_book_title_default,
+    guess_series_numbering_style,
+    guess_source_author_default,
+    normalize_series_numbering,
+)
 from audiomason.ignore import add_ignore, load_ignore
 from audiomason.manifest import load_manifest, source_fingerprint, update_manifest
 from audiomason.naming import normalize_name, normalize_sentence
@@ -37,7 +43,7 @@ from audiomason.pipeline_steps import resolve_pipeline_steps
 from audiomason.preflight_orchestrator import PreflightContext, PreflightOrchestrator
 from audiomason.preflight_registry import DEFAULT_PREFLIGHT_STEPS, validate_steps_list
 from audiomason.rename import natural_sort, rename_sequential
-from audiomason.tags import wipe_id3, write_cover, write_tags
+from audiomason.tags import summarize_id3_files, wipe_id3, write_cover, write_tags
 from audiomason.util import AmConfigError, die, ensure_dir, out, prompt, prompt_yes_no, slug
 
 # FEATURE #67: disable selected preflight prompts (skip prompts deterministically)
@@ -78,6 +84,26 @@ def _as_str_list(value: object) -> list[str]:
         if isinstance(item, str):
             out.append(item)
     return out
+
+
+def _ignore_norms(values: set[str]) -> set[str]:
+    import unicodedata
+
+    def _norm(s: str) -> str:
+        return unicodedata.normalize("NFKC", s).strip().casefold()
+
+    out = {_norm(v) for v in values}
+    out |= {_norm(slug(v)) for v in values}
+    return out
+
+
+def _matches_ignore(label: str, ignore_norm: set[str]) -> bool:
+    import unicodedata
+
+    def _norm(s: str) -> str:
+        return unicodedata.normalize("NFKC", s).strip().casefold()
+
+    return _norm(label) in ignore_norm or _norm(slug(label)) in ignore_norm
 
 
 def _resolved_preflight_steps(cfg: dict[str, object]) -> list[str]:
@@ -343,7 +369,7 @@ def _list_sources(drop_root: Path) -> list[Path]:
     def _norm(s: str) -> str:
         return unicodedata.normalize("NFKC", s).strip().casefold()
 
-    ignore_raw = load_ignore(drop_root)
+    ignore_raw = load_ignore(drop_root, source_list=True)
     ignore_norm = {_norm(k) for k in ignore_raw}
     ignore_norm |= {_norm(slug(k)) for k in ignore_raw}
 
@@ -1042,9 +1068,8 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
             def _norm(s: str) -> str:
                 return unicodedata.normalize("NFKC", s).strip().casefold()
 
-            ignore_raw = load_ignore(drop_root)
-            ignore_norm = {_norm(k) for k in ignore_raw}
-            ignore_norm |= {_norm(slug(k)) for k in ignore_raw}
+            ignore_raw = load_ignore(drop_root, source_list=True)
+            ignore_norm = _ignore_norms(ignore_raw)
 
             candidates = {
                 _norm(src.name),
@@ -1121,7 +1146,15 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
 
             # [issue_86] Conversion is PROCESS-only (m4a/opus -> mp3). No heavy work in PREPARE.
 
-            books = _detect_books(stage_src)
+            all_books = _detect_books(stage_src)
+            book_ignore_raw = load_ignore(src)
+            book_ignore_norm = _ignore_norms(book_ignore_raw)
+            books = [b for b in all_books if not _matches_ignore(b.label, book_ignore_norm)]
+            if len(books) != len(all_books):
+                out(f"[books] skipped ignored: {len(all_books) - len(books)}")
+            if not books:
+                out("[books] skipped (ignored)")
+                return
 
             # book selection (skip when allowed, otherwise prompt with defaults)
             picked_books: list[BookGroup] = []
@@ -1265,12 +1298,58 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
             publish_b = bool(publish)
             wipe_b = bool(wipe)
 
+            batch_books: list[dict[str, object]] = []
+            mp3s_by_label: dict[str, list[Path]] = {}
+            id3_by_label: dict[str, list[dict[str, str]]] = {}
+            source_id3_context: list[dict[str, str]] = []
+            for b in picked_books:
+                mp3s = _collect_audio_files(b.group_root)
+                mp3s_by_label[b.label] = mp3s
+                id3_context = summarize_id3_files(mp3s, limit=3)
+                id3_by_label[b.label] = id3_context
+                if b.label == "__ROOT_AUDIO__" and not source_id3_context:
+                    source_id3_context = id3_context
+                batch_books.append(
+                    {
+                        "label": b.label,
+                        "default_title": guess_book_title_default(b.label),
+                        "group_root": b.group_root.name,
+                        "root_audio": b.label == "__ROOT_AUDIO__",
+                        "audio_files": [p.name for p in mp3s[:8]],
+                        "id3": id3_context,
+                    }
+                )
+
+            batch_defaults = metadata_lookup.suggest_batch_defaults(
+                src.name,
+                batch_books,
+                cfg,
+                artifact_dir=stage_run,
+            )
+            series_style = guess_series_numbering_style(
+                [
+                    {
+                        "default_title": (
+                            batch_defaults.book_titles.get(b.label)
+                            if batch_defaults is not None and b.label in batch_defaults.book_titles
+                            else guess_book_title_default(b.label)
+                        ),
+                        "root_audio": b.label == "__ROOT_AUDIO__",
+                    }
+                    for b in picked_books
+                ]
+            )
+
             # Issue #66: resolve source author (required for OpenLibrary validate_book)
             default_author = str(dec.get("author") or "").strip() if isinstance(dec, dict) else ""
             if reuse_stage and use_manifest_answers and default_author:
                 author = default_author
             else:
-                dflt_author = default_author or guess_source_author_default(src.name)
+                dflt_author = (
+                    default_author
+                    or (batch_defaults.source_author if batch_defaults is not None else None)
+                    or guess_source_author_default(src.name)
+                )
                 author = _pf_prompt(cfg, "source_author", "[source] Author", dflt_author).strip()
                 na = normalize_name(author)
                 if na != author:
@@ -1282,7 +1361,21 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
                 if metadata_lookup.is_enabled(cfg):
                     if state.DEBUG:
                         out(f"[ol] validate author: author='{author}'")
-                    ar = metadata_lookup.validate_author(author, cfg, context=f"source={src.name}")
+                    author_context = f"source={src.name}"
+                    if source_id3_context:
+                        author_context += "; id3=" + json.dumps(
+                            source_id3_context, ensure_ascii=False, sort_keys=True
+                        )
+                    ar = (
+                        openlibrary.validate_author(author)
+                        if batch_defaults is not None
+                        else metadata_lookup.validate_author(
+                            author,
+                            cfg,
+                            context=author_context,
+                            artifact_dir=stage_run,
+                        )
+                    )
                     if state.DEBUG:
                         out(
                             f"[ol] author result: ok={ar.ok}"
@@ -1314,7 +1407,12 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
                     bm_entry2.get("out_title") or bm_entry2.get("title") or ""
                 ).strip()
                 if not default_title:
-                    default_title = guess_book_title_default(b.label)
+                    default_title = (
+                        batch_defaults.book_titles.get(b.label)
+                        if batch_defaults is not None
+                        else None
+                    ) or guess_book_title_default(b.label)
+                default_title = normalize_series_numbering(default_title, series_style)
 
                 if reuse_stage and use_manifest_answers and default_title:
                     title = default_title
@@ -1331,11 +1429,21 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
                     if metadata_lookup.is_enabled(cfg):
                         if state.DEBUG:
                             out(f"[ol] validate book: author='{author}' title='{title}'")
-                        br = metadata_lookup.validate_book(
-                            author,
-                            title,
-                            cfg,
-                            context=f"source={src.name}; book_label={b.label}",
+                        book_context = f"source={src.name}; book_label={b.label}"
+                        if id3_by_label.get(b.label):
+                            book_context += "; id3=" + json.dumps(
+                                id3_by_label[b.label], ensure_ascii=False, sort_keys=True
+                            )
+                        br = (
+                            openlibrary.validate_book(author, title)
+                            if batch_defaults is not None
+                            else metadata_lookup.validate_book(
+                                author,
+                                title,
+                                cfg,
+                                context=book_context,
+                                artifact_dir=stage_run,
+                            )
                         )
                         if (not br.ok) and (not br.top):
                             out(f"[ol] book not found: author='{author}' title='{title}'")
@@ -1363,7 +1471,7 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
                     if (reuse_stage and use_manifest_answers)
                     else ""
                 )
-                mp3s = _collect_audio_files(b.group_root)
+                mp3s = mp3s_by_label[b.label]
                 mp3_first = mp3s[0] if mp3s else None
                 file_cover = find_file_cover(b.stage_root, b.group_root)
                 embedded = extract_embedded_cover_from_mp3(mp3_first) if mp3_first else None
@@ -1616,10 +1724,14 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
             out("[phase] FINALIZE")
 
             # FEATURE #26: clean stage at end (successful run only)
-            # FEATURE #51: mark processed source as ignored
+            # FEATURE #51: mark processed books as ignored; source only when complete
             if not (state.OPTS and state.OPTS.dry_run):
-                add_ignore(drop_root, src.name)
-                out(f"[ignore] added: {src.name}")
+                for label in processed_labels:
+                    add_ignore(src, label)
+                book_ignore_after = _ignore_norms(load_ignore(src))
+                if all(_matches_ignore(b.label, book_ignore_after) for b in all_books):
+                    add_ignore(drop_root, src.name, source_list=True)
+                    out(f"[ignore] added: {src.name}")
             # FEATURE #65: inbox cleanup control (run-level decision)
             do_clean_inbox = bool(run_clean_inbox)
 

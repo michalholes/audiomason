@@ -3,6 +3,7 @@ from __future__ import annotations
 # pyright: reportPrivateImportUsage=false, reportUnknownMemberType=false
 from collections.abc import Iterable
 from pathlib import Path
+from typing import Protocol, cast
 
 from mutagen.id3 import ID3
 from mutagen.id3._frames import APIC, TALB, TCON, TIT2, TPE1, TRCK
@@ -12,6 +13,10 @@ from audiomason.paths import GENRE
 from audiomason.util import out
 
 
+class _TextFrame(Protocol):
+    text: object
+
+
 def _load_id3(p: Path) -> ID3:
     try:
         return ID3(p)  # type: ignore[no-untyped-call]
@@ -19,6 +24,49 @@ def _load_id3(p: Path) -> ID3:
         id3 = ID3()  # type: ignore[no-untyped-call]
         id3.save(p)
         return ID3(p)  # type: ignore[no-untyped-call]
+
+
+def _frame_text(id3: ID3, key: str) -> str | None:
+    frames = cast(list[object], id3.getall(key))  # type: ignore[no-untyped-call]
+    if not frames:
+        return None
+    frame = cast(_TextFrame, frames[0])
+    text = frame.text
+    if isinstance(text, list):
+        parts = [str(item).strip() for item in cast(list[object], text) if str(item).strip()]
+        return " / ".join(parts) if parts else None
+    if isinstance(text, str):
+        t = text.strip()
+        return t or None
+    return None
+
+
+def summarize_id3(mp3: Path) -> dict[str, str]:
+    try:
+        id3 = ID3(mp3)  # type: ignore[no-untyped-call]
+    except ID3NoHeaderError:
+        return {"file": mp3.name}
+    out: dict[str, str] = {"file": mp3.name}
+    for key, field in (
+        ("TIT2", "title"),
+        ("TPE1", "artist"),
+        ("TPE2", "albumartist"),
+        ("TALB", "album"),
+        ("TRCK", "track"),
+        ("TCON", "genre"),
+    ):
+        value = _frame_text(id3, key)
+        if value:
+            out[field] = value
+    return out
+
+
+def summarize_id3_files(files: Iterable[Path], limit: int = 3) -> list[dict[str, str]]:
+    out: list[dict[str, str]] = []
+    for mp3 in list(files)[:limit]:
+        if mp3.is_file() and mp3.suffix.lower() == ".mp3":
+            out.append(summarize_id3(mp3))
+    return out
 
 
 def wipe_id3(files: Iterable[Path]) -> None:

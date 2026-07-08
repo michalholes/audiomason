@@ -5,6 +5,7 @@ import json
 from collections.abc import Mapping
 from email.message import Message
 from io import BytesIO
+from pathlib import Path
 from typing import cast
 from urllib.error import HTTPError
 
@@ -94,3 +95,34 @@ def test_ai_lookup_low_confidence_is_rejected(monkeypatch: pytest.MonkeyPatch):
     )
 
     assert out is None
+
+
+def test_ai_lookup_writes_raw_response_into_artifact_dir(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    importlib.reload(ai_lookup)
+    payload = {"choices": [{"message": {"content": '{"suggestion":"D. Adams","confidence":0.99}'}}]}
+
+    def fake_urlopen(req: object, timeout: float) -> _FakeResp:
+        return _FakeResp(payload)
+
+    monkeypatch.setattr(ai_lookup, "_cache", {}, raising=False)
+    monkeypatch.setattr(ai_lookup, "_dry_run", lambda: False, raising=True)
+    monkeypatch.setattr(ai_lookup, "_cfg_path", lambda: None, raising=True)
+    monkeypatch.setattr(ai_lookup, "urlopen", fake_urlopen, raising=True)
+
+    def fake_sleep(seconds: float) -> None:
+        return None
+
+    monkeypatch.setattr(ai_lookup.time, "sleep", fake_sleep, raising=True)
+
+    out = ai_lookup.suggest_author(
+        "Douglas Adams",
+        cfg={"ai": {"enabled": True, "api_key": "test-key"}},
+        artifact_dir=tmp_path / "stage-run",
+    )
+
+    assert out == "D. Adams"
+    files = list((tmp_path / "stage-run" / "_ai").glob("author-*.raw.json"))
+    assert len(files) == 1
+    assert "D. Adams" in files[0].read_text(encoding="utf-8")

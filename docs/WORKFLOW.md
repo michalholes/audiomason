@@ -23,7 +23,7 @@ This contract exists to make imports resumable and predictable, and to keep PROC
 4) Detect book groups
 5) PREPARE decisions (author, per-book metadata, cover decision, destination conflict resolution)
 6) PROCESS each selected book group into destination (no prompts)
-7) FINALIZE: mark source as ignored and optionally clean stage on success
+7) FINALIZE: mark processed books as ignored; mark source as ignored only when all books are done; optionally clean stage on success
 8) Optional: print JSON report when enabled
 
 ## Phase details
@@ -75,7 +75,8 @@ Rules:
 ### FINALIZE
 
 Responsibilities:
-- Mark processed source as ignored (so it no longer shows up in inbox selection)
+- Mark processed books as ignored (so they no longer show up in book selection)
+- Mark the source as ignored only after every book in that source has been processed
 - Optional stage cleanup if selected (successful runs only)
 - Optional JSON report output when enabled
 

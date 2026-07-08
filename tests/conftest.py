@@ -37,6 +37,9 @@ def disable_external_book_metadata(monkeypatch):
     def _stub_ai(*args, **kwargs):
         return None
 
+    def _stub_batch(*args, **kwargs):
+        return None
+
     # Patch OpenLibrary module API
     monkeypatch.setattr(ol, "validate_author", _stub_author, raising=True)
     monkeypatch.setattr(ol, "validate_book", _stub_book, raising=True)
@@ -46,6 +49,7 @@ def disable_external_book_metadata(monkeypatch):
     monkeypatch.setattr(ml.openlibrary, "validate_book", _stub_book, raising=True)
     monkeypatch.setattr(ml.ai_lookup, "suggest_author", _stub_ai, raising=True)
     monkeypatch.setattr(ml.ai_lookup, "suggest_title", _stub_ai, raising=True)
+    monkeypatch.setattr(ml.ai_lookup, "suggest_batch_defaults", _stub_batch, raising=True)
 
     # As a safety net, block any accidental network access in tests
     if not allow_net:

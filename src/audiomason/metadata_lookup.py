@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from pathlib import Path
 from typing import cast
 
 import audiomason.ai_lookup as ai_lookup
@@ -47,11 +48,24 @@ def _ai_cfg(cfg: Mapping[str, object] | None) -> Mapping[str, object] | None:
     return cfg
 
 
+def suggest_batch_defaults(
+    source_name: str,
+    books: list[dict[str, object]],
+    cfg: Mapping[str, object] | None = None,
+    *,
+    artifact_dir: Path | None = None,
+) -> ai_lookup.BatchMetadataSuggestions | None:
+    return ai_lookup.suggest_batch_defaults(
+        source_name, books, cfg=_ai_cfg(cfg), artifact_dir=artifact_dir
+    )
+
+
 def validate_author(
     name: str,
     cfg: Mapping[str, object] | None = None,
     *,
     context: str | None = None,
+    artifact_dir: Path | None = None,
 ) -> openlibrary.OLResult:
     q = (name or "").strip()
     if not q:
@@ -64,7 +78,9 @@ def validate_author(
             return public_res
 
     if _ai_enabled(cfg):
-        suggestion = ai_lookup.suggest_author(q, cfg=_ai_cfg(cfg), context=context)
+        suggestion = ai_lookup.suggest_author(
+            q, cfg=_ai_cfg(cfg), context=context, artifact_dir=artifact_dir
+        )
         if suggestion:
             return openlibrary.OLResult(True, "author:ai", 1, suggestion, "ai")
 
@@ -79,6 +95,7 @@ def validate_book(
     cfg: Mapping[str, object] | None = None,
     *,
     context: str | None = None,
+    artifact_dir: Path | None = None,
 ) -> openlibrary.OLResult:
     a = (author or "").strip()
     t = (title or "").strip()
@@ -92,7 +109,9 @@ def validate_book(
             return public_res
 
     if _ai_enabled(cfg):
-        suggestion = ai_lookup.suggest_title(a, t, cfg=_ai_cfg(cfg), context=context)
+        suggestion = ai_lookup.suggest_title(
+            a, t, cfg=_ai_cfg(cfg), context=context, artifact_dir=artifact_dir
+        )
         if suggestion:
             return openlibrary.OLResult(True, "book:ai", 1, suggestion, "ai")
 

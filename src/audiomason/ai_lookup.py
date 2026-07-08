@@ -5,7 +5,8 @@ import json
 import os
 import re
 import time
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol, cast
 from urllib.error import HTTPError
@@ -26,6 +27,13 @@ DEFAULT_AI_CFG: dict[str, object] = {
 
 MAX_AI_ATTEMPTS = 4
 RETRYABLE_HTTP_STATUSES = {429, 500, 502, 503, 504}
+
+
+@dataclass(frozen=True)
+class BatchMetadataSuggestions:
+    source_author: str | None
+    book_titles: dict[str, str]
+
 
 _cache: dict[str, str | None] | None = None
 
@@ -132,6 +140,23 @@ def _cache_put(key: str, suggestion: str | None) -> None:
     tmp.replace(cp)
 
 
+def _artifact_path(artifact_dir: Path | None, kind: str, cache_key: str) -> Path | None:
+    if artifact_dir is None:
+        return None
+    return artifact_dir / "_ai" / f"{kind}-{cache_key}.raw.json"
+
+
+def _write_artifact(artifact_dir: Path | None, kind: str, cache_key: str, raw: str) -> None:
+    path = _artifact_path(artifact_dir, kind, cache_key)
+    if path is None:
+        return
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(raw, encoding="utf-8")
+    except Exception:
+        pass
+
+
 def _dry_run() -> bool:
     try:
         import audiomason.state as state
@@ -157,6 +182,12 @@ def _sanitize_suggestion(entered: str, suggested: str | None) -> str | None:
     if _normalize(out) == _normalize(entered):
         return None
     return out
+
+
+def _clean_ascii_text(s: str) -> str | None:
+    out = strip_diacritics((s or "").strip())
+    out = re.sub(r"\s+", " ", out).strip()
+    return out or None
 
 
 def _float_value(value: object, default: float) -> float:
@@ -293,6 +324,7 @@ def _call_ai(
     entered: str,
     cfg: Mapping[str, object] | None,
     context: str | None = None,
+    artifact_dir: Path | None = None,
 ) -> str | None:
     if not _enabled(cfg):
         return None
@@ -349,6 +381,7 @@ def _call_ai(
         out(f"[ai] ask {kind}: '{entered}'")
         time.sleep(0.2)
         raw = _request_text_with_retries(req, timeout)
+        _write_artifact(artifact_dir, kind, cache_key, raw)
         data: object = _json_load_object(raw)
         content = _extract_content(data)
         if not content:
@@ -373,7 +406,11 @@ def _call_ai(
 
 
 def suggest_author(
-    name: str, cfg: Mapping[str, object] | None = None, *, context: str | None = None
+    name: str,
+    cfg: Mapping[str, object] | None = None,
+    *,
+    context: str | None = None,
+    artifact_dir: Path | None = None,
 ) -> str | None:
     q = (name or "").strip()
     if not q:
@@ -383,7 +420,7 @@ def suggest_author(
         'Return JSON: {"suggestion": "...", "confidence": 0.0-1.0}. '
         f"Author: {q}"
     )
-    return _call_ai("author", prompt, q, cfg, context=context)
+    return _call_ai("author", prompt, q, cfg, context=context, artifact_dir=artifact_dir)
 
 
 def suggest_title(
@@ -392,6 +429,7 @@ def suggest_title(
     cfg: Mapping[str, object] | None = None,
     *,
     context: str | None = None,
+    artifact_dir: Path | None = None,
 ) -> str | None:
     a = (author or "").strip()
     t = (title or "").strip()
@@ -403,4 +441,208 @@ def suggest_title(
         'Return JSON: {"suggestion": "...", "confidence": 0.0-1.0}. '
         f"Author: {a}\nTitle: {t}"
     )
-    return _call_ai("title", prompt, t, cfg, context=context)
+    return _call_ai("title", prompt, t, cfg, context=context, artifact_dir=artifact_dir)
+
+
+def _parse_batch_payload(content: str) -> dict[str, object] | None:
+    txt = content.strip()
+    if not txt:
+        return None
+    if txt.startswith("```"):
+        txt = re.sub(r"^```(?:json)?\s*", "", txt, flags=re.I)
+        txt = re.sub(r"\s*```$", "", txt)
+    data_obj: object
+    try:
+        data_obj = json.loads(txt)
+    except Exception:
+        m = re.search(r"\{.*\}", txt, flags=re.S)
+        if m is None:
+            return None
+        try:
+            data_obj = json.loads(m.group(0))
+        except Exception:
+            return None
+    if not isinstance(data_obj, dict):
+        return None
+    return cast(dict[str, object], data_obj)
+
+
+def _batch_suggestions_from_payload(payload: object) -> BatchMetadataSuggestions | None:
+    if not isinstance(payload, dict):
+        return None
+    data = cast(dict[str, object], payload)
+
+    source_author_raw = data.get("source_author")
+    source_author = (
+        _clean_ascii_text(source_author_raw) if isinstance(source_author_raw, str) else None
+    )
+
+    book_titles: dict[str, str] = {}
+    books_raw = data.get("books")
+    if isinstance(books_raw, list):
+        for item_obj in cast(list[object], books_raw):
+            if not isinstance(item_obj, dict):
+                continue
+            item = cast(dict[str, object], item_obj)
+            label = str(item.get("label") or "").strip()
+            title_raw = item.get("title")
+            if not label or not isinstance(title_raw, str):
+                continue
+            title = _clean_ascii_text(title_raw)
+            if title:
+                book_titles[label] = title
+
+    return BatchMetadataSuggestions(source_author=source_author, book_titles=book_titles)
+
+
+def suggest_batch_defaults(
+    source_name: str,
+    books: Sequence[Mapping[str, object]],
+    cfg: Mapping[str, object] | None = None,
+    *,
+    artifact_dir: Path | None = None,
+) -> BatchMetadataSuggestions | None:
+    if not _enabled(cfg):
+        return None
+
+    source = _clean_ascii_text(source_name)
+    if not source:
+        return None
+
+    batch_books: list[dict[str, object]] = []
+    for b in books:
+        label = str(b.get("label") or "").strip()
+        if not label:
+            continue
+        default_title = str(b.get("default_title") or "").strip()
+        group_root = str(b.get("group_root") or "").strip()
+        root_audio = bool(b.get("root_audio"))
+        audio_files: list[str] = []
+        raw_files = b.get("audio_files")
+        if isinstance(raw_files, list):
+            for item in cast(list[object], raw_files):
+                if isinstance(item, str) and item.strip():
+                    audio_files.append(item.strip())
+        id3_samples: list[dict[str, str]] = []
+        raw_id3 = b.get("id3")
+        if isinstance(raw_id3, list):
+            for item in cast(list[object], raw_id3):
+                if not isinstance(item, dict):
+                    continue
+                sample: dict[str, str] = {}
+                for k, v in cast(dict[str, object], item).items():
+                    if isinstance(v, str):
+                        vv = v.strip()
+                        if vv:
+                            sample[str(k)] = vv
+                if sample:
+                    id3_samples.append(sample)
+        batch_books.append(
+            {
+                "label": label,
+                "default_title": default_title,
+                "group_root": group_root,
+                "root_audio": root_audio,
+                "audio_files": audio_files,
+                "id3": id3_samples,
+            }
+        )
+
+    if not batch_books:
+        return None
+
+    payload = {"source_name": source_name, "books": batch_books}
+    payload_json = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    cache_key = _cache_key("batch", cfg, source, payload_json)
+
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        cached_obj = _parse_batch_payload(cached)
+        return _batch_suggestions_from_payload(cached_obj)
+
+    eff = _effective_cfg(cfg)
+    endpoint = str(eff.get("endpoint") or DEFAULT_AI_CFG["endpoint"])
+    model = str(eff.get("model") or DEFAULT_AI_CFG["model"])
+    timeout = _float_value(eff.get("timeout_s"), 20.0)
+    api_key = _api_key(cfg)
+    if not api_key:
+        return None
+
+    prompt = (
+        "Normalize selected audiobook metadata. Return only JSON with keys "
+        "source_author and books. "
+        "source_author must be an ASCII-only string or null. books must be a list of objects with "
+        "label and title. Each label must match an input label exactly. Do not invent new labels. "
+        "Normalize titles to ASCII. If present, id3 contains read-only hints from existing MP3 "
+        "tags and may help disambiguate titles. "
+        "Input:\n" + json.dumps(payload, ensure_ascii=False, indent=2)
+    )
+
+    body = {
+        "model": model,
+        "temperature": _float_value(eff.get("temperature"), 0.0),
+        "max_completion_tokens": _int_value(
+            eff.get("max_completion_tokens"),
+            _int_value(eff.get("max_tokens"), 80),
+        ),
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "Return only valid JSON with keys source_author and books. "
+                    "books must contain the same labels as the input. "
+                    "All suggestions must be ASCII-only. Existing id3 fields are read-only hints "
+                    "only."
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ],
+    }
+    req = Request(
+        endpoint,
+        data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+    )
+
+    try:
+        out(f"[ai] ask batch: source='{source}' books={len(batch_books)}")
+        time.sleep(0.2)
+        raw = _request_text_with_retries(req, timeout)
+        _write_artifact(artifact_dir, "batch", cache_key, raw)
+        data = _json_load_object(raw)
+        content = _extract_content(data)
+        if not content:
+            _cache_put(cache_key, None)
+            return None
+        obj = _parse_batch_payload(content)
+        if obj is None:
+            _cache_put(cache_key, None)
+            return None
+
+        result = _batch_suggestions_from_payload(obj)
+        if result is None:
+            _cache_put(cache_key, None)
+            return None
+        cache_payload = {
+            "source_author": result.source_author,
+            "books": [
+                {"label": label, "title": title}
+                for label, title in sorted(result.book_titles.items())
+            ],
+        }
+        _cache_put(cache_key, json.dumps(cache_payload, ensure_ascii=False, sort_keys=True))
+        return result
+    except HTTPError as exc:
+        out(f"[ai] failed batch: HTTP {exc.code}")
+        cached_after = _cache_get(cache_key)
+        if cached_after is None:
+            return None
+        cached_obj = _parse_batch_payload(cached_after)
+        return _batch_suggestions_from_payload(cached_obj)
+    except Exception:
+        out("[ai] failed batch: unavailable")
+        return None

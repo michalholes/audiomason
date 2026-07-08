@@ -167,7 +167,7 @@ def get_cache_root(cfg: _Cfg) -> Path:
 
 
 def get_ignore_file(cfg: _Cfg) -> Path:
-    return get_drop_root(cfg) / ".abook_ignore"
+    return get_drop_root(cfg).parent / ".abook_ignore"
 
 
 # ======================
@@ -183,7 +183,7 @@ OUTPUT_ROOT = (_default_user_base() / "abooks_ready").resolve()
 ARCHIVE_ROOT = (_default_user_base() / "abooks").resolve()
 CACHE_ROOT = (_default_user_base() / "am_cache").resolve()
 
-IGNORE_FILE = (DROP_ROOT / ".abook_ignore").resolve()
+IGNORE_FILE = (_default_user_base() / ".abook_ignore").resolve()
 COVER_NAME = "cover.jpg"
 
 # ======================

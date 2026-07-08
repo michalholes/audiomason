@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 import audiomason.metadata_lookup as ml
@@ -16,6 +18,7 @@ def _stub_suggest_title(
     cfg: dict[str, object] | None = None,
     *,
     context: str | None = None,
+    artifact_dir: Path | None = None,
 ) -> str:
     return "Nadace"
 
@@ -29,6 +32,7 @@ def _stub_suggest_author(
     cfg: dict[str, object] | None = None,
     *,
     context: str | None = None,
+    artifact_dir: Path | None = None,
 ) -> str:
     return "Should Not Use"
 

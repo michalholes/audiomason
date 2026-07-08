@@ -46,7 +46,7 @@ def test_choose_all_sources_prompts_author_per_source(monkeypatch, tmp_path: Pat
         # Deterministic, non-interactive run (no prompts except prompt())
         state.OPTS = Opts(
             yes=True,
-            dry_run=True,
+            dry_run=False,
             quiet=True,
             publish=False,
             wipe_id3=False,
@@ -116,7 +116,7 @@ def test_clean_inbox_noninteractive_ask_fails_fast(monkeypatch, tmp_path: Path):
     try:
         state.OPTS = Opts(
             yes=True,
-            dry_run=True,
+            dry_run=False,
             quiet=True,
             publish=False,
             wipe_id3=False,
@@ -210,12 +210,17 @@ def test_clean_inbox_prompt_never_happens_during_process_when_selecting_all_sour
 
     events: list[str] = []
 
-    answers = iter(["a", "Src.One", "Src.Two"])
+    answers = iter(["a"])
 
     def fake_prompt(msg: str, default: str = "") -> str:
         if str(msg).startswith("[source] Author"):
             events.append(f"author:{default}")
-        return next(answers)
+            return default
+        if str(msg).startswith("[book"):
+            return default
+        if str(msg).startswith("Choose source number"):
+            return next(answers)
+        return default
 
     def fake_pf(cfg, key: str, q: str, default_no: bool = True):
         events.append(f"pf:{key}")
@@ -243,7 +248,7 @@ def test_clean_inbox_prompt_never_happens_during_process_when_selecting_all_sour
             debug=False,
             yes=False,
             quiet=False,
-            dry_run=True,
+            dry_run=False,
             config=None,
             publish=None,
             wipe_id3=None,
@@ -345,5 +350,245 @@ def test_choose_all_sources_runs_all_preflights_before_any_processing(monkeypatc
         # then process Src.One, process Src.Two (deterministic order)
         assert events[:2] == [("preflight", "Src.One"), ("preflight", "Src.Two")]
         assert events[2:] == [("process", "Src.One"), ("process", "Src.Two")]
+    finally:
+        state.OPTS = old_opts
+
+
+def test_partial_book_import_ignores_only_processed_book(monkeypatch, tmp_path: Path):
+    drop_root = tmp_path / "abooksinbox"
+    stage_root = tmp_path / "_am_stage"
+    archive_root = tmp_path / "abooks"
+    output_root = tmp_path / "abooks_ready"
+    for d in (drop_root, stage_root, archive_root, output_root):
+        d.mkdir(parents=True, exist_ok=True)
+
+    src = drop_root / "Meyrink, Gustav (audio) [mp3]"
+    book1 = src / "Obrazy vepsane do vzduchu"
+    book2 = src / "Vizitka"
+    book1.mkdir(parents=True)
+    book2.mkdir(parents=True)
+    (book1 / "01.mp3").write_bytes(b"x")
+    (book2 / "01.mp3").write_bytes(b"y")
+
+    import audiomason.import_flow as imp
+    from audiomason.ignore import load_ignore
+    from audiomason.util import slug
+
+    monkeypatch.setattr(imp, "get_drop_root", lambda cfg: drop_root)
+    monkeypatch.setattr(imp, "get_stage_root", lambda cfg: stage_root)
+    monkeypatch.setattr(imp, "get_archive_root", lambda cfg: archive_root)
+    monkeypatch.setattr(imp, "get_output_root", lambda cfg: output_root)
+    monkeypatch.setattr(imp, "_choose_books", lambda cfg, books, default_ans="1": [books[0]])
+    monkeypatch.setattr(imp, "_process_book", lambda *args, **kwargs: None)
+
+    old_opts = getattr(state, "OPTS", None)
+    try:
+        state.OPTS = Opts(
+            yes=True,
+            dry_run=False,
+            quiet=True,
+            publish=False,
+            wipe_id3=False,
+            loudnorm=False,
+            q_a="2",
+            verify=False,
+            verify_root=output_root,
+            lookup=False,
+            cleanup_stage=True,
+            clean_inbox_mode="no",
+            split_chapters=True,
+            ff_loglevel="warning",
+            cpu_cores=None,
+            json=False,
+        )
+
+        cfg = {"_openlibrary_enabled": False, "_ai_enabled": False}
+
+        imp.run_import(cfg=cfg, src_path=Path(src.name))
+        assert load_ignore(src) == {slug("Obrazy vepsane do vzduchu")}
+        assert load_ignore(drop_root, source_list=True) == set()
+        assert not (drop_root / ".abook_ignore").exists()
+        assert (tmp_path / f"{src.name}.abook_ignore").exists()
+
+        imp.run_import(cfg=cfg, src_path=Path(src.name))
+        assert load_ignore(src) == {
+            slug("Obrazy vepsane do vzduchu"),
+            slug("Vizitka"),
+        }
+        assert slug(src.name) in load_ignore(drop_root, source_list=True)
+        assert (tmp_path / ".abook_ignore").exists()
+    finally:
+        state.OPTS = old_opts
+
+
+def test_import_passes_stage_run_to_batch_ai_artifacts(monkeypatch, tmp_path: Path):
+    drop_root = tmp_path / "abooksinbox"
+    stage_root = tmp_path / "_am_stage"
+    archive_root = tmp_path / "abooks"
+    output_root = tmp_path / "abooks_ready"
+    for d in (drop_root, stage_root, archive_root, output_root):
+        d.mkdir(parents=True, exist_ok=True)
+
+    src = drop_root / "sp.rar"
+    src.mkdir()
+    (src / "01.mp3").write_bytes(b"x")
+
+    from mutagen.id3 import ID3
+    from mutagen.id3._frames import TALB, TIT2, TPE1, TRCK
+
+    id3 = ID3()
+    id3.add(TIT2(encoding=3, text="Tagged Title"))
+    id3.add(TPE1(encoding=3, text="Tagged Artist"))
+    id3.add(TALB(encoding=3, text="Tagged Album"))
+    id3.add(TRCK(encoding=3, text="7"))
+    id3.save(src / "01.mp3")
+
+    import audiomason.ai_lookup as ai_lookup
+    import audiomason.import_flow as imp
+
+    seen: dict[str, object] = {}
+
+    def fake_batch_defaults(source_name, books, cfg=None, *, artifact_dir=None):
+        seen["artifact_dir"] = artifact_dir
+        seen["books"] = books
+        return ai_lookup.BatchMetadataSuggestions(source_author=None, book_titles={})
+
+    monkeypatch.setattr(imp, "get_drop_root", lambda cfg: drop_root)
+    monkeypatch.setattr(imp, "get_stage_root", lambda cfg: stage_root)
+    monkeypatch.setattr(imp, "get_archive_root", lambda cfg: archive_root)
+    monkeypatch.setattr(imp, "get_output_root", lambda cfg: output_root)
+    monkeypatch.setattr(
+        imp.metadata_lookup, "suggest_batch_defaults", fake_batch_defaults, raising=True
+    )
+    monkeypatch.setattr(imp, "prompt", lambda msg, default="": default)
+    monkeypatch.setattr(imp, "prompt_yes_no", lambda *a, **k: False)
+    monkeypatch.setattr(imp, "_choose_books", lambda cfg, books, default_ans="1": books)
+    monkeypatch.setattr(imp, "_process_book", lambda *args, **kwargs: None)
+
+    old_opts = getattr(state, "OPTS", None)
+    try:
+        state.OPTS = Opts(
+            yes=True,
+            dry_run=False,
+            quiet=True,
+            publish=False,
+            wipe_id3=False,
+            loudnorm=False,
+            q_a="2",
+            verify=False,
+            verify_root=output_root,
+            lookup=False,
+            cleanup_stage=True,
+            clean_inbox_mode="no",
+            split_chapters=True,
+            ff_loglevel="warning",
+            cpu_cores=None,
+            json=False,
+        )
+
+        imp.run_import(cfg={}, src_path=Path(src.name))
+
+        assert seen["artifact_dir"] == stage_root / "sp.rar"
+        assert isinstance(seen["books"], list)
+        assert seen["books"][0]["id3"][0]["title"] == "Tagged Title"
+        assert seen["books"][0]["id3"][0]["artist"] == "Tagged Artist"
+    finally:
+        state.OPTS = old_opts
+
+
+def test_book_title_defaults_use_one_numbering_style_per_series(monkeypatch, tmp_path: Path):
+    drop_root = tmp_path / "abooksinbox"
+    stage_root = tmp_path / "_am_stage"
+    archive_root = tmp_path / "abooks"
+    output_root = tmp_path / "abooks_ready"
+    for d in (drop_root, stage_root, archive_root, output_root):
+        d.mkdir(parents=True, exist_ok=True)
+
+    src = drop_root / "sp.rar"
+    src.mkdir()
+    for book in [
+        "__ROOT_AUDIO__",
+        "Adams D Stoparuv Pruvodce Galaxii 2 Restaurant Na Konci Vesmiru",
+        "Douglas Adams - Stoparuv pruvodce galaxii 3 (2021)(CZ)",
+        (
+            "Douglas Adams - Stopařův průvodce galaxii IV - Sbohem a díky za ryby "
+            "(Vojtěch Kotek)(5h40m20s)"
+        ),
+    ]:
+        book_dir = src if book == "__ROOT_AUDIO__" else src / book
+        book_dir.mkdir(parents=True, exist_ok=True)
+        (book_dir / "01.mp3").write_bytes(b"x")
+
+    import audiomason.ai_lookup as ai_lookup
+    import audiomason.import_flow as imp
+
+    monkeypatch.setattr(imp, "get_drop_root", lambda cfg: drop_root)
+    monkeypatch.setattr(imp, "get_stage_root", lambda cfg: stage_root)
+    monkeypatch.setattr(imp, "get_archive_root", lambda cfg: archive_root)
+    monkeypatch.setattr(imp, "get_output_root", lambda cfg: output_root)
+    monkeypatch.setattr(imp, "_choose_books", lambda cfg, books, default_ans="1": books)
+    monkeypatch.setattr(imp, "_process_book", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        imp.metadata_lookup,
+        "suggest_batch_defaults",
+        lambda source_name, books, cfg=None, *, artifact_dir=None: (
+            ai_lookup.BatchMetadataSuggestions(
+                source_author="Douglas Adams",
+                book_titles={
+                    "__ROOT_AUDIO__": "Stoparuv pruvodce Galaxii V. - Prevazne neskodna",
+                    ("Adams D Stoparuv Pruvodce Galaxii 2 Restaurant Na Konci Vesmiru"): (
+                        "Stoparuv pruvodce Galaxii 2 - Restaurant na konci vesmiru"
+                    ),
+                    "Douglas Adams - Stoparuv pruvodce galaxii 3 (2021)(CZ)": (
+                        "Stoparuv pruvodce galaxii 3 - Zivot, vesmir a vubec"
+                    ),
+                    (
+                        "Douglas Adams - Stopařův průvodce galaxii IV - Sbohem a díky za "
+                        "ryby (Vojtěch Kotek)(5h40m20s)"
+                    ): ("Stoparuv pruvodce galaxii IV - Sbohem a diky za ryby"),
+                },
+            )
+        ),
+        raising=True,
+    )
+
+    defaults: list[str] = []
+
+    def fake_prompt(msg: str, default: str = "") -> str:
+        if str(msg).startswith("[book ") and "Book title" in str(msg):
+            defaults.append(default)
+        return default
+
+    monkeypatch.setattr(imp, "prompt", fake_prompt)
+    monkeypatch.setattr(imp, "prompt_yes_no", lambda *a, **k: False)
+
+    old_opts = getattr(state, "OPTS", None)
+    try:
+        state.OPTS = Opts(
+            yes=True,
+            dry_run=False,
+            quiet=True,
+            publish=False,
+            wipe_id3=False,
+            loudnorm=False,
+            q_a="2",
+            verify=False,
+            verify_root=output_root,
+            lookup=False,
+            cleanup_stage=True,
+            clean_inbox_mode="no",
+            split_chapters=True,
+            ff_loglevel="warning",
+            cpu_cores=None,
+            json=False,
+        )
+
+        imp.run_import(
+            cfg={"_openlibrary_enabled": False, "_ai_enabled": True}, src_path=Path(src.name)
+        )
+
+        assert any(" 2 " in d for d in defaults)
+        assert any(" 3 " in d for d in defaults)
+        assert all(" II " not in d and " III " not in d for d in defaults)
     finally:
         state.OPTS = old_opts
