@@ -193,3 +193,20 @@ SHA512: 4c49a22d913c1b37ae93ec7b5b565177b4584e0b00685fced0ba42ec55c30319bf638b91
 Description: Deterministic audiobook import, tagging, and publishing CLI
  AudioMason provides a deterministic audiobook import, tagging, and publishing CLI.
 
+Package: audiomason
+Architecture: all
+Version: 1.4.0~rc5
+Priority: optional
+Section: utils
+Maintainer: Michal Holeš <michal@holes.sk>
+Installed-Size: 259
+Depends: python3-mutagen, python3-pydantic, python3-rich, python3-typer, python3-yaml, python3:any, ffmpeg
+Filename: pool/main/a/audiomason/audiomason_1.4.0~rc5_all.deb
+Size: 47944
+MD5sum: 4b6461622039a2ec2c34d8eac09fd236
+SHA1: 3f99aa0d9800489e3d5e14aab8daf364504cafbd
+SHA256: c1766dd762ac8924ac882253a5cc728f4981850fc67d279f5550160908b4be75
+SHA512: 6848cffddc1dc4be5584ac774fbe861bd43f960b5c13f866cd8a25b1807a24b4eba4638dcff5486a63fa1554029a518e441393dca0e90dcbb56aee0547565cdc
+Description: Deterministic audiobook import, tagging, and publishing CLI
+ AudioMason provides a deterministic audiobook import, tagging, and publishing CLI.
+

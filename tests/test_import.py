@@ -141,6 +141,66 @@ def test_clean_inbox_noninteractive_ask_fails_fast(monkeypatch, tmp_path: Path):
         state.OPTS = old_opts
 
 
+def test_clean_inbox_ask_defaults_to_yes(monkeypatch, tmp_path: Path):
+    import pytest
+
+    drop_root = tmp_path / "abooksinbox"
+    stage_root = tmp_path / "_am_stage"
+    archive_root = tmp_path / "abooks"
+    output_root = tmp_path / "abooks_ready"
+    for d in (drop_root, stage_root, archive_root, output_root):
+        d.mkdir(parents=True, exist_ok=True)
+
+    src = drop_root / "Foo.Bar"
+    src.mkdir()
+    (src / "01.mp3").write_bytes(b"x")
+
+    import audiomason.import_flow as imp
+
+    monkeypatch.setattr(imp, "get_drop_root", lambda cfg: drop_root)
+    monkeypatch.setattr(imp, "get_stage_root", lambda cfg: stage_root)
+    monkeypatch.setattr(imp, "get_archive_root", lambda cfg: archive_root)
+    monkeypatch.setattr(imp, "get_output_root", lambda cfg: output_root)
+
+    calls: list[tuple[str, bool]] = []
+
+    class _StopError(RuntimeError):
+        pass
+
+    def _fake_pf(cfg, key, question, *, default_no):
+        calls.append((key, default_no))
+        raise _StopError
+
+    monkeypatch.setattr(imp, "pf_prompt_yes_no", _fake_pf)
+
+    old_opts = getattr(state, "OPTS", None)
+    try:
+        state.OPTS = Opts(
+            yes=False,
+            dry_run=False,
+            quiet=True,
+            publish=False,
+            wipe_id3=False,
+            loudnorm=False,
+            q_a="2",
+            verify=False,
+            verify_root=output_root,
+            lookup=False,
+            cleanup_stage=True,
+            clean_inbox_mode="ask",
+            split_chapters=True,
+            ff_loglevel="warning",
+            cpu_cores=None,
+            json=False,
+        )
+        with pytest.raises(_StopError):
+            imp.run_import(cfg={}, src_path=Path("Foo.Bar"))
+    finally:
+        state.OPTS = old_opts
+
+    assert calls == [("clean_inbox", False)]
+
+
 def test_clean_inbox_yes_deletes_processed_source(monkeypatch, tmp_path: Path):
     drop_root = tmp_path / "abooksinbox"
     stage_root = tmp_path / "_am_stage"
