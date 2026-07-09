@@ -1707,7 +1707,7 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
     else:
         # clean_inbox_mode == 'ask' (validated above)
         run_clean_inbox = pf_prompt_yes_no(
-            cfg, "clean_inbox", "Clean inbox after successful import?", default_no=True
+            cfg, "clean_inbox", "Clean inbox after successful import?", default_no=False
         )
 
     phases = ["combined"]
