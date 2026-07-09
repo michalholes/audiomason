@@ -139,7 +139,8 @@ def load_config(config_path: Path | None = None) -> dict[str, object]:
         if not p.exists():
             raise AmConfigError(
                 f"Config not found: {p}. Resolution order: "
-                "--config, ~/.config/audiomason1/config.yaml."
+                "--config, ~/.config/audiomason1/config.yaml. "
+                f"Run `audiomason init --config {p}` to create it."
             )
     else:
         p = user_config_path()
@@ -148,7 +149,8 @@ def load_config(config_path: Path | None = None) -> dict[str, object]:
             tried_s = ", ".join(str(x) for x in tried)
             raise AmConfigError(
                 "Config not found. Tried (in order): " + tried_s + ". "
-                "Provide --config or create ~/.config/audiomason1/config.yaml."
+                "Provide --config or create ~/.config/audiomason1/config.yaml. "
+                "Run `audiomason init` to create it."
             )
 
     cfg = _deep_merge(DEFAULTS, _load_yaml(p))

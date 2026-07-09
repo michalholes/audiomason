@@ -1,9 +1,32 @@
 from __future__ import annotations
 
 import sys
+from pathlib import Path
+
+import pytest
 
 
-def test_cli_invalid_config_no_traceback(monkeypatch, tmp_path, capsys):
+def test_cli_missing_config_suggests_init(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from audiomason import cli
+
+    missing_cfg = tmp_path / "missing.yaml"
+    monkeypatch.setattr(sys, "argv", ["am", "import", "--yes", "--config", str(missing_cfg)])
+    rc = cli.main()
+    out = capsys.readouterr().out
+
+    assert rc != 0
+    assert "audiomason init --config" in out
+
+
+def test_cli_invalid_config_no_traceback(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     monkeypatch.setenv("AUDIOMASON_ROOT", str(tmp_path))
 
     # minimal contract layout
