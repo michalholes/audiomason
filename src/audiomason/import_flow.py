@@ -25,12 +25,11 @@ from audiomason.covers import (
 from audiomason.guess import (
     guess_book_title_default,
     guess_series_numbering_style,
-    guess_source_author_default,
     normalize_series_numbering,
 )
 from audiomason.ignore import add_ignore, load_ignore
 from audiomason.manifest import load_manifest, source_fingerprint, update_manifest
-from audiomason.naming import normalize_name, normalize_sentence
+from audiomason.naming import normalize_sentence
 from audiomason.openlibrary import OLResult
 from audiomason.paths import (
     ARCHIVE_EXTS,
@@ -46,12 +45,21 @@ from audiomason.preflight_resolve import (
     pf_prompt,
     pf_prompt_yes_no,
     prompt_disabled,
-    resolve_bool_config,
     resolve_preflight_disable,
 )
+from audiomason.preflight_undo import decide_publish_wipe_clean, prompt_author_with_undo
 from audiomason.rename import natural_sort, rename_sequential
 from audiomason.tags import summarize_id3_files, wipe_id3, write_cover, write_tags
-from audiomason.util import AmConfigError, die, ensure_dir, out, prompt, prompt_yes_no, slug
+from audiomason.util import (
+    AmConfigError,
+    AmUndoError,
+    die,
+    ensure_dir,
+    out,
+    prompt,
+    prompt_yes_no,
+    slug,
+)
 
 # FEATURE #67: disable selected preflight prompts (skip prompts deterministically)
 
@@ -432,27 +440,6 @@ def _choose_books(
     die("Invalid book selection")
     return []
 
-    if len(books) == 1:
-        return books
-    out(f"[books] found {len(books)}:")
-    for i, b in enumerate(books, 1):
-        out(f"  {i}) {b.label}")
-    ans = (
-        pf_prompt(cfg, "choose_books", "Choose book number, or 'a' for all", default_ans)
-        .strip()
-        .lower()
-    )
-    if ans == "a":
-        return books
-    try:
-        n = int(ans)
-        if 1 <= n <= len(books):
-            return [books[n - 1]]
-    except Exception:
-        pass
-    die("Invalid book selection")
-    return []
-
 
 # [issue_75] _collect_audio_files
 def _collect_audio_files(group_root: Path) -> list[Path]:
@@ -565,21 +552,8 @@ def _copy_audio_to_out_no_rename(group_root: Path, outdir: Path) -> list[Path]:
     return natural_sort(copied)
 
 
-def _copy_audio_to_out_raw(group_root: Path, outdir: Path) -> list[Path]:
-    ensure_dir(outdir)
-    src_mp3s = _collect_audio_files(group_root)
-    if not src_mp3s:
-        die("No audio files to import (no mp3/m4a/opus found)")
-    copied: list[Path] = []
-    for p in src_mp3s:
-        dst = outdir / p.name
-        shutil.copy2(p, dst)
-        copied.append(dst)
-    return natural_sort(copied)
-
-
 def _copy_audio_to_out(group_root: Path, outdir: Path) -> list[Path]:
-    copied = _copy_audio_to_out_raw(group_root, outdir)
+    copied = _copy_audio_to_out_no_rename(group_root, outdir)
     return rename_sequential(outdir, copied)
 
 
@@ -804,6 +778,13 @@ def _stage_cover_from_raw(cfg: dict[str, object], raw: str, group_root: Path) ->
     return dst
 
 
+# Keep explicit clean_stage callsite local to import_flow for governance/tests.
+def _ask_clean_stage(cfg: dict[str, object], *, default_no: bool) -> bool:
+    return pf_prompt_yes_no(
+        cfg, "clean_stage", "Clean stage after successful import?", default_no=default_no
+    )
+
+
 def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
     # validate preflight_steps early (fail fast, before FS touch)
     _resolved_preflight_steps(cfg)
@@ -841,8 +822,6 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
     ensure_dir(archive_root)
     ensure_dir(output_root)
     stage_runs_for_json: list[Path] = []
-    picked_sources: list[Path]
-    forced = False
 
     # Issue #74: per-source processing log
     def _pl_resolve_target(cfg: dict[str, object], stage_run: Path, src: Path) -> Path | None:
@@ -884,7 +863,15 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
         def isatty(self) -> bool:
             return False
 
-    picked_all = False
+    # retained for backward-compat docstrings; not used in this scope
+    # Forced processing when explicit src_path points to a concrete path under drop_root
+    _forced_flag = False
+    try:
+        if src_path is not None:
+            rp = _resolve_source_arg(drop_root, src_path)
+            _forced_flag = rp.expanduser().resolve() != drop_root.expanduser().resolve()
+    except Exception:
+        _forced_flag = False
 
     def _process_one_source(
         src: Path, si: int, total: int, *, phase: str, do_process: bool, run_clean_inbox: bool
@@ -950,7 +937,7 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
                 pass
 
         try:
-            out(f"[source] {si}/{len(picked_sources)}: {src.name}")
+            out(f"[source] {si}/{total}: {src.name}")
 
             global _SOURCE_PREFIX
             _SOURCE_PREFIX = src.name  # pyright: ignore[reportConstantRedefinition]
@@ -970,7 +957,7 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
                 _norm(slug(src.stem)),
             }
 
-            if (not forced) and (candidates & ignore_norm):
+            if (not _forced_flag) and (candidates & ignore_norm):
                 out("[source] skipped (ignored)")
                 return
 
@@ -995,6 +982,7 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
                 use_manifest_answers = True
             else:
                 if reuse_possible:
+                    # Allow cross-section undo: propagate AmUndoError upward
                     reuse_stage = pf_prompt_yes_no(
                         cfg,
                         "reuse_stage",
@@ -1004,12 +992,23 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
 
                 if reuse_stage:
                     out("[stage] reuse")
-                    use_manifest_answers = pf_prompt_yes_no(
-                        cfg,
-                        "use_manifest_answers",
-                        "[manifest] Use saved answers (skip prompts)?",
-                        default_no=False,
-                    )
+                    try:
+                        use_manifest_answers = pf_prompt_yes_no(
+                            cfg,
+                            "use_manifest_answers",
+                            "[manifest] Use saved answers (skip prompts)?",
+                            default_no=False,
+                        )
+                    except AmUndoError:
+                        # Propagate to previous section via reuse prompt; if undone there, raise
+                        reuse_stage = pf_prompt_yes_no(
+                            cfg,
+                            "reuse_stage",
+                            "[stage] Reuse existing staged source?",
+                            default_no=False,
+                        )
+                        if not reuse_stage:
+                            use_manifest_answers = False
                 else:
                     if reuse_possible:
                         out("[stage] delete")
@@ -1107,63 +1106,6 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
             wipe: bool | None = None
             clean_stage: bool | None = None
 
-            def _step_publish_wipe() -> None:
-                nonlocal publish, wipe
-                opts = state.OPTS
-                if opts is None:
-                    die("Internal error: options not initialized")
-                assert opts is not None
-                default_publish = bool(dec.get("publish")) if "publish" in dec else False
-                default_wipe = bool(dec.get("wipe_id3")) if "wipe_id3" in dec else False
-                if (
-                    reuse_stage
-                    and use_manifest_answers
-                    and ("publish" in dec)
-                    and ("wipe_id3" in dec)
-                ):
-                    publish = bool(dec.get("publish"))
-                    wipe = bool(dec.get("wipe_id3"))
-                    return
-                if opts.publish is None:
-                    publish = pf_prompt_yes_no(
-                        cfg,
-                        "publish",
-                        "Publish after import?",
-                        default_no=(not default_publish),
-                    )
-                else:
-                    publish = bool(opts.publish)
-                if opts.wipe_id3 is None:
-                    wipe = pf_prompt_yes_no(
-                        cfg,
-                        "wipe_id3",
-                        "Full wipe ID3 tags before tagging?",
-                        default_no=(not default_wipe),
-                    )
-                else:
-                    wipe = bool(opts.wipe_id3)
-                update_manifest(
-                    stage_run, {"decisions": {"publish": bool(publish), "wipe_id3": bool(wipe)}}
-                )
-
-            def _step_clean_stage() -> None:
-                nonlocal clean_stage
-                default_clean = bool(dec.get("clean_stage")) if "clean_stage" in dec else False
-                if reuse_stage and use_manifest_answers and ("clean_stage" in dec):
-                    clean_stage = bool(dec.get("clean_stage"))
-                    return
-                cfg_clean = resolve_bool_config(cfg, "clean_stage")
-                if cfg_clean is not None:
-                    clean_stage = cfg_clean
-                else:
-                    clean_stage = pf_prompt_yes_no(
-                        cfg,
-                        "clean_stage",
-                        "Clean stage after successful import?",
-                        default_no=(not default_clean),
-                    )
-                update_manifest(stage_run, {"decisions": {"clean_stage": bool(clean_stage)}})
-
             # Orchestrator is used for deterministic pending decisions.
             orchestrator = PreflightOrchestrator(cfg)
             ctx = PreflightContext(cfg=cfg)
@@ -1174,22 +1116,29 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
             plan = orchestrator.plan(ctx)
 
             def _exec_step(step_key: str) -> None:
-                if step_key in {"publish", "wipe_id3"}:
-                    if publish is None or wipe is None:
-                        _step_publish_wipe()
-                elif step_key == "clean_stage":
-                    if clean_stage is None:
-                        _step_clean_stage()
+                nonlocal publish, wipe, clean_stage
+                if step_key in {"publish", "wipe_id3", "clean_stage"}:
+                    if publish is None or wipe is None or clean_stage is None:
+                        publish, wipe, clean_stage = decide_publish_wipe_clean(
+                            cfg,
+                            stage_run=stage_run,
+                            decisions=dec,
+                            reuse_stage=reuse_stage,
+                            use_manifest_answers=use_manifest_answers,
+                        )
                 else:
-                    # Other keys are handled elsewhere in existing flow.
                     return
 
             orchestrator.materialize_pending(ctx, plan, executor=_exec_step)
 
-            if publish is None or wipe is None:
-                die("Internal error: missing required preflight decisions (publish/wipe_id3)")
-            if clean_stage is None:
-                _step_clean_stage()
+            if publish is None or wipe is None or clean_stage is None:
+                publish, wipe, clean_stage = decide_publish_wipe_clean(
+                    cfg,
+                    stage_run=stage_run,
+                    decisions=dec,
+                    reuse_stage=reuse_stage,
+                    use_manifest_answers=use_manifest_answers,
+                )
             assert publish is not None and wipe is not None and clean_stage is not None
             publish_b = bool(publish)
             wipe_b = bool(wipe)
@@ -1237,49 +1186,37 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
             )
 
             # Issue #66: resolve source author (required for OpenLibrary validate_book)
-            default_author = str(dec.get("author") or "").strip() if isinstance(dec, dict) else ""
+            default_author = str(dec.get("author") or "").strip()
             if reuse_stage and use_manifest_answers and default_author:
                 author = default_author
             else:
-                dflt_author = (
-                    default_author
-                    or (batch_defaults.source_author if batch_defaults is not None else None)
-                    or guess_source_author_default(src.name)
-                )
-                author = pf_prompt(cfg, "source_author", "[source] Author", dflt_author).strip()
-                na = normalize_name(author)
-                if na != author:
-                    out(f"[name] author suggestion: '{author}' -> '{na}'")
-                    if pf_prompt_yes_no(
-                        cfg, "normalize_author", "Apply suggested author?", default_no=True
-                    ):
-                        author = na
-                if metadata_lookup.is_enabled(cfg):
-                    if state.DEBUG:
-                        out(f"[ol] validate author: author='{author}'")
-                    author_context = f"source={src.name}"
-                    if source_id3_context:
-                        author_context += "; id3=" + json.dumps(
-                            source_id3_context, ensure_ascii=False, sort_keys=True
-                        )
-                    ar = (
-                        openlibrary.validate_author(author)
-                        if batch_defaults is not None
-                        else metadata_lookup.validate_author(
-                            author,
-                            cfg,
-                            context=author_context,
-                            artifact_dir=stage_run,
-                        )
+                try:
+                    author = prompt_author_with_undo(
+                        cfg,
+                        default_author=default_author,
+                        batch_defaults=batch_defaults,
+                        src_name=src.name,
+                        source_id3_context=source_id3_context,
+                        stage_run=stage_run,
                     )
-                    if state.DEBUG:
-                        out(
-                            f"[ol] author result: ok={ar.ok}"
-                            f" status={ar.status!r}"
-                            f" hits={ar.hits}"
-                            f" top={ar.top!r}"
-                        )
-                    author = _ol_offer_top("author", author, ar, cfg=cfg, key="normalize_author")
+                except AmUndoError:
+                    # Step back into publish/wipe/clean flow
+                    publish, wipe, clean_stage = decide_publish_wipe_clean(
+                        cfg,
+                        stage_run=stage_run,
+                        decisions=dec,
+                        reuse_stage=reuse_stage,
+                        use_manifest_answers=use_manifest_answers,
+                    )
+                    # Ask author again after stepping back
+                    author = prompt_author_with_undo(
+                        cfg,
+                        default_author=default_author,
+                        batch_defaults=batch_defaults,
+                        src_name=src.name,
+                        source_id3_context=source_id3_context,
+                        stage_run=stage_run,
+                    )
             if not author:
                 die("Author is required")
             update_manifest(stage_run, {"decisions": {"author": author}})
@@ -1317,9 +1254,39 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
                     if state.OPTS is not None and state.OPTS.dry_run:
                         title = default_title or b.label
                     else:
-                        title = _preflight_book(
-                            cfg, bi, len(picked_books), b, default_title=default_title
-                        )
+                        while True:
+                            try:
+                                title = _preflight_book(
+                                    cfg, bi, len(picked_books), b, default_title=default_title
+                                )
+                                break
+                            except AmUndoError:
+                                # Step back to author, then potentially further back
+                                try:
+                                    author = prompt_author_with_undo(
+                                        cfg,
+                                        default_author=default_author,
+                                        batch_defaults=batch_defaults,
+                                        src_name=src.name,
+                                        source_id3_context=source_id3_context,
+                                        stage_run=stage_run,
+                                    )
+                                except AmUndoError:
+                                    publish, wipe, clean_stage = decide_publish_wipe_clean(
+                                        cfg,
+                                        stage_run=stage_run,
+                                        decisions=dec,
+                                        reuse_stage=reuse_stage,
+                                        use_manifest_answers=use_manifest_answers,
+                                    )
+                                    author = prompt_author_with_undo(
+                                        cfg,
+                                        default_author=default_author,
+                                        batch_defaults=batch_defaults,
+                                        src_name=src.name,
+                                        source_id3_context=source_id3_context,
+                                        stage_run=stage_run,
+                                    )
 
                     # Metadata suggestion (book title)
                     if metadata_lookup.is_enabled(cfg):
@@ -1379,46 +1346,133 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
                     cover_src = default_cover_src
                 else:
                     out(f"[cover-meta] {bi}/{len(picked_books)}: {author} / {title}")
-                    # Non-interactive: deterministic, no prompts
-                    if not _is_interactive():
-                        if file_cover:
-                            cover_mode = "file"
-                            cover_src = str(file_cover.name)
-                        elif embedded:
-                            cover_mode = "embedded"
-                            cover_src = "embedded"
+                    try:
+                        # Non-interactive: deterministic, no prompts
+                        if not _is_interactive():
+                            if file_cover:
+                                cover_mode = "file"
+                                cover_src = str(file_cover.name)
+                            elif embedded:
+                                cover_mode = "embedded"
+                                cover_src = "embedded"
+                            else:
+                                cover_mode = "skip"
+                                cover_src = "skip"
                         else:
-                            cover_mode = "skip"
-                            cover_src = "skip"
-                    else:
-                        # Interactive preflight: allow keep/override/skip, or provide URL/path
-                        if file_cover or embedded:
-                            # If both exist, offer explicit choice first
-                            if file_cover and embedded:
-                                out("Cover detected:")
-                                out("  1) embedded cover from audio")
-                                out(f"  2) {file_cover.name} (preferred)")
-                                out("  s) skip")
-                                out("  u) URL/path override")
-                                d = "2"
-                                if default_cover_mode == "embedded":
-                                    d = "1"
-                                elif default_cover_mode == "skip":
-                                    d = "s"
-                                ans = (
-                                    pf_prompt(cfg, "cover", "Choose cover [1/2/s/u]", d)
-                                    .strip()
-                                    .lower()
-                                )
-                                if ans == "1":
-                                    cover_mode = "embedded"
-                                    cover_src = "embedded"
-                                elif ans == "s":
+                            # Interactive preflight: allow keep/override/skip, or provide URL/path
+                            if file_cover or embedded:
+                                # If both exist, offer explicit choice first
+                                if file_cover and embedded:
+                                    out("Cover detected:")
+                                    out("  1) embedded cover from audio")
+                                    out(f"  2) {file_cover.name} (preferred)")
+                                    out("  s) skip")
+                                    out("  u) URL/path override")
+                                    d = "2"
+                                    if default_cover_mode == "embedded":
+                                        d = "1"
+                                    elif default_cover_mode == "skip":
+                                        d = "s"
+                                    ans = (
+                                        pf_prompt(cfg, "cover", "Choose cover [1/2/s/u]", d)
+                                        .strip()
+                                        .lower()
+                                    )
+                                    if ans == "1":
+                                        cover_mode = "embedded"
+                                        cover_src = "embedded"
+                                    elif ans == "s":
+                                        cover_mode = "skip"
+                                        cover_src = "skip"
+                                    elif ans == "u":
+                                        raw = pf_prompt(
+                                            cfg, "cover", "Cover URL or file path (Enter=skip)", ""
+                                        ).strip()
+                                        if not raw:
+                                            cover_mode = "skip"
+                                            cover_src = "skip"
+                                        else:
+                                            staged = _stage_cover_from_raw(cfg, raw, b.group_root)
+                                            if staged is None:
+                                                cover_mode = "skip"
+                                                cover_src = "skip"
+                                            else:
+                                                cover_mode = "file"
+                                                cover_src = raw
+                                    else:
+                                        cover_mode = "file"
+                                        cover_src = str(file_cover.name)
+                                else:
+                                    # Only one detected => keep by default, allow override
+                                    if file_cover:
+                                        out(f"Cover detected: {file_cover.name}")
+                                        keep = pf_prompt_yes_no(
+                                            cfg, "cover", "Use detected cover?", default_no=False
+                                        )
+                                        if keep:
+                                            cover_mode = "file"
+                                            cover_src = str(file_cover.name)
+                                        else:
+                                            raw = pf_prompt(
+                                                cfg,
+                                                "cover",
+                                                "Cover URL or file path (Enter=skip)",
+                                                "",
+                                            ).strip()
+                                            if not raw:
+                                                cover_mode = "skip"
+                                                cover_src = "skip"
+                                            else:
+                                                staged = _stage_cover_from_raw(
+                                                    cfg, raw, b.group_root
+                                                )
+                                                if staged is None:
+                                                    cover_mode = "skip"
+                                                    cover_src = "skip"
+                                                else:
+                                                    cover_mode = "file"
+                                                    cover_src = raw
+                                    else:
+                                        out("Cover detected: embedded")
+                                        keep = pf_prompt_yes_no(
+                                            cfg, "cover", "Use embedded cover?", default_no=False
+                                        )
+                                        if keep:
+                                            cover_mode = "embedded"
+                                            cover_src = "embedded"
+                                        else:
+                                            raw = pf_prompt(
+                                                cfg,
+                                                "cover",
+                                                "Cover URL or file path (Enter=skip)",
+                                                "",
+                                            ).strip()
+                                            if not raw:
+                                                cover_mode = "skip"
+                                                cover_src = "skip"
+                                            else:
+                                                staged = _stage_cover_from_raw(
+                                                    cfg, raw, b.group_root
+                                                )
+                                                if staged is None:
+                                                    cover_mode = "skip"
+                                                    cover_src = "skip"
+                                                else:
+                                                    cover_mode = "file"
+                                                    cover_src = raw
+                            else:
+                                # No detected cover => ask once
+                                # NOTE: during --dry-run, keep deterministic
+                                # and do not prompt for cover.
+                                if state.OPTS and state.OPTS.dry_run:
                                     cover_mode = "skip"
                                     cover_src = "skip"
-                                elif ans == "u":
+                                else:
                                     raw = pf_prompt(
-                                        cfg, "cover", "Cover URL or file path (Enter=skip)", ""
+                                        cfg,
+                                        "cover",
+                                        "No cover found. URL or file path (Enter=skip)",
+                                        "",
                                     ).strip()
                                     if not raw:
                                         cover_mode = "skip"
@@ -1431,82 +1485,20 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
                                         else:
                                             cover_mode = "file"
                                             cover_src = raw
-                                else:
-                                    cover_mode = "file"
-                                    cover_src = str(file_cover.name)
-                            else:
-                                # Only one detected => keep by default, allow override
-                                if file_cover:
-                                    out(f"Cover detected: {file_cover.name}")
-                                    keep = pf_prompt_yes_no(
-                                        cfg, "cover", "Use detected cover?", default_no=False
-                                    )
-                                    if keep:
-                                        cover_mode = "file"
-                                        cover_src = str(file_cover.name)
-                                    else:
-                                        raw = pf_prompt(
-                                            cfg, "cover", "Cover URL or file path (Enter=skip)", ""
-                                        ).strip()
-                                        if not raw:
-                                            cover_mode = "skip"
-                                            cover_src = "skip"
-                                        else:
-                                            staged = _stage_cover_from_raw(cfg, raw, b.group_root)
-                                            if staged is None:
-                                                cover_mode = "skip"
-                                                cover_src = "skip"
-                                            else:
-                                                cover_mode = "file"
-                                                cover_src = raw
-                                else:
-                                    out("Cover detected: embedded")
-                                    keep = pf_prompt_yes_no(
-                                        cfg, "cover", "Use embedded cover?", default_no=False
-                                    )
-                                    if keep:
-                                        cover_mode = "embedded"
-                                        cover_src = "embedded"
-                                    else:
-                                        raw = pf_prompt(
-                                            cfg, "cover", "Cover URL or file path (Enter=skip)", ""
-                                        ).strip()
-                                        if not raw:
-                                            cover_mode = "skip"
-                                            cover_src = "skip"
-                                        else:
-                                            staged = _stage_cover_from_raw(cfg, raw, b.group_root)
-                                            if staged is None:
-                                                cover_mode = "skip"
-                                                cover_src = "skip"
-                                            else:
-                                                cover_mode = "file"
-                                                cover_src = raw
-                        else:
-                            # No detected cover => ask once
-                            # NOTE: during --dry-run, keep deterministic
-                            # and do not prompt for cover.
-                            if state.OPTS and state.OPTS.dry_run:
-                                cover_mode = "skip"
-                                cover_src = "skip"
-                            else:
-                                raw = pf_prompt(
-                                    cfg,
-                                    "cover",
-                                    "No cover found. URL or file path (Enter=skip)",
-                                    "",
-                                ).strip()
-                                if not raw:
-                                    cover_mode = "skip"
-                                    cover_src = "skip"
-                                else:
-                                    staged = _stage_cover_from_raw(cfg, raw, b.group_root)
-                                    if staged is None:
-                                        cover_mode = "skip"
-                                        cover_src = "skip"
-                                    else:
-                                        cover_mode = "file"
-                                        cover_src = raw
+                    except AmUndoError:
+                        # Step back to the previous prompt (book title). If undone again, go up.
+                        try:
+                            title = _preflight_book(
+                                cfg, bi, len(picked_books), b, default_title=default_title
+                            )
+                        except AmUndoError:
+                            publish, wipe, clean_stage = decide_publish_wipe_clean(
+                                cfg,
+                                stage_run=stage_run,
+                                decisions=dec,
+                                reuse_stage=reuse_stage,
+                                use_manifest_answers=use_manifest_answers,
+                            )
 
                 # ISSUE #1: destination conflict handling (fixed mapping for Issue #75)
                 if reuse_stage and use_manifest_answers:
@@ -1682,48 +1674,46 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
             src, si, total, phase=phase, do_process=do_process, run_clean_inbox=run_clean_inbox
         )
 
-    if src_path is not None:
-        sp = _resolve_source_arg(drop_root, src_path)
-        if sp.expanduser().resolve() == drop_root.expanduser().resolve():
-            sources = _list_sources(drop_root)
-            picked_sources = _choose_source(cfg, sources)
-            forced = False
-            picked_all = picked_sources is sources
-        else:
-            picked_sources = [sp]
-            forced = True
-    else:
-        sources = _list_sources(drop_root)
-        picked_sources = _choose_source(cfg, sources)
-        forced = False
-        picked_all = picked_sources is sources
+    # Delegate top-level interaction to undo-aware driver (keeps this file lean).
+    def _list_cb() -> list[Path]:
+        return _list_sources(drop_root)
 
-    # ISSUE #88: resolve inbox cleanup decision ONCE per run (never prompt mid-PROCESS)
-    run_clean_inbox: bool
-    if clean_inbox_mode == "yes":
-        run_clean_inbox = True
-    elif clean_inbox_mode == "no":
-        run_clean_inbox = False
-    else:
-        # clean_inbox_mode == 'ask' (validated above)
-        run_clean_inbox = pf_prompt_yes_no(
-            cfg, "clean_inbox", "Clean inbox after successful import?", default_no=False
+    def _choose_cb(sources: list[Path]) -> list[Path]:
+        return _choose_source(cfg, sources)
+
+    def _run_for_cb(picked_sources: list[Path], picked_all: bool, run_clean_inbox: bool) -> None:
+        phases = ["combined"]
+        if picked_all and len(picked_sources) > 1:
+            phases = ["preflight", "process"]
+        for phase in phases:
+            do_process = phase != "preflight"
+            for si, src in enumerate(picked_sources, 1):
+                _run_one_source(
+                    src,
+                    si,
+                    len(picked_sources),
+                    phase=phase,
+                    do_process=do_process,
+                    run_clean_inbox=run_clean_inbox,
+                )
+
+    from audiomason.preflight_undo import drive_top_level  # local import to avoid cycle
+
+    def _ask_clean_inbox_cb(local_cfg: dict[str, object], default_no: bool) -> bool:
+        return pf_prompt_yes_no(
+            local_cfg, "clean_inbox", "Clean inbox after successful import?", default_no=default_no
         )
 
-    phases = ["combined"]
-    if picked_all and len(picked_sources) > 1:
-        phases = ["preflight", "process"]
-    for phase in phases:
-        do_process = phase != "preflight"
-        for si, src in enumerate(picked_sources, 1):
-            _run_one_source(
-                src,
-                si,
-                len(picked_sources),
-                phase=phase,
-                do_process=do_process,
-                run_clean_inbox=run_clean_inbox,
-            )
+    drive_top_level(
+        cfg,
+        src_path=_resolve_source_arg(drop_root, src_path) if src_path is not None else None,
+        drop_root=drop_root,
+        clean_inbox_mode=clean_inbox_mode,
+        list_sources=_list_cb,
+        choose_sources=_choose_cb,
+        run_for=_run_for_cb,
+        ask_clean_inbox=_ask_clean_inbox_cb,
+    )
     # ISSUE #18: machine-readable report (printed at end; human output unchanged)
     if state.OPTS is not None and state.OPTS.json:
         report = _build_json_report(stage_runs_for_json)

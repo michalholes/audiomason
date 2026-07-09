@@ -22,3 +22,4 @@
 - For cover sniffing, detect AVIF via the `ftyp` box (`avif`/`mif1`) before falling back to a generic MIME type.
 - For large interactive flows, move prompt-heavy branches into a separate helper module and pass prompt callbacks through adapters so the main orchestrator does not grow.
 - For strict mypy, prefer a small named `Path` key helper for `sorted()` instead of inline lambdas when type inference starts drifting into `Any`.
+- For TTY-based wizards, map Ctrl+G (BEL) as a lightweight inline-undo in `input()` handlers to avoid raw mode and keep changes minimal.

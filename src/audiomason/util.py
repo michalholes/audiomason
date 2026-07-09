@@ -135,9 +135,16 @@ def prompt(msg: str, default: str | None = None) -> str:
         return default or ""
     try:
         if default is not None and default != "":
-            s = input(f"{msg} [{default}]: ").strip()
+            s = input(f"{msg} [{default}]: ")
+        else:
+            s = input(f"{msg}: ")
+        # Ctrl+G (BEL, \x07) as inline-undo.
+        # If the line consists only of BELs and/or whitespace, treat as undo.
+        if s and s.replace("\x07", "").strip() == "":
+            raise AmUndoError("undo")
+        s = s.strip()
+        if default is not None and default != "":
             return s if s else default
-        s = input(f"{msg}: ").strip()
         return s
     except KeyboardInterrupt as e:
         raise AmAbortError("cancelled by user") from e
@@ -156,12 +163,26 @@ def prompt_yes_no(msg: str, default_no: bool = True) -> bool:
         return not default_no
     d = "y/N" if default_no else "Y/n"
     try:
-        ans = input(f"{msg} [{d}] ").strip().lower()
+        raw = input(f"{msg} [{d}] ")
+        # Ctrl+G (BEL) as inline-undo
+        if raw and raw.replace("\x07", "").strip() == "":
+            raise AmUndoError("undo")
+        ans = raw.strip().lower()
     except KeyboardInterrupt as e:
         raise AmAbortError("cancelled by user") from e
     if not ans:
         return not default_no
     return ans in {"y", "yes"}
+
+
+class AmUndoError(RuntimeError):
+    """Raised by prompt/prompt_yes_no when the user presses Ctrl+G (BEL) and Enter.
+
+    We rely on canonical input (Enter required) and do not modify TTY settings.
+    Callers can catch this to step back one prompt.
+    """
+
+    pass
 
 
 def prune_empty_dirs(start: Path, stop_at: Path) -> None:
