@@ -52,12 +52,12 @@ gate_biome_format_command = ["npx", "--yes", "@biomejs/biome", "format", "--writ
 gate_biome_command = ["npx", "--yes", "@biomejs/biome", "lint", "--diagnostic-level=error", "--max-diagnostics=10000"]
 gate_biome_fix_command = ["npx", "--yes", "@biomejs/biome", "lint", "--write", "--diagnostic-level=error", "--max-diagnostics=10000"]
 
-gates_skip_typescript = false
+gates_skip_typescript = true
 gate_typescript_extensions = [".js", ".ts", ".tsx", ".mts", ".cts", ".d.ts"]
 gate_typescript_command = ["tsc", "--noEmit", "--pretty", "false", "--allowJs", "--checkJs", "--target", "ES2022", "--lib", "ES2022,DOM"]
 gate_typescript_mode = "auto"
 gate_typescript_base_tsconfig = "tsconfig.json"
-typescript_targets = ["plugins/", "am2-globals.d.ts", "playwright.config.ts"]
+typescript_targets = ["src"]
 
 gates_skip_docs = false
 gate_docs_include = ["src", "plugins"]

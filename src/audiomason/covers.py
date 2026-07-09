@@ -218,6 +218,9 @@ def choose_cover(
                     dst.write_bytes(data)
                 out(f"[cover] used file cover: {file_cover.name}")
                 return (data, "image/png")
+            data = convert_image_to_jpg(file_cover, dst)
+            out(f"[cover] used file cover: {file_cover.name}")
+            return data, "image/jpeg"
         if embedded:
             data, mime = embedded
             if not (state.OPTS is not None and state.OPTS.dry_run):
