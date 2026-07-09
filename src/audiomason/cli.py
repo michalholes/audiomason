@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import argparse
 import sys
+from getpass import getpass
 from pathlib import Path
 from typing import cast
 
+import yaml
+
 import audiomason.state as state
-from audiomason.config import load_config, validate_prompts_disable
+from audiomason.config import DEFAULTS, load_config, user_config_path, validate_prompts_disable
 from audiomason.import_flow import run_import
 from audiomason.paths import get_output_root, validate_paths_contract
 from audiomason.state import Opts
-from audiomason.util import AmAbortError, AmConfigError, AmExitError, out
+from audiomason.util import AmAbortError, AmConfigError, AmExitError, ensure_dir, out
 from audiomason.verify import verify_library
 from audiomason.version import __version__
 
@@ -169,6 +172,8 @@ def _parse_args() -> argparse.Namespace:
         "--max-mb", type=int, default=None, help="keep cache size under M megabytes (prune oldest)"
     )
 
+    sub.add_parser("init", help="interactive config wizard", parents=[parent])
+
     ns = ap.parse_args()
 
     # argv fallback for quiet/verbose (argparse quirk)
@@ -203,6 +208,8 @@ def _cmd_requires_config(ns: argparse.Namespace) -> bool:
     # - inspect (pure filesystem)
     # - verify if explicit root is provided (positional root or --verify-root)
     if cast(str, ns.cmd) == "inspect":
+        return False
+    if cast(str, ns.cmd) == "init":
         return False
     if cast(str, ns.cmd) == "verify":
         root_val = cast(object, getattr(ns, "root", None))
@@ -276,6 +283,134 @@ def _apply_builtin_defaults(ns: argparse.Namespace) -> None:
         ns.ff_loglevel = "warning"
 
 
+def _wizard_prompt(msg: str, default: str | None = None, *, secret: bool = False) -> str:
+    suffix = f" [{default}]" if default not in (None, "") else ""
+    try:
+        raw = getpass(f"{msg}:{suffix} ") if secret else input(f"{msg}:{suffix} ")
+    except (KeyboardInterrupt, EOFError) as e:
+        raise AmAbortError("cancelled by user") from e
+    val = raw.strip()
+    if val:
+        return val
+    return default or ""
+
+
+def _wizard_prompt_yes_no(msg: str, default_no: bool = True) -> bool:
+    suffix = "[y/N]" if default_no else "[Y/n]"
+    try:
+        ans = input(f"{msg} {suffix} ").strip().lower()
+    except (KeyboardInterrupt, EOFError) as e:
+        raise AmAbortError("cancelled by user") from e
+    if not ans:
+        return not default_no
+    return ans in {"y", "yes"}
+
+
+def _wizard_default_data_base() -> Path:
+    return Path.home() / ".local" / "share" / "audiomason"
+
+
+def _render_init_config(
+    *,
+    inbox: str,
+    stage: str,
+    output: str,
+    archive: str,
+    cache: str,
+    enabled: bool,
+    endpoint: str | None,
+    model: str | None,
+    api_key: str | None,
+) -> str:
+    payload: dict[str, object] = {
+        "paths": {
+            "inbox": inbox,
+            "stage": stage,
+            "output": output,
+            "archive": archive,
+            "cache": cache,
+        }
+    }
+
+    ai_cfg: dict[str, object] = {"enabled": enabled}
+    if enabled:
+        ai_defaults = _as_dict(DEFAULTS.get("ai"))
+        timeout_s = ai_defaults.get("timeout_s")
+        max_completion_tokens = ai_defaults.get("max_completion_tokens")
+        ai_cfg["provider"] = "openai_compatible"
+        ai_cfg["endpoint"] = endpoint or str(ai_defaults.get("endpoint", ""))
+        ai_cfg["model"] = model or str(ai_defaults.get("model", ""))
+        ai_cfg["api_key"] = api_key or ""
+        ai_cfg["timeout_s"] = int(timeout_s) if isinstance(timeout_s, (int, float)) else 20
+        ai_cfg["max_completion_tokens"] = (
+            int(max_completion_tokens) if isinstance(max_completion_tokens, int) else 80
+        )
+
+    payload["ai"] = ai_cfg
+    body = yaml.safe_dump(payload, sort_keys=False, default_flow_style=False, allow_unicode=False)
+    return (
+        "# AudioMason user configuration\n"
+        "# Set your filesystem roots first. The defaults below are safe per-user paths.\n\n"
+        f"{body}"
+    )
+
+
+def _run_init_wizard(config_path: Path | None) -> int:
+    target = config_path or user_config_path()
+    if target.exists() and target.is_dir():
+        raise AmConfigError(f"Config path is a directory: {target}")
+
+    if target.exists() and not _wizard_prompt_yes_no(
+        f"Config already exists at {target}. Overwrite?", default_no=True
+    ):
+        print(f"[info] Keeping existing config at {target}")
+        return 0
+
+    print(f"AudioMason init wizard -> {target}")
+    base = _wizard_default_data_base()
+    inbox = _wizard_prompt("Inbox path", str((base / "abooksinbox").resolve()))
+    stage = _wizard_prompt("Stage path", str((base / "_am_stage").resolve()))
+    output = _wizard_prompt("Output path", str((base / "abooks_ready").resolve()))
+    archive = _wizard_prompt("Archive path", str((base / "abooks").resolve()))
+    cache = _wizard_prompt("Cache path", str((base / ".cover_cache").resolve()))
+    enable_ai = _wizard_prompt_yes_no("Enable AI metadata fallback now?", default_no=True)
+    endpoint: str | None = None
+    model: str | None = None
+    api_key: str | None = None
+    if enable_ai:
+        ai_defaults = _as_dict(DEFAULTS.get("ai"))
+        endpoint = _wizard_prompt("AI endpoint", str(ai_defaults.get("endpoint", "")))
+        model = _wizard_prompt("AI model", str(ai_defaults.get("model", "")))
+        while True:
+            api_key = _wizard_prompt("AI secret / API key", secret=True)
+            if api_key:
+                break
+            print("[error] AI secret cannot be empty")
+
+    ensure_dir(target.parent)
+    target.write_text(
+        _render_init_config(
+            inbox=inbox,
+            stage=stage,
+            output=output,
+            archive=archive,
+            cache=cache,
+            enabled=enable_ai,
+            endpoint=endpoint,
+            model=model,
+            api_key=api_key,
+        ),
+        encoding="utf-8",
+    )
+    target.chmod(0o600)
+    print(f"[ok] Wrote {target}")
+    if enable_ai:
+        print(f"[ok] AI endpoint: {endpoint}")
+    else:
+        print("[ok] AI metadata fallback disabled")
+    return 0
+
+
 def _ns_to_opts(ns: argparse.Namespace) -> Opts:
     publish_key_raw: object = getattr(ns, "publish", None)
     publish_key: str = str(publish_key_raw) if publish_key_raw is not None else "ask"
@@ -323,6 +458,11 @@ def main() -> int:
             # argparse quirk: --json can be lost when subparsers are involved
             if "--json" in argv_set:
                 ns.json = True
+
+            if cast(str, ns.cmd) == "init":
+                _apply_builtin_defaults(ns)
+                state.OPTS = _ns_to_opts(ns)
+                return _run_init_wizard(cast(Path | None, getattr(ns, "config", None)))
 
             cfg: dict[str, object] | None = None
             if _cmd_requires_config(ns):

@@ -13,3 +13,8 @@
 - For APT release keys, generate them non-interactively with `gpg --batch --pinentry-mode loopback --passphrase '' --quick-generate-key ...` to avoid TTY prompts during publish setup.
 - For Debian native packages, the package version comes from `debian/changelog`, so keep it aligned with `pyproject.toml` before building a release.
 - For console scripts, point `project.scripts` at a module that actually exists in the installed distribution; otherwise the packaged CLI can break even when the wheel builds cleanly.
+- For config wizards that collect secrets, use `getpass` and write the resulting file with restrictive permissions like `0600`.
+- For init wizards, ask for filesystem roots before secrets so the user can finish the durable setup first and skip AI later if needed.
+- For init wizards, prefill filesystem roots with safe user-space defaults but keep them editable so the user can override every path.
+- For Debian packages, the visible package description lives in `debian/control`; changing `pyproject.toml.description` only affects Python packaging metadata.
+- For APT publishes, always bump the version before rebuilding so pool filenames stay immutable and the repo can carry both old and new artifacts.

@@ -16,6 +16,5 @@ Depends:
  ${misc:Depends},
  ${python3:Depends},
  ffmpeg
-Description: AudioMason - deterministic audiobook import and tagging CLI
- AudioMason imports audiobook sources into a deterministic staged workflow,
- applies tagging/covers, and supports resumable runs.
+Description: Deterministic audiobook import, tagging, and publishing CLI
+ AudioMason provides a deterministic audiobook import, tagging, and publishing CLI.
