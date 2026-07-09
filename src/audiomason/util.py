@@ -185,6 +185,16 @@ class AmUndoError(RuntimeError):
     pass
 
 
+class AmUndoToChooseSourceError(AmUndoError):
+    """Specialized undo meaning: jump back to Choose Source.
+
+    Used by prompts where the previous logical section is the top-level
+    source selection (for example, choose_books).
+    """
+
+    pass
+
+
 def prune_empty_dirs(start: Path, stop_at: Path) -> None:
     try:
         p = start

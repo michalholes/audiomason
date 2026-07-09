@@ -53,6 +53,7 @@ from audiomason.tags import summarize_id3_files, wipe_id3, write_cover, write_ta
 from audiomason.util import (
     AmConfigError,
     AmUndoError,
+    AmUndoToChooseSourceError,
     die,
     ensure_dir,
     out,
@@ -424,11 +425,15 @@ def _choose_books(
     out(f"[books] found {len(books)}:")
     for i, b in enumerate(books, 1):
         out(f"  {i}) {b.label}")
-    ans = (
-        pf_prompt(cfg, "choose_books", "Choose book number, or 'a' for all", default_ans)
-        .strip()
-        .lower()
-    )
+    try:
+        ans = (
+            pf_prompt(cfg, "choose_books", "Choose book number, or 'a' for all", default_ans)
+            .strip()
+            .lower()
+        )
+    except AmUndoError as err:
+        # Treat undo at choose_books as "back to Choose Source" per requested UX
+        raise AmUndoToChooseSourceError("undo to choose source") from err
     if ans == "a":
         return books
     try:

@@ -1,8 +1,8 @@
-audiomason (1.4.0~rc7) UNRELEASED; urgency=medium
+audiomason (1.4.0~rc8) UNRELEASED; urgency=medium
 
-  * Add AVIF cover sniffing.
+  * Add Ctrl+G one-step undo in import preflight.
 
- --  <pi@michal.holes.sk>  Thu, 09 Jul 2026 14:49:07 +0200
+ --  <pi@michal.holes.sk>  Thu, 09 Jul 2026 15:01:00 +0200
 
 audiomason (1.3.4) unstable; urgency=medium
 

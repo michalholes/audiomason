@@ -20,6 +20,7 @@
 - For APT publishes, always bump the version before rebuilding so pool filenames stay immutable and the repo can carry both old and new artifacts.
 - For missing user config, the error should point straight at `audiomason init` so the first-run path is obvious.
 - For cover sniffing, detect AVIF via the `ftyp` box (`avif`/`mif1`) before falling back to a generic MIME type.
+- For interactive undo, keep backtracking in small helper drivers rather than spreading step-back state through the main import flow.
 - For large interactive flows, move prompt-heavy branches into a separate helper module and pass prompt callbacks through adapters so the main orchestrator does not grow.
 - For strict mypy, prefer a small named `Path` key helper for `sorted()` instead of inline lambdas when type inference starts drifting into `Any`.
 - For TTY-based wizards, map Ctrl+G (BEL) as a lightweight inline-undo in `input()` handlers to avoid raw mode and keep changes minimal.

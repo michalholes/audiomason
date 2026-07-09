@@ -264,16 +264,20 @@ def drive_top_level(
                 continue
 
         # Step 2: run for picked sources
-        try:
-            run_for(picked_sources, picked_all, run_clean_inbox)
-            return
-        except AmUndoError:
-            # If asking clean_inbox, return there first; otherwise go to choose sources
-            if clean_inbox_mode == "ask":
-                from contextlib import suppress
-
-                with suppress(AmUndoError):
-                    _ = ask_clean_inbox(cfg, False)
-                continue
-            else:
-                continue
+        while True:
+            try:
+                run_for(picked_sources, picked_all, run_clean_inbox)
+                return
+            except AmUndoError as e:
+                # If asking clean_inbox, return there first; otherwise go to choose sources
+                if type(e).__name__ == "AmUndoToChooseSourceError":
+                    break
+                if clean_inbox_mode == "ask":
+                    try:
+                        run_clean_inbox = ask_clean_inbox(cfg, False)
+                    except AmUndoError:
+                        break
+                    # re-run run_for with updated run_clean_inbox
+                    continue
+                else:
+                    break
