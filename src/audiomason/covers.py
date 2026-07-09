@@ -64,6 +64,8 @@ def _sniff_image_ext(data: bytes) -> tuple[str, str]:
         return ("png", "image/png")
     if len(data) >= 12 and data[0:4] == b"RIFF" and data[8:12] == b"WEBP":
         return ("webp", "image/webp")
+    if len(data) >= 12 and data[4:8] == b"ftyp" and data[8:12] in (b"avif", b"mif1"):
+        return ("avif", "image/avif")
     return ("img", "application/octet-stream")
 
 
