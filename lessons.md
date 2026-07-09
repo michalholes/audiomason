@@ -19,3 +19,4 @@
 - For Debian packages, the visible package description lives in `debian/control`; changing `pyproject.toml.description` only affects Python packaging metadata.
 - For APT publishes, always bump the version before rebuilding so pool filenames stay immutable and the repo can carry both old and new artifacts.
 - For missing user config, the error should point straight at `audiomason init` so the first-run path is obvious.
+- For cover sniffing, detect AVIF via the `ftyp` box (`avif`/`mif1`) before falling back to a generic MIME type.

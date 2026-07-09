@@ -1,6 +1,6 @@
-audiomason (1.4.0~rc5) UNRELEASED; urgency=medium
+audiomason (1.4.0~rc6) UNRELEASED; urgency=medium
 
-  * Make the clean_inbox prompt default to yes.
+  * Add AVIF cover sniffing.
 
  --  <pi@michal.holes.sk>  Thu, 09 Jul 2026 10:40:18 +0200
 

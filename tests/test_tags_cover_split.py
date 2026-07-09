@@ -3,6 +3,7 @@ from pathlib import Path
 from mutagen.id3 import ID3
 from mutagen.id3._frames import TALB, TIT2, TPE1, TRCK
 
+from audiomason.covers import _sniff_image_ext  # pyright: ignore[reportPrivateUsage]
 from audiomason.tags import summarize_id3_files, write_cover, write_tags
 
 
@@ -32,6 +33,13 @@ def test_write_cover_adds_and_can_clear(tmp_path: Path):
     write_cover([mp3], cover=None, cover_mime=None)
     id3 = ID3(mp3)
     assert not any(k.startswith("APIC") for k in id3)
+
+
+def test_sniff_image_ext_detects_avif():
+    ext, mime = _sniff_image_ext(b"\x00\x00\x00\x18ftypavif")
+
+    assert ext == "avif"
+    assert mime == "image/avif"
 
 
 def test_summarize_id3_files_reads_existing_tags(tmp_path: Path):

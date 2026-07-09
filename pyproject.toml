@@ -1,6 +1,6 @@
 [project]
 name = "audiomason"
-version = "1.4.0rc5"
+version = "1.4.0rc6"
 description = "Deterministic audiobook import, tagging, and publishing CLI"
 authors = [
     {name = "Michal Holes", email = "michal@holes.sk"}
