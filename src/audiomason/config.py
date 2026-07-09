@@ -32,6 +32,8 @@ DEFAULTS: dict[str, object] = {
     "split_chapters": True,
     "paths": {},
     "publish": "ask",
+    "wipe_id3": None,
+    "clean_stage": None,
     "preflight_disable": [],
     "prompts": {"disable": []},
     "processing_log": {"enabled": False, "path": None},

@@ -28,6 +28,7 @@ def test_choose_all_sources_prompts_author_per_source(monkeypatch, tmp_path: Pat
     (s2 / "01.mp3").write_bytes(b"y")
 
     import audiomason.import_flow as imp
+    import audiomason.preflight_resolve as pr
 
     # Patch path resolvers to our tmp layout (avoid depending on paths.py contract details)
     monkeypatch.setattr(imp, "get_drop_root", lambda cfg: drop_root)
@@ -75,6 +76,8 @@ def test_choose_all_sources_prompts_author_per_source(monkeypatch, tmp_path: Pat
 
         monkeypatch.setattr(imp, "prompt", fake_prompt)
         monkeypatch.setattr(imp, "prompt_yes_no", lambda *a, **k: False)
+        monkeypatch.setattr(pr, "prompt", fake_prompt)
+        monkeypatch.setattr(pr, "prompt_yes_no", lambda *a, **k: False)
 
         imp.run_import(cfg={})
 
@@ -207,6 +210,7 @@ def test_clean_inbox_prompt_never_happens_during_process_when_selecting_all_sour
     (s2 / "01.mp3").write_bytes(b"x")
 
     import audiomason.import_flow as imp
+    import audiomason.preflight_resolve as pr
 
     events: list[str] = []
 
@@ -239,7 +243,10 @@ def test_clean_inbox_prompt_never_happens_during_process_when_selecting_all_sour
     monkeypatch.setattr(imp, "_process_book", fake_process)
     monkeypatch.setattr(imp, "prompt", fake_prompt)
     monkeypatch.setattr(imp, "prompt_yes_no", lambda *a, **k: False)
-    monkeypatch.setattr(imp, "_pf_prompt_yes_no", fake_pf)
+    monkeypatch.setattr(pr, "prompt", fake_prompt)
+    monkeypatch.setattr(pr, "prompt_yes_no", lambda *a, **k: False)
+    monkeypatch.setattr(pr, "pf_prompt_yes_no", fake_pf)
+    monkeypatch.setattr(imp, "pf_prompt_yes_no", fake_pf)
     monkeypatch.setattr(imp, "_choose_books", lambda cfg, books, default_ans="1": books)
 
     old_opts = getattr(state, "OPTS", None)
@@ -292,6 +299,7 @@ def test_choose_all_sources_runs_all_preflights_before_any_processing(monkeypatc
     (s2 / "01.mp3").write_bytes(b"x")
 
     import audiomason.import_flow as imp
+    import audiomason.preflight_resolve as pr
 
     events: list[tuple[str, str]] = []
 
@@ -322,6 +330,8 @@ def test_choose_all_sources_runs_all_preflights_before_any_processing(monkeypatc
     monkeypatch.setattr(imp, "_process_book", fake_process)
     monkeypatch.setattr(imp, "prompt", fake_prompt)
     monkeypatch.setattr(imp, "prompt_yes_no", lambda *a, **k: False)
+    monkeypatch.setattr(pr, "prompt", fake_prompt)
+    monkeypatch.setattr(pr, "prompt_yes_no", lambda *a, **k: False)
 
     old_opts = getattr(state, "OPTS", None)
     try:

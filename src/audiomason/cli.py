@@ -12,6 +12,7 @@ import audiomason.state as state
 from audiomason.config import DEFAULTS, load_config, user_config_path, validate_prompts_disable
 from audiomason.import_flow import run_import
 from audiomason.paths import get_output_root, validate_paths_contract
+from audiomason.preflight_resolve import resolve_bool_config
 from audiomason.state import Opts
 from audiomason.util import AmAbortError, AmConfigError, AmExitError, ensure_dir, out
 from audiomason.verify import verify_library
@@ -237,6 +238,9 @@ def _apply_config_defaults(ns: argparse.Namespace, cfg: dict[str, object]) -> No
         if isinstance(publish_default, bool):
             publish_default = "yes" if publish_default else "no"
         ns.publish = str(publish_default)
+
+    if cast(object, getattr(ns, "wipe_id3", None)) is None:
+        ns.wipe_id3 = resolve_bool_config(cfg, "wipe_id3")
 
     if cast(object, getattr(ns, "clean_inbox", None)) is None:
         ns.clean_inbox = str(cfg.get("clean_inbox", "no"))

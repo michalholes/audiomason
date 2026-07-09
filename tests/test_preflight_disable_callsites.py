@@ -15,23 +15,23 @@ def test_preflight_disable_callsites_do_not_bypass_pf_prompt_yes_no():
     assert 'wipe = prompt_yes_no("Full wipe ID3 tags' not in txt
     assert 'clean_stage = prompt_yes_no("Clean stage after' not in txt
 
-    # And we expect the _pf_prompt_yes_no variants to be present.
+    # And we expect the pf_prompt_yes_no variants to be present.
     # (may be multi-line, so use regex with DOTALL)
-    assert re.search(r'_pf_prompt_yes_no\(\s*cfg,\s*"use_manifest_answers"', txt, re.DOTALL), (
-        "missing _pf_prompt_yes_no for use_manifest_answers"
+    assert re.search(r'pf_prompt_yes_no\(\s*cfg,\s*"use_manifest_answers"', txt, re.DOTALL), (
+        "missing pf_prompt_yes_no for use_manifest_answers"
     )
     assert re.search(
-        r'_pf_prompt_yes_no\(\s*cfg,\s*"publish".*"Publish after import\?"',
+        r'pf_prompt_yes_no\(\s*cfg,\s*"publish".*"Publish after import\?"',
         txt,
         re.DOTALL,
-    ), "missing _pf_prompt_yes_no for publish"
+    ), "missing pf_prompt_yes_no for publish"
     assert re.search(
-        r'_pf_prompt_yes_no\(\s*cfg,\s*"wipe_id3".*"Full wipe ID3 tags',
+        r'pf_prompt_yes_no\(\s*cfg,\s*"wipe_id3".*"Full wipe ID3 tags',
         txt,
         re.DOTALL,
-    ), "missing _pf_prompt_yes_no for wipe_id3"
+    ), "missing pf_prompt_yes_no for wipe_id3"
     assert re.search(
-        r'_pf_prompt_yes_no\(\s*cfg,\s*"clean_stage".*"Clean stage after successful import\?"',
+        r'pf_prompt_yes_no\(\s*cfg,\s*"clean_stage".*"Clean stage after successful import\?"',
         txt,
         re.DOTALL,
-    ), "missing _pf_prompt_yes_no for clean_stage"
+    ), "missing pf_prompt_yes_no for clean_stage"

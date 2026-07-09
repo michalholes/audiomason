@@ -8,33 +8,33 @@ from audiomason.import_flow import (
     BookGroup,
     _choose_books,
     _choose_source,
-    _resolved_prompts_disable,
 )
+from audiomason.preflight_resolve import resolve_prompts_disable
 from audiomason.util import AmConfigError
 
 
 def test_prompts_disable_invalid_type_fails_fast():
     cfg = {"prompts": {"disable": "nope"}}
     with pytest.raises(AmConfigError):
-        _resolved_prompts_disable(cfg)
+        resolve_prompts_disable(cfg)
 
 
 def test_prompts_disable_unknown_key_fails_fast():
     cfg = {"prompts": {"disable": ["nope"]}}
     with pytest.raises(AmConfigError):
-        _resolved_prompts_disable(cfg)
+        resolve_prompts_disable(cfg)
 
 
 def test_prompts_disable_duplicate_fails_fast():
     cfg = {"prompts": {"disable": ["choose_source", "choose_source"]}}
     with pytest.raises(AmConfigError):
-        _resolved_prompts_disable(cfg)
+        resolve_prompts_disable(cfg)
 
 
 def test_prompts_disable_star_cannot_be_combined():
     cfg = {"prompts": {"disable": ["*", "choose_source"]}}
     with pytest.raises(AmConfigError):
-        _resolved_prompts_disable(cfg)
+        resolve_prompts_disable(cfg)
 
 
 def test_disable_all_skips_choose_source_prompt(monkeypatch):

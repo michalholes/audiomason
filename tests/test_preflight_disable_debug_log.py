@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import audiomason.state as state
-from audiomason.import_flow import _pf_prompt, _pf_prompt_yes_no
+from audiomason.preflight_resolve import pf_prompt, pf_prompt_yes_no
 
 
 def test_preflight_disable_debug_log_yes_no(capsys, monkeypatch):
@@ -9,7 +9,7 @@ def test_preflight_disable_debug_log_yes_no(capsys, monkeypatch):
     monkeypatch.setattr(state, "DEBUG", True, raising=False)
 
     cfg = {"preflight_disable": ["publish"]}
-    ret = _pf_prompt_yes_no(cfg, "publish", "Publish after import?", default_no=True)
+    ret = pf_prompt_yes_no(cfg, "publish", "Publish after import?", default_no=True)
     assert ret is False
 
     out = capsys.readouterr()
@@ -22,7 +22,7 @@ def test_preflight_disable_debug_log_prompt(capsys, monkeypatch):
     monkeypatch.setattr(state, "DEBUG", True, raising=False)
 
     cfg = {"preflight_disable": ["cover"]}
-    ret = _pf_prompt(cfg, "cover", "Choose cover", "2")
+    ret = pf_prompt(cfg, "cover", "Choose cover", "2")
     assert ret == "2"
 
     out = capsys.readouterr()
