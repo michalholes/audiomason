@@ -70,6 +70,48 @@ It is the supported no-surprises path and keeps upgrades simple.
 
 ---
 
+## Method 3: User-space install script (no root)
+
+This method installs AudioMason into your home directory without root access.
+It downloads the .deb from GitHub Releases, extracts it, and sets up a
+Python venv with all dependencies.
+
+Requirements:
+- Linux (Debian/Ubuntu)
+- Python 3.11+
+- curl
+- dpkg-deb
+
+### Install
+
+    curl -fsSL https://raw.githubusercontent.com/michalholes/audiomason/main/scripts/install-audiomason.sh | bash
+
+Or download and run locally:
+
+    ./scripts/install-audiomason.sh
+
+### Options
+
+    --version VER   Install a specific version (default: latest)
+    --dir DIR       Install directory (default: ~/.local)
+    --dry-run       Print commands without executing
+
+### Where it installs
+
+    ~/.local/share/audiomason/venv/     Python venv with dependencies
+    ~/.local/bin/audiomason             CLI wrapper
+    ~/.config/audiomason1/config.yaml   Example config (first install only)
+
+### Upgrade
+
+Re-run the installer — it will update the venv and package in place.
+
+### Remove
+
+    rm -rf ~/.local/share/audiomason ~/.local/bin/audiomason
+
+---
+
 ## Post-install checklist
 
 1) Verify the command exists:

@@ -59,7 +59,7 @@ sudo apt install audiomason
 APT will verify signatures automatically.
 If it does not, stop - do not continue and do not guess.
 
-Other installation methods (including GitHub Releases) are documented in:
+Other installation methods (including user-space and GitHub Releases) are documented in:
 - docs/INSTALL.md
 
 ---
