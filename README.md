@@ -6,6 +6,8 @@
 
 Deterministic, ASCII-only CLI tool for **importing, normalizing, tagging, and publishing audiobooks** from messy real-world sources.
 
+AudioMason turns chaos into a neatly organized library.
+
 AudioMason is designed for people who:
 - have large audiobook libraries
 - receive files in inconsistent formats (RARs, folders, bad tags, mixed encodings)
