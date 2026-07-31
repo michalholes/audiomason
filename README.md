@@ -59,8 +59,14 @@ sudo apt install audiomason
 APT will verify signatures automatically.
 If it does not, stop - do not continue and do not guess.
 
-Other installation methods (including user-space and GitHub Releases) are documented in:
-- docs/INSTALL.md
+### User-space (no root)
+
+```
+curl -fsSL https://raw.githubusercontent.com/michalholes/audiomason/main/scripts/install-audiomason.sh | bash
+```
+
+Installs to `~/.local` and launches the configuration wizard.
+See docs/INSTALL.md for all methods and options.
 
 ---
 
