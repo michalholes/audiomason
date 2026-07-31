@@ -90,6 +90,9 @@ Or download and run locally:
 
     ./scripts/install-audiomason.sh
 
+The installer finishes by launching `audiomason init` — an interactive wizard
+that configures filesystem paths and (optionally) AI metadata fallback.
+
 ### Options
 
     --version VER   Install a specific version (default: latest)
@@ -108,7 +111,7 @@ Re-run the installer — it will update the venv and package in place.
 
 ### Remove
 
-    rm -rf ~/.local/share/audiomason ~/.local/bin/audiomason
+    rm -rf ~/.local/share/audiomason ~/.local/bin/audiomason ~/.config/audiomason1
 
 ---
 

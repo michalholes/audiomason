@@ -161,6 +161,15 @@ if [ "$DRY_RUN" -eq 0 ]; then
     fi
 fi
 
+# --- Run init wizard ---
+
+if [ "$DRY_RUN" -eq 0 ]; then
+    log "Launching configuration wizard..."
+    "${BIN_DIR}/audiomason" init
+else
+    echo "    ${BIN_DIR}/audiomason init"
+fi
+
 # --- Cleanup cache ---
 
 log "Cleaning up cached .deb..."
