@@ -7,6 +7,8 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import IO
 
+from audiomason.log_bus import emit as _emit
+
 
 # ======================
 # Controlled exits (Issue #41)
@@ -70,10 +72,11 @@ def out(msg: str) -> None:
             if not m.lstrip().startswith(("[ERROR]", "ERROR:", "[FATAL]", "FATAL:")):
                 return
 
+        # Emit via log bus with optional [TRACE] prefix preserved
         if state.DEBUG:
-            print(f"[TRACE] {msg}", flush=True)
+            _emit(f"[TRACE] {msg}")
         else:
-            print(msg, flush=True)
+            _emit(str(msg))
     except BrokenPipeError:
         return
 

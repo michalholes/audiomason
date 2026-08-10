@@ -32,6 +32,12 @@ class Opts:
 
     json: bool = False
 
+    # Concurrency limits
+    max_parallel_sources: int = 1
+    max_parallel_books: int = 2
+    max_parallel_ffmpeg: int = 2
+    verify_parallel: int = 1
+
 
 # During refactor we keep global state for compatibility with legacy code.
 OPTS: Opts | None = None

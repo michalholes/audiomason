@@ -11,6 +11,7 @@ from mutagen.id3._frames import APIC
 from mutagen.id3._util import ID3NoHeaderError
 
 import audiomason.state as state
+from audiomason.concurrency import ffmpeg_slot
 from audiomason.paths import COVER_NAME, get_cache_root
 from audiomason.util import die, ensure_dir, is_url, out, prompt, run_cmd
 
@@ -49,7 +50,8 @@ def convert_image_to_jpg(src: Path, dst: Path) -> bytes:
     if state.OPTS is not None and state.OPTS.dry_run:
         out("[dry-run] " + " ".join(cmd))
         return b""
-    run_cmd(cmd)
+    with ffmpeg_slot():
+        run_cmd(cmd)
     return dst.read_bytes()
 
 
@@ -161,7 +163,8 @@ def extract_cover_from_m4a(m4a: Path, bookdir: Path) -> tuple[bytes, str] | None
         out("[dry-run] " + " ".join(cmd))
         return None
     try:
-        run_cmd(cmd)
+        with ffmpeg_slot():
+            run_cmd(cmd)
         if dst.exists() and dst.stat().st_size > 0:
             out("[cover] extracted from m4a container")
             return dst.read_bytes(), "image/jpeg"

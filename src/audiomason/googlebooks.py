@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+import asyncio
 import difflib
 import json
 import re
+import threading
 import time
 import unicodedata
 from collections.abc import Mapping
 from typing import cast
-from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+
+import httpx
 
 BASE = "https://www.googleapis.com/books/v1"
 UA = "AudioMason/1.0 (https://github.com/michalholes/audiomason)"
@@ -71,13 +73,121 @@ def _author_match(author: str, authors: object) -> bool:
     return False
 
 
+def _norm_params(params: Mapping[str, object]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for k, v in params.items():
+        try:
+            out[str(k)] = str(v)
+        except Exception:
+            out[str(k)] = ""
+    return out
+
+
 def _get_json(path: str, params: Mapping[str, object], timeout: float = 10.0) -> dict[str, object]:
-    qs = urlencode(params)
-    url = f"{BASE}{path}?{qs}"
-    req = Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
-    with urlopen(req, timeout=timeout) as r:  # type: ignore[misc]
-        raw = r.read().decode("utf-8", errors="replace")  # type: ignore[misc]
-    return cast(dict[str, object], json.loads(raw))  # type: ignore[misc]
+    url = f"{BASE}{path}"
+    headers = {"User-Agent": UA, "Accept": "application/json"}
+    delay_s = max(0, int(_goog_host_delay_ms)) / 1000.0
+    if delay_s:
+        time.sleep(delay_s)
+    with httpx.Client(headers=headers, timeout=timeout) as client:
+        resp = client.get(url, params=_norm_params(params))
+        resp.raise_for_status()
+        raw = resp.text
+    return cast(dict[str, object], json.loads(raw))
+
+
+# Per-host guard shared across loops (limit 1 to avoid 429)
+_goog_host_sem = threading.Semaphore(1)
+_goog_host_delay_ms = 0
+
+
+class _HostGuardAsync:
+    def __init__(self, sem: threading.Semaphore):
+        self._sem = sem
+
+    async def __aenter__(self) -> None:
+        await asyncio.to_thread(self._sem.acquire)
+
+    async def __aexit__(self, exc_type, exc, tb) -> None:  # type: ignore[no-untyped-def]
+        self._sem.release()
+
+
+def set_host_limit(n: int) -> None:  # noqa: N802
+    global _goog_host_sem
+    _goog_host_sem = threading.Semaphore(max(1, int(n)))
+
+
+def set_host_delay_ms(n: int) -> None:  # noqa: N802
+    global _goog_host_delay_ms
+    _goog_host_delay_ms = max(0, int(n))
+
+
+async def _get_json_async(
+    path: str, params: Mapping[str, object], timeout: float = 10.0
+) -> dict[str, object]:
+    url = f"{BASE}{path}"
+    headers = {"User-Agent": UA, "Accept": "application/json"}
+    # Per-host guard (1 in-flight) to avoid 429
+    _sem = _goog_host_sem
+    delay_s = max(0, int(_goog_host_delay_ms)) / 1000.0
+    if delay_s:
+        await asyncio.sleep(delay_s)
+    async with _HostGuardAsync(_sem), httpx.AsyncClient(headers=headers, timeout=timeout) as client:
+        resp = await client.get(url, params=_norm_params(params))
+        resp.raise_for_status()
+        raw = resp.text
+    return cast(dict[str, object], json.loads(raw))
+
+
+async def suggest_title_async(author: str, title: str) -> str | None:
+    if _dry_run():
+        return None
+
+    a = (author or "").strip()
+    t = (title or "").strip()
+    if not a or not t:
+        return None
+
+    q = f"intitle:{t} inauthor:{a}"
+    fields = "items(volumeInfo/title,volumeInfo/authors,volumeInfo/language)"
+
+    for lang in ("cs", "sk"):
+        try:
+            data = await _get_json_async(
+                "/volumes",
+                {
+                    "q": q,
+                    "maxResults": 20,
+                    "langRestrict": lang,
+                    "printType": "books",
+                    "fields": fields,
+                },
+            )
+        except Exception:
+            continue
+        raw_items_obj = data.get("items")
+        raw_items: list[object] = (
+            cast(list[object], raw_items_obj) if isinstance(raw_items_obj, list) else []
+        )
+
+        filtered: list[dict[str, object]] = []
+        for it in raw_items:
+            if not isinstance(it, dict):
+                continue
+            it_dict = cast(dict[str, object], it)
+            vi_raw = it_dict.get("volumeInfo")
+            vi: dict[str, object] = (
+                cast(dict[str, object], vi_raw) if isinstance(vi_raw, dict) else {}
+            )
+            if str(vi.get("language") or "").strip().lower() != lang:
+                continue
+            filtered.append(it_dict)
+
+        best = _pick_best(t, a, filtered)
+        if best:
+            return best
+
+    return None
 
 
 def _sort_key(item: tuple[float, str]) -> tuple[float, str]:

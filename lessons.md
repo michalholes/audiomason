@@ -24,3 +24,6 @@
 - For large interactive flows, move prompt-heavy branches into a separate helper module and pass prompt callbacks through adapters so the main orchestrator does not grow.
 - For strict mypy, prefer a small named `Path` key helper for `sorted()` instead of inline lambdas when type inference starts drifting into `Any`.
 - For TTY-based wizards, map Ctrl+G (BEL) as a lightweight inline-undo in `input()` handlers to avoid raw mode and keep changes minimal.
+- Prefer a small log bus with contextvars over monkey-patching `sys.stdout` for per-source processing logs; it enables safe interleaving and deterministic prefixes without global side effects.
+ - Avoid duplicating orchestration logic in new modules; extend the existing flow with small async bridges (`run_coro`, `run_parallel`) so behavior stays deterministic and tests remain targeted.
+ - For async migrations, introduce async entrypoints with sync wrappery a presuň orchestráciu do nových modulov (lifecycle/staging), aby sa znížil monolit bez zmeny správania; CLI prepnúť na asyncio.run až v závere.

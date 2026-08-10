@@ -1,5 +1,7 @@
 from __future__ import annotations
+# ruff: noqa: I001
 
+import asyncio
 import argparse
 import sys
 from getpass import getpass
@@ -10,12 +12,10 @@ import yaml
 
 import audiomason.state as state
 from audiomason.config import DEFAULTS, load_config, user_config_path, validate_prompts_disable
-from audiomason.import_flow import run_import
 from audiomason.paths import get_output_root, validate_paths_contract
 from audiomason.preflight_resolve import resolve_bool_config
 from audiomason.state import Opts
 from audiomason.util import AmAbortError, AmConfigError, AmExitError, ensure_dir, out
-from audiomason.verify import verify_library
 from audiomason.version import __version__
 
 SUPPORT_URL = "https://buymeacoffee.com/audiomason"
@@ -96,6 +96,15 @@ def _parent_parser() -> argparse.ArgumentParser:
     )
     _ff_loglevel_choices: list[str] = ["info", "warning", "error"]
     pp.add_argument("--ff-loglevel", choices=_ff_loglevel_choices, default=None)
+    # Concurrency controls
+    pp.add_argument("--max-parallel-sources", type=int, default=None, help="parallel sources limit")
+    pp.add_argument(
+        "--max-parallel-books", type=int, default=None, help="parallel books per source"
+    )
+    pp.add_argument(
+        "--max-parallel-ffmpeg", type=int, default=None, help="parallel ffmpeg processes"
+    )
+    pp.add_argument("--serial", action="store_true", help="force serial execution (no parallelism)")
     return pp
 
 
@@ -161,6 +170,7 @@ def _parse_args() -> argparse.Namespace:
 
     v = sub.add_parser("verify", help="verify audiobook library", parents=[parent])
     v.add_argument("root", nargs="?", type=Path, default=None)
+    v.add_argument("--parallel", type=int, default=None, help="parallel authors during verify")
 
     i = sub.add_parser("inspect", help="read-only source inspection", parents=[parent])
     i.add_argument("path", type=Path)
@@ -226,6 +236,8 @@ def _cmd_requires_config(ns: argparse.Namespace) -> bool:
 def _apply_config_defaults(ns: argparse.Namespace, cfg: dict[str, object]) -> None:
     ffmpeg = _as_dict(cfg.get("ffmpeg"))
     paths = _as_dict(cfg.get("paths"))
+    conc = _as_dict(cfg.get("concurrency"))
+    net = _as_dict(cfg.get("network"))
 
     if cast(object, getattr(ns, "verify_root", None)) is None:
         vr_raw = paths.get("verify_root")
@@ -260,6 +272,34 @@ def _apply_config_defaults(ns: argparse.Namespace, cfg: dict[str, object]) -> No
     if cast(object, getattr(ns, "ff_loglevel", None)) is None:
         ns.ff_loglevel = str(ffmpeg.get("loglevel", "warning"))
 
+    # Concurrency defaults (CLI > config)
+    def _int_cfg(val: object, default: int) -> int:
+        try:
+            if isinstance(val, bool):
+                return int(val)
+            if isinstance(val, (int, float)):
+                return int(val)
+            if isinstance(val, str):
+                return int(val.strip())
+        except Exception:
+            return default
+        return default
+
+    if cast(bool, getattr(ns, "serial", False)):
+        ns.max_parallel_sources = 1
+        ns.max_parallel_books = 1
+        ns.max_parallel_ffmpeg = 1
+    else:
+        if cast(object, getattr(ns, "max_parallel_sources", None)) is None:
+            ns.max_parallel_sources = _int_cfg(conc.get("sources"), 1)
+        if cast(object, getattr(ns, "max_parallel_books", None)) is None:
+            ns.max_parallel_books = _int_cfg(conc.get("books"), 2)
+        if cast(object, getattr(ns, "max_parallel_ffmpeg", None)) is None:
+            ns.max_parallel_ffmpeg = _int_cfg(conc.get("ffmpeg"), 2)
+    # Verify parallelism
+    if cast(object, getattr(ns, "parallel", None)) is None:
+        ns.parallel = _int_cfg(net.get("verify_parallel"), 1)
+
 
 def _argv_config_path() -> Path | None:
     _argv = list(sys.argv[1:])
@@ -285,6 +325,20 @@ def _apply_builtin_defaults(ns: argparse.Namespace) -> None:
         ns.split_chapters = True
     if cast(object, getattr(ns, "ff_loglevel", None)) is None:
         ns.ff_loglevel = "warning"
+    # Concurrency defaults for no-config commands
+    if cast(bool, getattr(ns, "serial", False)):
+        ns.max_parallel_sources = 1
+        ns.max_parallel_books = 1
+        ns.max_parallel_ffmpeg = 1
+    else:
+        if cast(object, getattr(ns, "max_parallel_sources", None)) is None:
+            ns.max_parallel_sources = 1
+        if cast(object, getattr(ns, "max_parallel_books", None)) is None:
+            ns.max_parallel_books = 2
+    if cast(object, getattr(ns, "max_parallel_ffmpeg", None)) is None:
+        ns.max_parallel_ffmpeg = 2
+    if cast(object, getattr(ns, "parallel", None)) is None:
+        ns.parallel = 1
 
 
 def _wizard_prompt(msg: str, default: str | None = None, *, secret: bool = False) -> str:
@@ -436,7 +490,21 @@ def _ns_to_opts(ns: argparse.Namespace) -> Opts:
         ff_loglevel=cast(str, ns.ff_loglevel),
         cpu_cores=cast(int | None, getattr(ns, "cpu_cores", None)),
         json=cast(bool, getattr(ns, "json", False)),
+        max_parallel_sources=cast(int, getattr(ns, "max_parallel_sources", 1)),
+        max_parallel_books=cast(int, getattr(ns, "max_parallel_books", 2)),
+        max_parallel_ffmpeg=cast(int, getattr(ns, "max_parallel_ffmpeg", 2)),
+        verify_parallel=cast(int, getattr(ns, "parallel", 1)),
     )
+
+
+def run_import(cfg: dict[str, object], src_path: Path | None) -> None:
+    """Compatibility shim for legacy tests.
+
+    Delegates to async import engine using asyncio.run.
+    """
+    from audiomason.import_engine_async import run_import_async
+
+    asyncio.run(run_import_async(cfg, src_path))
 
 
 def main() -> int:
@@ -474,6 +542,18 @@ def main() -> int:
                 # only for commands that actually require it.
                 cfg = load_config(cast(Path | None, getattr(ns, "config", None)))
                 validate_paths_contract(cfg)
+                # Validate and backfill network section if missing
+                try:
+                    from audiomason.config import (
+                        ensure_network_defaults_written,
+                        validate_network_config,
+                    )
+
+                    validate_network_config(cfg)
+                    ensure_network_defaults_written(cfg)
+                except Exception:
+                    # Do not block startup on network tuning
+                    pass
                 _apply_config_defaults(ns, cfg)
             else:
                 _apply_builtin_defaults(ns)
@@ -514,6 +594,18 @@ def main() -> int:
 
             state.OPTS = _ns_to_opts(ns)
 
+            # Start global async loop for the run (hybrid async orchestration)
+            try:
+                from audiomason.async_bridge import (
+                    register_atexit_stop,
+                    start_global_loop,
+                )
+
+                start_global_loop()
+                register_atexit_stop()
+            except Exception:
+                pass
+
             if state.DEBUG:
                 if cfg is not None:
                     print(
@@ -531,8 +623,10 @@ def main() -> int:
                 return 0
 
             if cast(str, ns.cmd) == "verify" and cfg is None:
+                from audiomason.verify import verify_library_async
+
                 root = cast(Path | None, getattr(ns, "root", None)) or state.OPTS.verify_root
-                verify_library(root, None)
+                asyncio.run(verify_library_async(root, None))
                 return 0
 
             # From here on, commands are config-dependent.
@@ -580,8 +674,10 @@ def main() -> int:
                 print(_version_kv_line(), flush=True)
 
             if cast(str, ns.cmd) == "verify":
+                from audiomason.verify import verify_library_async
+
                 root = cast(Path | None, getattr(ns, "root", None)) or state.OPTS.verify_root
-                verify_library(root, cfg)
+                asyncio.run(verify_library_async(root, cfg))
                 return 0
 
             if cast(str, ns.cmd) == "cache":

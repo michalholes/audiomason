@@ -37,6 +37,22 @@ DEFAULTS: dict[str, object] = {
     "preflight_disable": [],
     "prompts": {"disable": []},
     "processing_log": {"enabled": False, "path": None},
+    "concurrency": {
+        "sources": 1,
+        "books": 2,
+        "ffmpeg": 2,
+    },
+    "network": {
+        "verify_parallel": 1,
+        "host_limits": {
+            "openlibrary": 1,
+            "googlebooks": 1,
+        },
+        "host_delay_ms": {
+            "openlibrary": 0,
+            "googlebooks": 0,
+        },
+    },
     "openlibrary": {"enabled": True},
     "ai": {
         "enabled": False,
@@ -228,3 +244,65 @@ def load_config(config_path: Path | None = None) -> dict[str, object]:
     _rt["version"] = __version__
     cfg["runtime"] = _rt
     return cfg
+
+
+def _as_int(val: object, default: int) -> int:
+    try:
+        if isinstance(val, bool):
+            return int(val)
+        if isinstance(val, (int, float)):
+            return int(val)
+        if isinstance(val, str):
+            return int(val.strip())
+    except Exception:
+        return default
+    return default
+
+
+def validate_network_config(cfg: dict[str, object]) -> None:
+    net = _as_dict(cfg.get("network"))
+    vp = _as_int(net.get("verify_parallel", 1), 1)
+    if vp < 1:
+        raise AmConfigError("Invalid config: network.verify_parallel must be >= 1")
+    host_limits = _as_dict(net.get("host_limits"))
+    for k in ("openlibrary", "googlebooks"):
+        v = _as_int(host_limits.get(k), 1)
+        if v < 1:
+            raise AmConfigError(f"Invalid config: network.host_limits.{k} must be >= 1")
+    host_delay = _as_dict(net.get("host_delay_ms"))
+    for k in ("openlibrary", "googlebooks"):
+        v = _as_int(host_delay.get(k), 0)
+        if v < 0:
+            raise AmConfigError(f"Invalid config: network.host_delay_ms.{k} must be >= 0")
+
+
+def ensure_network_defaults_written(cfg: dict[str, object]) -> None:
+    src_path_s = str(cfg.get("loaded_from") or "")
+    if not src_path_s:
+        return
+    p = Path(src_path_s)
+    raw = _load_yaml(p)
+    changed = False
+    net_any = raw.get("network")
+    if not isinstance(net_any, dict):
+        raw["network"] = {
+            "verify_parallel": 1,
+            "host_limits": {"openlibrary": 1, "googlebooks": 1},
+            "host_delay_ms": {"openlibrary": 0, "googlebooks": 0},
+        }
+        changed = True
+    else:
+        net = cast(dict[str, object], net_any)
+        hl: object = net.get("host_limits")
+        if not isinstance(hl, dict):
+            net["host_limits"] = {"openlibrary": 1, "googlebooks": 1}
+            changed = True
+        hd: object = net.get("host_delay_ms")
+        if not isinstance(hd, dict):
+            net["host_delay_ms"] = {"openlibrary": 0, "googlebooks": 0}
+            changed = True
+        if "verify_parallel" not in net:
+            net["verify_parallel"] = 1
+            changed = True
+    if changed:
+        p.write_text(yaml.safe_dump(raw, sort_keys=False, allow_unicode=False), encoding="utf-8")

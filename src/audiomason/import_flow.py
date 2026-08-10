@@ -1,21 +1,18 @@
 from __future__ import annotations
+# ruff: noqa: I001
 
 # pyright: reportUnusedFunction=false
-import contextlib
-import io
 import json
 import shutil
-import sys
-import types
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TextIO, cast
+from typing import cast
 
 import audiomason.metadata_lookup as metadata_lookup
 import audiomason.openlibrary as openlibrary
 import audiomason.state as state
-from audiomason.archives import unpack
 from audiomason.audio import convert_m4a_in_place, convert_opus_in_place
+import asyncio
 from audiomason.covers import (
     choose_cover,
     cover_from_input,
@@ -49,6 +46,13 @@ from audiomason.preflight_resolve import (
 )
 from audiomason.preflight_undo import decide_publish_wipe_clean, prompt_author_with_undo
 from audiomason.rename import natural_sort, rename_sequential
+from audiomason.stage_detect_runtime import (
+    collect_audio_files as _collect_audio_files_impl,
+    find_first_m4a as _find_first_m4a_impl,
+    has_audio_files_here as _has_audio_files_here_impl,
+    reset_dir as _reset_dir_impl,
+    stage_source as _stage_source_impl,
+)
 from audiomason.tags import summarize_id3_files, wipe_id3, write_cover, write_tags
 from audiomason.util import (
     AmConfigError,
@@ -58,9 +62,12 @@ from audiomason.util import (
     ensure_dir,
     out,
     prompt,
-    prompt_yes_no,
+    prompt_yes_no as _prompt_yes_no,  # test compatibility re-export
     slug,
 )
+
+# Re-export for tests that monkeypatch import_flow.prompt_yes_no
+prompt_yes_no = _prompt_yes_no
 
 # FEATURE #67: disable selected preflight prompts (skip prompts deterministically)
 
@@ -335,41 +342,19 @@ def _choose_source(cfg: dict[str, object], sources: list[Path]) -> list[Path]:
 
 
 def _reset_dir(p: Path) -> None:
-    if p.exists():
-        shutil.rmtree(p)
-    ensure_dir(p)
+    _reset_dir_impl(p)
 
 
 def _stage_source(src: Path, stage_src: Path) -> None:
-    _reset_dir(stage_src)
-    if src.is_dir():
-        # copy tree into stage (deterministic)
-        for item in src.rglob("*"):
-            rel = item.relative_to(src)
-            dst = stage_src / rel
-            if item.is_dir():
-                ensure_dir(dst)
-            else:
-                ensure_dir(dst.parent)
-                shutil.copy2(item, dst)
-        return
-
-    if src.is_file() and src.suffix.lower() in ARCHIVE_EXTS:
-        unpack(src, stage_src)
-        return
-
-    die(f"Unsupported source: {src}")
+    _stage_source_impl(src, stage_src)
 
 
 def _has_audio_files_here(p: Path) -> bool:
-    return any(f.is_file() and f.suffix.lower() in _AUDIO_EXTS for f in p.iterdir())
+    return _has_audio_files_here_impl(p)
 
 
 def _find_first_m4a(p: Path) -> Path | None:
-    for f in sorted(p.rglob("*.m4a"), key=lambda x: x.as_posix().lower()):  # type: ignore[misc]
-        if f.is_file():
-            return f
-    return None
+    return _find_first_m4a_impl(p)
 
 
 # [issue_75] _detect_books
@@ -448,19 +433,7 @@ def _choose_books(
 
 # [issue_75] _collect_audio_files
 def _collect_audio_files(group_root: Path) -> list[Path]:
-    mp3s = sorted(
-        [p for p in group_root.iterdir() if p.is_file() and p.suffix.lower() == ".mp3"],
-        key=lambda p: p.name.casefold(),  # type: ignore[misc]
-    )
-    m4as = sorted(
-        [p for p in group_root.iterdir() if p.is_file() and p.suffix.lower() == ".m4a"],
-        key=lambda p: p.name.casefold(),  # type: ignore[misc]
-    )
-    opuses = sorted(
-        [p for p in group_root.iterdir() if p.is_file() and p.suffix.lower() == ".opus"],
-        key=lambda p: p.name.casefold(),  # type: ignore[misc]
-    )
-    return mp3s + m4as + opuses
+    return _collect_audio_files_impl(group_root)
 
 
 def _preflight_global(cfg: dict[str, object]) -> tuple[bool, bool]:
@@ -582,7 +555,14 @@ def _apply_book_steps(
         if st == "rename":
             mp3s = rename_sequential(outdir, mp3s)
         elif st == "tags":
-            write_tags(mp3s, artist=author, album=title, track_start=1, cover=None, cover_mime=None)
+            write_tags(
+                mp3s,
+                artist=author,
+                album=title,
+                track_start=1,
+                cover=None,
+                cover_mime=None,
+            )
         elif st == "cover":
             mp3_first = mp3s[0] if mp3s else None
             cover = choose_cover(
@@ -596,7 +576,8 @@ def _apply_book_steps(
             )
             cover_bytes = cover[0] if cover else None
             cover_mime = cover[1] if cover else None
-            write_cover(mp3s, cover=cover_bytes, cover_mime=cover_mime)
+            if cover_bytes is not None and cover_mime is not None:
+                write_cover(mp3s, cover=cover_bytes, cover_mime=cover_mime)
         elif st == "publish":
             # publish is resolved earlier via dest_root choice; keep step for ordering/visibility
             pass
@@ -666,6 +647,7 @@ def _process_book(
     mp3s = _copy_audio_to_out_no_rename(b.group_root, outdir)
 
     # [issue_86] PROCESS-only conversion (m4a/opus -> mp3)
+    # Use sync conversion in sync path; async path handled in async lifecycle
     convert_m4a_in_place(outdir, recursive=False)
     convert_opus_in_place(outdir, recursive=False)
     mp3s = natural_sort([p for p in outdir.iterdir() if p.is_file() and p.suffix.lower() == ".mp3"])
@@ -828,6 +810,40 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
     ensure_dir(output_root)
     stage_runs_for_json: list[Path] = []
 
+    # Apply network settings (host limits/delays) if configured
+    try:
+        net = _as_dict(cfg.get("network"))
+        hl = _as_dict(net.get("host_limits") or {})
+        hd = _as_dict(net.get("host_delay_ms") or {})
+        from audiomason import googlebooks as _gb
+        from audiomason import openlibrary as _ol
+
+        def _as_int(x: object, d: int) -> int:
+            try:
+                if isinstance(x, bool):
+                    return int(x)
+                if isinstance(x, (int, float)):
+                    return int(x)
+                if isinstance(x, str):
+                    return int(x.strip())
+            except Exception:
+                return d
+            return d
+
+        ol_limit = _as_int(hl.get("openlibrary", 1), 1)
+        gb_limit = _as_int(hl.get("googlebooks", 1), 1)
+        ol_delay = _as_int(hd.get("openlibrary", 0), 0)
+        gb_delay = _as_int(hd.get("googlebooks", 0), 0)
+        _ol.set_host_limit(ol_limit)
+        _gb.set_host_limit(gb_limit)
+        _ol.set_host_delay_ms(ol_delay)
+        _gb.set_host_delay_ms(gb_delay)
+        if state.DEBUG:
+            out(f"[TRACE] [net] openlibrary limit={ol_limit} delay_ms={ol_delay}")
+            out(f"[TRACE] [net] googlebooks limit={gb_limit} delay_ms={gb_delay}")
+    except Exception:
+        pass
+
     # Issue #74: per-source processing log
     def _pl_resolve_target(cfg: dict[str, object], stage_run: Path, src: Path) -> Path | None:
         spec = _as_dict(cfg.get("processing_log"))
@@ -849,24 +865,7 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
             p = p.with_suffix(".log")
         return p
 
-    class _PLTee(io.TextIOBase):
-        def __init__(self, a: TextIO, b: TextIO) -> None:
-            self._a = a
-            self._b = b
-
-        def write(self, s: str) -> int:
-            na = self._a.write(s)
-            self._b.write(s)
-            return na
-
-        def flush(self) -> None:
-            with contextlib.suppress(Exception):
-                self._a.flush()
-            with contextlib.suppress(Exception):
-                self._b.flush()
-
-        def isatty(self) -> bool:
-            return False
+    # Legacy per-source tee removed; see logging_integration for sink handling.
 
     # retained for backward-compat docstrings; not used in this scope
     # Forced processing when explicit src_path points to a concrete path under drop_root
@@ -881,67 +880,30 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
     def _process_one_source(
         src: Path, si: int, total: int, *, phase: str, do_process: bool, run_clean_inbox: bool
     ) -> None:
-        global prompt, prompt_yes_no
-        # Issue #74: streaming per-source log (during run)
+        # Delegated to source_lifecycle (extracted).
+        from audiomason.source_lifecycle import run_source_lifecycle_sync as _run_src_lc
+
+        return _run_src_lc(
+            cfg,
+            src=src,
+            si=si,
+            total=total,
+            phase=phase,
+            do_process=do_process,
+            run_clean_inbox=run_clean_inbox,
+            drop_root=drop_root,
+            stage_root=stage_root,
+            archive_root=archive_root,
+            output_root=output_root,
+            stage_runs_for_json=stage_runs_for_json,
+            steps=steps,
+            forced_flag=_forced_flag,
+        )
         stage_run = stage_root / slug(src.name)
-        _pl_target = None
-        _pl_fh = None
-        _pl_stdout0 = sys.stdout
-        _pl_stderr0 = sys.stderr
-        _pl_prompt0 = prompt
-        _pl_prompt_yes_no0 = prompt_yes_no
-        _pl_util: types.ModuleType | None = None
-        try:
-            _pl_target = _pl_resolve_target(cfg, stage_run, src)
-            if _pl_target is not None and not (state.OPTS and state.OPTS.dry_run):
-                # Ensure stage_run exists so we can log immediately.
-                ensure_dir(stage_run)
-                ensure_dir(_pl_target.parent)
-                # Line-buffered file => every message is written right away.
-                _pl_fh = _pl_target.open("w", encoding="utf-8", buffering=1)
-        except Exception:
-            _pl_target = None
-            _pl_fh = None
+        _pl_target = _pl_resolve_target(cfg, stage_run, src)
+        from audiomason.logging_integration import start_source_logging
 
-        if _pl_fh is not None:
-            _pl_tee = _PLTee(sys.stdout, _pl_fh)
-            _pl_tee_err = _PLTee(sys.stderr, _pl_fh)
-            sys.stdout = _pl_tee
-            sys.stderr = _pl_tee_err
-
-            # Wrap prompts to explicitly log questions + user answers.
-            try:
-                import audiomason.util as _pl_util
-            except Exception:
-                _pl_util = None
-
-            def _pl_prompt(q: str, default: str) -> str:
-                with contextlib.suppress(Exception):
-                    _pl_fh.write(f"[prompt] {q} [default={default}]\n")
-                ans = _pl_prompt0(q, default)
-                with contextlib.suppress(Exception):
-                    _pl_fh.write(f"[answer] {ans}\n")
-                return ans
-
-            def _pl_prompt_yes_no(q: str, *, default_no: bool = True) -> bool:
-                with contextlib.suppress(Exception):
-                    _pl_fh.write(f"[prompt_yes_no] {q} [default={'no' if default_no else 'yes'}]\n")
-                ansb = _pl_prompt_yes_no0(q, default_no=default_no)
-                with contextlib.suppress(Exception):
-                    _pl_fh.write(f"[answer] {'yes' if ansb else 'no'}\n")
-                return ansb
-
-            # IMPORTANT: override module globals so all callers use wrappers.
-            prompt = _pl_prompt  # type: ignore[assignment]
-            prompt_yes_no = _pl_prompt_yes_no  # type: ignore[assignment]
-            try:
-                if _pl_util is not None:
-                    _pl_util.prompt = _pl_prompt  # type: ignore[attr-defined]
-                    _pl_util.prompt_yes_no = _pl_prompt_yes_no  # type: ignore[attr-defined]
-            except Exception:
-                pass
-
-        try:
+        with start_source_logging(cfg, stage_run=stage_run, src=src, explicit_target=_pl_target):
             out(f"[source] {si}/{total}: {src.name}")
 
             global _SOURCE_PREFIX
@@ -1302,17 +1264,16 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
                             book_context += "; id3=" + json.dumps(
                                 id3_by_label[b.label], ensure_ascii=False, sort_keys=True
                             )
-                        br = (
-                            openlibrary.validate_book(author, title)
-                            if batch_defaults is not None
-                            else metadata_lookup.validate_book(
+                        if batch_defaults is not None:
+                            br = openlibrary.validate_book(author, title)
+                        else:
+                            br = metadata_lookup.validate_book(
                                 author,
                                 title,
                                 cfg,
                                 context=book_context,
                                 artifact_dir=stage_run,
                             )
-                        )
                         if (not br.ok) and (not br.top):
                             out(f"[ol] book not found: author='{author}' title='{title}'")
                         if state.DEBUG:
@@ -1585,34 +1546,49 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
             # ISSUE #15: manifest progress for resume
             processed_labels = _as_str_list(books_meta.get("processed"))
 
-            # processing phase (no prompts)
-            for bi, (
-                b,
-                title,
-                cover_mode,
-                dest_root2,
-                out_title,
-                overwrite,
-                final_root2,
-            ) in enumerate(meta, 1):
-                _process_book(
-                    bi,
-                    len(meta),
-                    b,
-                    stage_run,
-                    dest_root2,
-                    author,
-                    title,
-                    out_title,
-                    wipe_b,
-                    cover_mode,
-                    overwrite,
-                    cfg,
-                    final_root2,
-                    steps,
-                )
-                processed_labels.append(b.label)
-                update_manifest(stage_run, {"books": {"processed": processed_labels}})
+            # processing phase (no prompts) — run books in parallel with limits
+            # Protect manifest writes (per-source) during parallel book processing
+            import threading
+
+            from audiomason.async_runner import run_parallel
+            from audiomason.log_bus import push_context
+
+            _mf_lock = threading.Lock()
+
+            def _book_worker(entry: tuple[BookGroup, str, str, Path, str, bool, Path]) -> None:
+                b, title, cover_mode, dest_root2, out_title, overwrite, final_root2 = entry
+                bi = [x[0] for x in enumerate([m[0] for m in meta], 1) if x[1] == b][0]
+                with push_context(source=slug(src.name), book=b.label, phase="PROCESS"):
+                    _process_book(
+                        bi,
+                        len(meta),
+                        b,
+                        stage_run,
+                        dest_root2,
+                        author,
+                        title,
+                        out_title,
+                        wipe_b,
+                        cover_mode,
+                        overwrite,
+                        cfg,
+                        final_root2,
+                        steps,
+                    )
+                    # conversions already executed in _process_book
+                with _mf_lock:
+                    processed_labels.append(b.label)
+                    update_manifest(stage_run, {"books": {"processed": processed_labels}})
+
+            _opts = state.OPTS
+            max_books = int(_opts.max_parallel_books) if _opts is not None else 2
+            # Nastav ffmpeg gating pre async ffmpeg sloty
+            from audiomason.concurrency import set_ffmpeg_limit
+
+            max_ff = int(_opts.max_parallel_ffmpeg) if _opts is not None else 2
+            set_ffmpeg_limit(max_ff)
+            # ffmpeg limit je riešený v audio/covers cez ffmpeg_slot(); tu limitujeme počet kníh
+            asyncio.run(run_parallel(meta, _book_worker, max_concurrency=max_books))
 
             out("[phase] FINALIZE")
 
@@ -1648,29 +1624,6 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
                     shutil.rmtree(stage_run, ignore_errors=True)
                     out(f"[stage] cleaned: {stage_run}")
 
-        finally:
-            # Issue #74: finalize streaming per-source log
-            sys.stdout = _pl_stdout0
-            sys.stderr = _pl_stderr0
-            # restore prompt functions
-            try:
-                prompt = _pl_prompt0
-                prompt_yes_no = _pl_prompt_yes_no0
-            except Exception:
-                pass
-            try:
-                if _pl_util is not None:
-                    _pl_util.prompt = _pl_prompt0  # type: ignore[attr-defined]
-                    _pl_util.prompt_yes_no = _pl_prompt_yes_no0  # type: ignore[attr-defined]
-            except Exception:
-                pass
-            try:
-                if _pl_fh is not None:
-                    _pl_fh.flush()
-                    _pl_fh.close()
-            except Exception:
-                pass
-
     def _run_one_source(
         src: Path, si: int, total: int, *, phase: str, do_process: bool, run_clean_inbox: bool
     ) -> None:
@@ -1692,15 +1645,47 @@ def run_import(cfg: dict[str, object], src_path: Path | None = None) -> None:
             phases = ["preflight", "process"]
         for phase in phases:
             do_process = phase != "preflight"
-            for si, src in enumerate(picked_sources, 1):
-                _run_one_source(
-                    src,
-                    si,
-                    len(picked_sources),
-                    phase=phase,
-                    do_process=do_process,
-                    run_clean_inbox=run_clean_inbox,
-                )
+            if do_process and len(picked_sources) > 1:
+                # Process multiple sources in parallel for PROCESS phase
+                from audiomason.async_runner import run_parallel
+
+                _sources_order_local = list(picked_sources)
+                _total_local = len(_sources_order_local)
+
+                def _runner(
+                    s: Path,
+                    *,
+                    _phase: str = phase,
+                    _rcib: bool = run_clean_inbox,
+                    _order: list[Path] = _sources_order_local,
+                    _tot: int = _total_local,
+                ) -> None:
+                    try:
+                        si = _order.index(s) + 1
+                    except ValueError:
+                        si = 1
+                    _run_one_source(
+                        s,
+                        si,
+                        _tot,
+                        phase=_phase,
+                        do_process=True,
+                        run_clean_inbox=_rcib,
+                    )
+
+                _opts2 = state.OPTS
+                max_src = int(_opts2.max_parallel_sources) if _opts2 is not None else 1
+                asyncio.run(run_parallel(picked_sources, _runner, max_concurrency=max_src))
+            else:
+                for si, src in enumerate(picked_sources, 1):
+                    _run_one_source(
+                        src,
+                        si,
+                        len(picked_sources),
+                        phase=phase,
+                        do_process=do_process,
+                        run_clean_inbox=run_clean_inbox,
+                    )
 
     from audiomason.preflight_undo import drive_top_level  # local import to avoid cycle
 

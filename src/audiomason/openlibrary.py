@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 # pyright: reportUnusedFunction=false
+import asyncio
 import difflib
 import json
 import re
+import threading
 import time
 import unicodedata
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
-from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+
+import httpx
 
 from audiomason.googlebooks import suggest_title
 from audiomason.util import strip_diacritics
@@ -22,6 +24,36 @@ UA = "AudioMason/1.0 (https://github.com/michalholes/audiomason)"
 
 # Disk cache (deterministic): AUDIOMASON_ROOT/_state/openlibrary_cache.json
 _cache: dict[str, dict[str, object]] | None = None
+
+_openlib_host_sem = threading.Semaphore(1)
+_openlib_host_delay_ms = 0
+
+
+class _HostGuardAsync:
+    def __init__(self, sem: threading.Semaphore):
+        self._sem = sem
+
+    async def __aenter__(self) -> None:
+        await asyncio.to_thread(self._sem.acquire)
+
+    async def __aexit__(self, exc_type, exc, tb) -> None:  # type: ignore[no-untyped-def]
+        self._sem.release()
+
+
+def set_host_limit(n: int) -> None:  # noqa: N802 (public API)
+    """Configure max in-flight requests for OpenLibrary host.
+
+    n <= 0 falls back to 1.
+    """
+    # Reinitialize semaphore by replacing the object; used rarely at startup.
+    global _openlib_host_sem
+    _openlib_host_sem = threading.Semaphore(max(1, int(n)))
+
+
+def set_host_delay_ms(n: int) -> None:  # noqa: N802 (public API)
+    """Configure per-request delay for OpenLibrary in milliseconds."""
+    global _openlib_host_delay_ms
+    _openlib_host_delay_ms = max(0, int(n))
 
 
 def _cache_path() -> Path | None:
@@ -91,13 +123,43 @@ class OLResult:
     source: str | None = None
 
 
+def _norm_params(params: Mapping[str, object]) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for k, v in params.items():
+        try:
+            out[str(k)] = str(v)
+        except Exception:
+            out[str(k)] = ""
+    return out
+
+
 def _get_json(path: str, params: Mapping[str, object], timeout: float = 10.0) -> dict[str, object]:
-    qs = urlencode(params)
-    url = f"{BASE}{path}?{qs}"
-    req = Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
-    with urlopen(req, timeout=timeout) as r:  # type: ignore[misc]
-        raw = r.read().decode("utf-8", errors="replace")  # type: ignore[misc]
-    return cast(dict[str, object], json.loads(raw))  # type: ignore[misc]
+    url = f"{BASE}{path}"
+    headers = {"User-Agent": UA, "Accept": "application/json"}
+    delay_s = max(0, int(_openlib_host_delay_ms)) / 1000.0
+    if delay_s:
+        time.sleep(delay_s)
+    with httpx.Client(headers=headers, timeout=timeout) as client:
+        resp = client.get(url, params=_norm_params(params))
+        resp.raise_for_status()
+        raw = resp.text
+    return cast(dict[str, object], json.loads(raw))
+
+
+async def _get_json_async(
+    path: str, params: Mapping[str, object], timeout: float = 10.0
+) -> dict[str, object]:
+    url = f"{BASE}{path}"
+    headers = {"User-Agent": UA, "Accept": "application/json"}
+    _sem = _openlib_host_sem
+    delay_s = max(0, int(_openlib_host_delay_ms)) / 1000.0
+    if delay_s:
+        await asyncio.sleep(delay_s)
+    async with _HostGuardAsync(_sem), httpx.AsyncClient(headers=headers, timeout=timeout) as client:
+        resp = await client.get(url, params=_norm_params(params))
+        resp.raise_for_status()
+        raw = resp.text
+    return cast(dict[str, object], json.loads(raw))
 
 
 def validate_author(name: str) -> OLResult:
@@ -354,5 +416,132 @@ def validate_book(author: str, title: str) -> OLResult:
 
     top = _sanitize_title_suggestion(t, top)
 
+    _cache_put(ck, {"ok": True, "status": "book:ok", "hits": hits, "top": top})
+    return OLResult(True, "book:ok", hits, top)
+
+
+# Optional async variants (not used by core yet)
+async def validate_author_async(name: str) -> OLResult:
+    q = (name or "").strip()
+    if not q:
+        return OLResult(False, "author:empty", 0, None)
+    ck = "author:" + q
+    hit = _cache_get(ck)
+    if hit is not None:
+        top = cast(str | None, hit.get("top"))
+        return OLResult(
+            bool(hit.get("ok")),
+            str(hit.get("status")),
+            int(str(hit.get("hits") or 0)),
+            top,
+            cast(str | None, hit.get("source")),
+        )
+    try:
+        data = await _get_json_async("/search/authors.json", {"q": q, "limit": 5})
+    except Exception as e:
+        return OLResult(False, f"author:error:{type(e).__name__}", 0, None)
+    hits = int(str(data.get("numFound") or 0))
+    docs = cast(list[dict[str, object]], data.get("docs")) or []
+    top = None
+    if docs:
+        top = str(docs[0].get("name") or "") or None
+    if hits == 0:
+        top = _sanitize_title_suggestion(q, top)
+        _cache_put(ck, {"ok": False, "status": "author:not_found", "hits": 0, "top": top})
+        return OLResult(False, "author:not_found", 0, top)
+    top = _sanitize_title_suggestion(q, top)
+    _cache_put(ck, {"ok": True, "status": "author:ok", "hits": hits, "top": top})
+    return OLResult(True, "author:ok", hits, top)
+
+
+async def validate_book_async(author: str, title: str) -> OLResult:
+    a = (author or "").strip()
+    t = (title or "").strip()
+    if not a or not t:
+        return OLResult(False, "book:empty", 0, None)
+    ck = f"book:{a}|{t}"
+    hit = _cache_get(ck)
+    if hit is not None:
+        top = cast(str | None, hit.get("top"))
+        return OLResult(
+            bool(hit.get("ok")),
+            str(hit.get("status")),
+            int(str(hit.get("hits") or 0)),
+            top,
+            cast(str | None, hit.get("source")),
+        )
+    params: dict[str, object] = {
+        "title": t,
+        "author": a,
+        "limit": 5,
+        "fields": "key,title,author_name,first_publish_year",
+    }
+    # polite delay
+    await asyncio.sleep(0.2)
+    try:
+        data = await _get_json_async("/search.json", params)
+    except Exception as e:
+        return OLResult(False, f"book:error:{type(e).__name__}", 0, None)
+    hits = int(str(data.get("numFound") or 0))
+    docs_obj = data.get("docs")
+    docs = cast(list[dict[str, object]], docs_obj) if isinstance(docs_obj, list) else []
+    top = None
+    if docs:
+        top = str(docs[0].get("title") or "") or None
+    if hits == 0:
+        try:
+            await asyncio.sleep(0.2)
+            q = _fallback_q(t)
+            data2 = await _get_json_async(
+                "/search.json", {"q": q, "limit": 50, "fields": "key,title,author_name"}
+            )
+            docs2_obj = data2.get("docs")
+            docs2 = cast(list[dict[str, object]], docs2_obj) if isinstance(docs2_obj, list) else []
+            cand: list[tuple[float, str, str]] = []
+            for d in docs2:
+                if not _author_match(a, d.get("author_name")):
+                    continue
+                key = str(d.get("key") or "").strip()
+                tt = str(d.get("title") or "").strip()
+                if not key or not tt:
+                    continue
+                score = difflib.SequenceMatcher(None, _norm_title(t), _norm_title(tt)).ratio()
+                cand.append((score, tt, key))
+            if cand:
+
+                def _cand_key(x: tuple[float, str, str]) -> tuple[float, str, str]:
+                    return (-x[0], x[1], x[2])
+
+                cand.sort(key=_cand_key)
+                rescored: list[tuple[float, str]] = []
+                for _, tt, _kk in cand[:5]:
+                    # Keep async variant simple: score the top titles directly.
+                    sugg = str(tt)
+                    score2 = difflib.SequenceMatcher(
+                        None, _norm_title(t), _norm_title(sugg)
+                    ).ratio()
+                    rescored.append((score2, sugg))
+
+                def _resc_key(x: tuple[float, str]) -> tuple[float, str]:
+                    return (-x[0], x[1])
+
+                rescored.sort(key=_resc_key)
+                best_s, best_t = rescored[0]
+                second_s = rescored[1][0] if len(rescored) > 1 else 0.0
+                if best_t and best_s >= 0.92 and (best_s - second_s) >= 0.03:
+                    top = best_t
+        except Exception:
+            pass
+        if top is None:
+            try:
+                g = suggest_title(a, t)
+                if g:
+                    top = g
+            except Exception:
+                pass
+        top = _sanitize_title_suggestion(t, top)
+        _cache_put(ck, {"ok": False, "status": "book:not_found", "hits": 0, "top": top})
+        return OLResult(False, "book:not_found", 0, top)
+    top = _sanitize_title_suggestion(t, top)
     _cache_put(ck, {"ok": True, "status": "book:ok", "hits": hits, "top": top})
     return OLResult(True, "book:ok", hits, top)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Mapping
 from pathlib import Path
 from typing import cast
@@ -89,6 +90,42 @@ def validate_author(
     return openlibrary.OLResult(False, "author:not_found", 0, None)
 
 
+async def validate_author_async(
+    name: str,
+    cfg: Mapping[str, object] | None = None,
+    *,
+    context: str | None = None,
+    artifact_dir: Path | None = None,
+) -> openlibrary.OLResult:
+    q = (name or "").strip()
+    if not q:
+        return openlibrary.OLResult(False, "author:empty", 0, None)
+
+    public_res: openlibrary.OLResult | None = None
+    if _lookup_enabled(cfg):
+        try:
+            public_res = await openlibrary.validate_author_async(q)
+        except Exception:
+            public_res = None
+        if (public_res and (public_res.ok or public_res.top)) or not _ai_enabled(cfg):
+            return public_res or openlibrary.OLResult(False, "author:not_found", 0, None)
+
+    if _ai_enabled(cfg):
+        suggestion = await asyncio.to_thread(
+            ai_lookup.suggest_author,
+            q,
+            cfg=_ai_cfg(cfg),
+            context=context,
+            artifact_dir=artifact_dir,
+        )
+        if suggestion:
+            return openlibrary.OLResult(True, "author:ai", 1, suggestion, "ai")
+
+    if public_res is not None:
+        return public_res
+    return openlibrary.OLResult(False, "author:not_found", 0, None)
+
+
 def validate_book(
     author: str,
     title: str,
@@ -111,6 +148,45 @@ def validate_book(
     if _ai_enabled(cfg):
         suggestion = ai_lookup.suggest_title(
             a, t, cfg=_ai_cfg(cfg), context=context, artifact_dir=artifact_dir
+        )
+        if suggestion:
+            return openlibrary.OLResult(True, "book:ai", 1, suggestion, "ai")
+
+    if public_res is not None:
+        return public_res
+    return openlibrary.OLResult(False, "book:not_found", 0, None)
+
+
+async def validate_book_async(
+    author: str,
+    title: str,
+    cfg: Mapping[str, object] | None = None,
+    *,
+    context: str | None = None,
+    artifact_dir: Path | None = None,
+) -> openlibrary.OLResult:
+    a = (author or "").strip()
+    t = (title or "").strip()
+    if not a or not t:
+        return openlibrary.OLResult(False, "book:empty", 0, None)
+
+    public_res: openlibrary.OLResult | None = None
+    if _lookup_enabled(cfg):
+        try:
+            public_res = await openlibrary.validate_book_async(a, t)
+        except Exception:
+            public_res = None
+        if (public_res and (public_res.ok or public_res.top)) or not _ai_enabled(cfg):
+            return public_res or openlibrary.OLResult(False, "book:not_found", 0, None)
+
+    if _ai_enabled(cfg):
+        suggestion = await asyncio.to_thread(
+            ai_lookup.suggest_title,
+            a,
+            t,
+            cfg=_ai_cfg(cfg),
+            context=context,
+            artifact_dir=artifact_dir,
         )
         if suggestion:
             return openlibrary.OLResult(True, "book:ai", 1, suggestion, "ai")

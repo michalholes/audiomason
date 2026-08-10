@@ -162,13 +162,12 @@ def prompt_author_with_undo(
                         source_id3_context, ensure_ascii=False, sort_keys=True
                     )
                 # If batch_defaults exists, prefer OpenLibrary direct call for determinism here
-                ar = (
-                    openlibrary.validate_author(author)
-                    if batch_defaults is not None
-                    else metadata_lookup.validate_author(
+                if batch_defaults is not None:
+                    ar = openlibrary.validate_author(author)
+                else:
+                    ar = metadata_lookup.validate_author(
                         author, cfg, context=author_context, artifact_dir=stage_run
                     )
-                )
                 if state.DEBUG:
                     out(
                         f"[ol] author result: ok={ar.ok}"
